@@ -1,0 +1,122 @@
+.card {
+  padding: 16px;
+  border-radius: 12px;
+  min-width: 220px;
+  display: flex;
+  flex-direction: column;
+  box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.08);
+  border: 1px solid var(--border-color);
+  background-color: var(--bg-surface-solid);
+}
+
+.handle {
+  background: var(--color-accent);
+  width: 8px;
+  height: 8px;
+}
+
+.header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 12px;
+}
+
+.titleContainer {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.title {
+  font-weight: 700;
+  font-size: 14px;
+  color: var(--color-text-primary);
+}
+
+.statusRow {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.indicator {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+}
+
+.statusText {
+  font-size: 11px;
+  color: var(--color-text-secondary);
+  text-transform: uppercase;
+  font-weight: 500;
+}
+
+.details {
+  display: flex;
+  justify-content: space-between;
+  font-size: 12px;
+  margin-bottom: 16px;
+  padding: 6px 8px;
+  border-radius: 6px;
+  background-color: var(--bg-main);
+}
+
+.label {
+  color: var(--color-text-muted);
+}
+
+.value {
+  color: var(--color-text-secondary);
+  font-family: 'JetBrains Mono', monospace;
+}
+
+.actions {
+  display: flex;
+  gap: 8px;
+  margin-top: auto;
+}
+
+.btn {
+  border: none;
+  border-radius: 6px;
+  padding: 6px 10px;
+  font-size: 12px;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  transition: background-color 0.2s, transform 0.1s;
+  font-weight: 600;
+}
+
+.btnPrimary {
+  background-color: var(--color-accent);
+  color: #FFF;
+  flex: 1;
+}
+
+.btnSecondary {
+  background-color: rgba(0, 0, 0, 0.05);
+  color: var(--color-text-secondary);
+  width: 32px;
+}
+
+.btnSecondary:hover {
+  background-color: rgba(0, 0, 0, 0.1);
+}
+
+.btnSuccess {
+  background-color: var(--color-success-glow);
+  color: var(--color-success);
+  border: 1px solid rgba(5, 150, 105, 0.3);
+  flex: 1;
+}
+
+.btnDanger {
+  background-color: var(--color-danger-glow);
+  color: var(--color-danger);
+  border: 1px solid rgba(220, 38, 38, 0.3);
+  width: 32px;
+}
