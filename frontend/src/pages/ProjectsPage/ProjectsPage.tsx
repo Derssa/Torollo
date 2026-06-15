@@ -135,11 +135,11 @@ const styles: Record<string, React.CSSProperties> = {
   title: {
     fontSize: '28px',
     fontWeight: 700,
-    color: '#FFF',
+    color: 'var(--color-text-primary)',
     margin: 0,
   },
   createBtn: {
-    backgroundColor: '#3B82F6',
+    backgroundColor: 'var(--color-accent)',
     color: '#FFF',
     border: 'none',
     borderRadius: '8px',
@@ -153,7 +153,7 @@ const styles: Record<string, React.CSSProperties> = {
     transition: 'background-color 0.2s',
   },
   loading: {
-    color: '#9CA3AF',
+    color: 'var(--color-text-secondary)',
   },
   grid: {
     display: 'grid',
@@ -169,7 +169,7 @@ const styles: Record<string, React.CSSProperties> = {
     flexDirection: 'column',
     height: '180px',
     justifyContent: 'space-between',
-    backgroundColor: 'rgba(17, 24, 39, 0.7)',
+    backgroundColor: 'var(--bg-surface-solid)',
   },
   cardHeader: {
     display: 'flex',
@@ -179,7 +179,7 @@ const styles: Record<string, React.CSSProperties> = {
   deleteBtn: {
     background: 'none',
     border: 'none',
-    color: '#6B7280',
+    color: 'var(--color-text-muted)',
     cursor: 'pointer',
     padding: '4px',
     borderRadius: '4px',
@@ -190,18 +190,18 @@ const styles: Record<string, React.CSSProperties> = {
   projectName: {
     fontSize: '18px',
     fontWeight: 600,
-    color: '#FFF',
+    color: 'var(--color-text-primary)',
     margin: '12px 0 4px 0',
   },
   projectMeta: {
     fontSize: '12px',
-    color: '#6B7280',
+    color: 'var(--color-text-secondary)',
     margin: 0,
   },
   cardFooter: {
     display: 'flex',
     alignItems: 'center',
-    color: '#3B82F6',
+    color: 'var(--color-accent)',
     fontSize: '13px',
     fontWeight: 500,
     marginTop: '16px',
@@ -209,7 +209,7 @@ const styles: Record<string, React.CSSProperties> = {
   empty: {
     gridColumn: '1 / -1',
     textAlign: 'center',
-    color: '#6B7280',
+    color: 'var(--color-text-secondary)',
     padding: '60px 0',
   },
 };

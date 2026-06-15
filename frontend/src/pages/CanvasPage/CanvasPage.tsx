@@ -1,5 +1,5 @@
 import { useEffect, useState, useMemo } from 'react';
-import { ReactFlow, Background, Controls } from '@xyflow/react';
+import { ReactFlow, Background, Controls, BackgroundVariant } from '@xyflow/react';
 import type { Node, Edge } from '@xyflow/react';
 import '@xyflow/react/dist/style.css';
 import UbuntuNode from '../../features/nodes/UbuntuNode/UbuntuNode';
@@ -218,7 +218,7 @@ export default function CanvasPage({ projectId, projectName, onBackToProjects, o
           onNodeDragStop={onNodeDragStop}
           fitView
         >
-          <Background color="#1F2937" gap={16} size={1} />
+          <Background variant={BackgroundVariant.Lines} color="#E5E7EB" gap={20} size={1} />
           <Controls />
         </ReactFlow>
       </div>

@@ -4,13 +4,13 @@
   min-width: 220px;
   display: flex;
   flex-direction: column;
-  box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.3);
-  border: 1px solid rgba(255, 255, 255, 0.08);
-  background-color: rgba(17, 24, 39, 0.85);
+  box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.08);
+  border: 1px solid var(--border-color);
+  background-color: var(--bg-surface-solid);
 }
 
 .handle {
-  background: #3B82F6;
+  background: var(--color-accent);
   width: 8px;
   height: 8px;
 }
@@ -29,9 +29,9 @@
 }
 
 .title {
-  fontWeight: 700;
+  font-weight: 700;
   font-size: 14px;
-  color: #F3F4F6;
+  color: var(--color-text-primary);
 }
 
 .statusRow {
@@ -48,7 +48,7 @@
 
 .statusText {
   font-size: 11px;
-  color: #9CA3AF;
+  color: var(--color-text-secondary);
   text-transform: uppercase;
   font-weight: 500;
 }
@@ -60,15 +60,15 @@
   margin-bottom: 16px;
   padding: 6px 8px;
   border-radius: 6px;
-  background-color: rgba(0, 0, 0, 0.2);
+  background-color: var(--bg-main);
 }
 
 .label {
-  color: #6B7280;
+  color: var(--color-text-muted);
 }
 
 .value {
-  color: #9CA3AF;
+  color: var(--color-text-secondary);
   font-family: 'JetBrains Mono', monospace;
 }
 
@@ -92,27 +92,31 @@
 }
 
 .btnPrimary {
-  background-color: #3B82F6;
+  background-color: var(--color-accent);
   color: #FFF;
   flex: 1;
 }
 
 .btnSecondary {
-  background-color: rgba(255, 255, 255, 0.08);
-  color: #9CA3AF;
+  background-color: rgba(0, 0, 0, 0.05);
+  color: var(--color-text-secondary);
   width: 32px;
 }
 
+.btnSecondary:hover {
+  background-color: rgba(0, 0, 0, 0.1);
+}
+
 .btnSuccess {
-  background-color: rgba(16, 185, 129, 0.15);
-  color: #10B981;
-  border: 1px solid rgba(16, 185, 129, 0.3);
+  background-color: var(--color-success-glow);
+  color: var(--color-success);
+  border: 1px solid rgba(5, 150, 105, 0.3);
   flex: 1;
 }
 
 .btnDanger {
-  background-color: rgba(239, 68, 68, 0.15);
-  color: #EF4444;
-  border: 1px solid rgba(239, 68, 68, 0.3);
+  background-color: var(--color-danger-glow);
+  color: var(--color-danger);
+  border: 1px solid rgba(220, 38, 38, 0.3);
   width: 32px;
 }

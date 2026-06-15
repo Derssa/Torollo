@@ -1,23 +1,23 @@
 @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap');
 
 :root {
-  --bg-main: #0B0F19;
-  --bg-surface: rgba(17, 24, 39, 0.7);
-  --bg-surface-solid: #111827;
-  --border-color: rgba(255, 255, 255, 0.08);
-  --border-color-hover: rgba(255, 255, 255, 0.16);
+  --bg-main: #F3F4F6;
+  --bg-surface: rgba(255, 255, 255, 0.75);
+  --bg-surface-solid: #FFFFFF;
+  --border-color: rgba(0, 0, 0, 0.08);
+  --border-color-hover: rgba(0, 0, 0, 0.16);
   
-  --color-text-primary: #F3F4F6;
-  --color-text-secondary: #9CA3AF;
-  --color-text-muted: #6B7280;
+  --color-text-primary: #1F2937;
+  --color-text-secondary: #4B5563;
+  --color-text-muted: #9CA3AF;
   
-  --color-accent: #3B82F6;
-  --color-accent-glow: rgba(59, 130, 246, 0.15);
+  --color-accent: #2563EB;
+  --color-accent-glow: rgba(37, 99, 235, 0.1);
   
-  --color-success: #10B981;
-  --color-success-glow: rgba(16, 185, 129, 0.15);
-  --color-danger: #EF4444;
-  --color-danger-glow: rgba(239, 68, 68, 0.15);
+  --color-success: #059669;
+  --color-success-glow: rgba(5, 150, 105, 0.1);
+  --color-danger: #DC2626;
+  --color-danger-glow: rgba(220, 38, 38, 0.1);
   
   --font-sans: 'Plus Jakarta Sans', system-ui, -apple-system, sans-serif;
   --font-mono: 'JetBrains Mono', monospace;
@@ -64,7 +64,7 @@ body {
 .react-flow__controls {
   background: var(--bg-surface-solid) !important;
   border: 1px solid var(--border-color) !important;
-  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.5) !important;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08) !important;
   border-radius: 8px !important;
   overflow: hidden;
 }
@@ -77,7 +77,7 @@ body {
 }
 
 .react-flow__controls-button:hover {
-  background: rgba(255, 255, 255, 0.05) !important;
+  background: rgba(0, 0, 0, 0.05) !important;
   color: var(--color-text-primary) !important;
 }
 
