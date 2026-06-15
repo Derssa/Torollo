@@ -1,0 +1,118 @@
+.card {
+  padding: 16px;
+  border-radius: 12px;
+  min-width: 220px;
+  display: flex;
+  flex-direction: column;
+  box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.3);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  background-color: rgba(17, 24, 39, 0.85);
+}
+
+.handle {
+  background: #3B82F6;
+  width: 8px;
+  height: 8px;
+}
+
+.header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 12px;
+}
+
+.titleContainer {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.title {
+  fontWeight: 700;
+  font-size: 14px;
+  color: #F3F4F6;
+}
+
+.statusRow {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.indicator {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+}
+
+.statusText {
+  font-size: 11px;
+  color: #9CA3AF;
+  text-transform: uppercase;
+  font-weight: 500;
+}
+
+.details {
+  display: flex;
+  justify-content: space-between;
+  font-size: 12px;
+  margin-bottom: 16px;
+  padding: 6px 8px;
+  border-radius: 6px;
+  background-color: rgba(0, 0, 0, 0.2);
+}
+
+.label {
+  color: #6B7280;
+}
+
+.value {
+  color: #9CA3AF;
+  font-family: 'JetBrains Mono', monospace;
+}
+
+.actions {
+  display: flex;
+  gap: 8px;
+  margin-top: auto;
+}
+
+.btn {
+  border: none;
+  border-radius: 6px;
+  padding: 6px 10px;
+  font-size: 12px;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  transition: background-color 0.2s, transform 0.1s;
+  font-weight: 600;
+}
+
+.btnPrimary {
+  background-color: #3B82F6;
+  color: #FFF;
+  flex: 1;
+}
+
+.btnSecondary {
+  background-color: rgba(255, 255, 255, 0.08);
+  color: #9CA3AF;
+  width: 32px;
+}
+
+.btnSuccess {
+  background-color: rgba(16, 185, 129, 0.15);
+  color: #10B981;
+  border: 1px solid rgba(16, 185, 129, 0.3);
+  flex: 1;
+}
+
+.btnDanger {
+  background-color: rgba(239, 68, 68, 0.15);
+  color: #EF4444;
+  border: 1px solid rgba(239, 68, 68, 0.3);
+  width: 32px;
+}
