@@ -1,9 +1,10 @@
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Terminal } from '@xterm/xterm';
 import { FitAddon } from '@xterm/addon-fit';
 import { io, Socket } from 'socket.io-client';
-import { X, Terminal as TermIcon } from 'lucide-react';
+import { X, Terminal as TermIcon, BookOpen } from 'lucide-react';
 import '@xterm/xterm/css/xterm.css';
+import LinuxCheatSheet from './LinuxCheatSheet';
 
 interface TerminalModalProps {
   containerId: string;
@@ -15,6 +16,7 @@ export default function TerminalModal({ containerId, nodeName, onClose }: Termin
   const terminalRef = useRef<HTMLDivElement>(null);
   const socketRef = useRef<Socket | null>(null);
   const termRef = useRef<Terminal | null>(null);
+  const [activeTab, setActiveTab] = useState<'terminal' | 'cheatsheet'>('terminal');
 
   useEffect(() => {
     const socket = io('http://localhost:5000');
@@ -73,15 +75,46 @@ export default function TerminalModal({ containerId, nodeName, onClose }: Termin
     <div style={styles.overlay}>
       <div style={styles.container} className="glass">
         <div style={styles.header}>
-          <div style={styles.title}>
-            <TermIcon size={18} color="#3B82F6" style={{ marginRight: 8 }} />
-            <span>Terminal: {nodeName}</span>
+          <div style={styles.tabs}>
+            <button
+              style={{
+                ...styles.tabBtn,
+                ...(activeTab === 'terminal' ? styles.activeTabBtn : {}),
+              }}
+              onClick={() => setActiveTab('terminal')}
+            >
+              <TermIcon size={16} style={{ marginRight: 6 }} />
+              Terminal: {nodeName}
+            </button>
+            <button
+              style={{
+                ...styles.tabBtn,
+                ...(activeTab === 'cheatsheet' ? styles.activeTabBtn : {}),
+              }}
+              onClick={() => setActiveTab('cheatsheet')}
+            >
+              <BookOpen size={16} style={{ marginRight: 6 }} />
+              Linux Cheat Sheet
+            </button>
           </div>
           <button onClick={onClose} style={styles.closeBtn}>
             <X size={18} />
           </button>
         </div>
-        <div ref={terminalRef} style={styles.terminalContainer} />
+
+        <div 
+          ref={terminalRef} 
+          style={{
+            ...styles.terminalContainer,
+            display: activeTab === 'terminal' ? 'block' : 'none',
+          }} 
+        />
+
+        {activeTab === 'cheatsheet' && (
+          <div style={styles.contentContainer}>
+            <LinuxCheatSheet />
+          </div>
+        )}
       </div>
     </div>
   );
@@ -117,15 +150,31 @@ const styles: Record<string, React.CSSProperties> = {
     display: 'flex',
     alignItems: 'center',
     justifyContent: 'space-between',
-    padding: '12px 16px',
+    padding: '8px 16px 0 16px',
     borderBottom: '1px solid var(--border-color)',
+    backgroundColor: 'rgba(0, 0, 0, 0.1)',
   },
-  title: {
+  tabs: {
+    display: 'flex',
+    gap: '4px',
+  },
+  tabBtn: {
+    background: 'none',
+    border: 'none',
+    borderBottom: '2px solid transparent',
+    color: 'var(--color-text-secondary)',
+    cursor: 'pointer',
+    padding: '8px 16px',
+    fontSize: '13px',
+    fontWeight: 500,
     display: 'flex',
     alignItems: 'center',
+    transition: 'all 0.2s',
+  },
+  activeTabBtn: {
+    color: '#3B82F6',
+    borderBottomColor: '#3B82F6',
     fontWeight: 600,
-    fontSize: '14px',
-    color: 'var(--color-text-primary)',
   },
   closeBtn: {
     background: 'none',
@@ -137,11 +186,17 @@ const styles: Record<string, React.CSSProperties> = {
     display: 'flex',
     alignItems: 'center',
     justifyContent: 'center',
+    marginBottom: '8px',
   },
   terminalContainer: {
     flex: 1,
     backgroundColor: '#0B0F19',
     position: 'relative',
+    overflow: 'hidden',
+    padding: '8px',
+  },
+  contentContainer: {
+    flex: 1,
     overflow: 'hidden',
   },
 };

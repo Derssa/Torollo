@@ -1,0 +1,247 @@
+[
+  {
+    "name": "ls",
+    "category": "File System",
+    "description": "List directory contents.",
+    "example": "ls -la",
+    "keywords": ["files", "directories", "show", "list", "all"]
+  },
+  {
+    "name": "cd",
+    "category": "File System",
+    "description": "Change the current working directory.",
+    "example": "cd /var/log",
+    "keywords": ["directory", "folder", "navigate", "move"]
+  },
+  {
+    "name": "pwd",
+    "category": "File System",
+    "description": "Print the absolute path of the current working directory.",
+    "example": "pwd",
+    "keywords": ["path", "location", "where", "directory"]
+  },
+  {
+    "name": "mkdir",
+    "category": "File System",
+    "description": "Create new directories.",
+    "example": "mkdir -p src/components",
+    "keywords": ["directory", "folder", "new", "create", "make"]
+  },
+  {
+    "name": "rm",
+    "category": "File System",
+    "description": "Remove files or directories recursively.",
+    "example": "rm -rf tmp/cache",
+    "keywords": ["delete", "remove", "erase", "folder", "file"]
+  },
+  {
+    "name": "cp",
+    "category": "File System",
+    "description": "Copy files and directories.",
+    "example": "cp -r src/ dist/",
+    "keywords": ["duplicate", "copy", "backup", "folder", "file"]
+  },
+  {
+    "name": "mv",
+    "category": "File System",
+    "description": "Move or rename files and directories.",
+    "example": "mv old_name.txt new_name.txt",
+    "keywords": ["rename", "move", "transfer", "cut"]
+  },
+  {
+    "name": "find",
+    "category": "File System",
+    "description": "Search for files in a directory hierarchy based on name, size, type, etc.",
+    "example": "find . -name \"*.log\"",
+    "keywords": ["search", "locate", "file", "filter"]
+  },
+  {
+    "name": "chmod",
+    "category": "Permissions",
+    "description": "Change the read, write, and execute permissions of files and directories.",
+    "example": "chmod 755 start.sh",
+    "keywords": ["permissions", "rights", "executable", "security"]
+  },
+  {
+    "name": "chown",
+    "category": "Permissions",
+    "description": "Change the user and/or group ownership of files and directories.",
+    "example": "chown -R www-data:www-data /var/www",
+    "keywords": ["owner", "ownership", "user", "group"]
+  },
+  {
+    "name": "ps",
+    "category": "Process Management",
+    "description": "Report a snapshot of the current active processes.",
+    "example": "ps aux | grep node",
+    "keywords": ["process", "tasks", "running", "jobs", "active"]
+  },
+  {
+    "name": "top",
+    "category": "Process Management",
+    "description": "Display dynamic, real-time view of running system processes and CPU/RAM usage.",
+    "example": "top",
+    "keywords": ["monitor", "cpu", "memory", "usage", "real-time"]
+  },
+  {
+    "name": "htop",
+    "category": "Process Management",
+    "description": "Interactive and visually enhanced command-line process viewer.",
+    "example": "htop",
+    "keywords": ["monitor", "cpu", "memory", "process", "interactive"]
+  },
+  {
+    "name": "kill",
+    "category": "Process Management",
+    "description": "Send a signal to terminate a process by its Process ID (PID).",
+    "example": "kill -9 1234",
+    "keywords": ["stop", "force", "terminate", "sigkill", "end"]
+  },
+  {
+    "name": "curl",
+    "category": "Networking",
+    "description": "Transfer data from or to a server using supported network protocols (HTTP, HTTPS, etc.).",
+    "example": "curl -X POST -H \"Content-Type: application/json\" -d '{\"key\":\"val\"}' http://localhost:5000/api",
+    "keywords": ["http", "request", "api", "download", "post", "get"]
+  },
+  {
+    "name": "wget",
+    "category": "Networking",
+    "description": "Non-interactive network downloader to retrieve files from servers.",
+    "example": "wget https://example.com/file.zip",
+    "keywords": ["download", "fetch", "retrieve", "http", "ftp"]
+  },
+  {
+    "name": "ping",
+    "category": "Networking",
+    "description": "Send ICMP ECHO_REQUEST packets to verify network connectivity to a host.",
+    "example": "ping -c 4 google.com",
+    "keywords": ["network", "latency", "host", "online", "reachability"]
+  },
+  {
+    "name": "netstat",
+    "category": "Networking",
+    "description": "Print network connections, routing tables, and interface statistics.",
+    "example": "netstat -tulpn",
+    "keywords": ["ports", "connections", "sockets", "listening"]
+  },
+  {
+    "name": "ip",
+    "category": "Networking",
+    "description": "Show / manipulate routing, network devices, interfaces, and tunnels.",
+    "example": "ip addr show",
+    "keywords": ["interface", "address", "networking", "routing", "config"]
+  },
+  {
+    "name": "grep",
+    "category": "Text Processing",
+    "description": "Search text for lines matching a regular expression or string query.",
+    "example": "grep -rn \"TODO\" src/",
+    "keywords": ["find", "search", "filter", "pattern", "text"]
+  },
+  {
+    "name": "awk",
+    "category": "Text Processing",
+    "description": "Pattern scanning and processing language, highly useful for columns and logs manipulation.",
+    "example": "awk '{print $1, $3}' access.log",
+    "keywords": ["columns", "logs", "format", "extract", "parse"]
+  },
+  {
+    "name": "sed",
+    "category": "Text Processing",
+    "description": "Stream editor for filtering and transforming text dynamically.",
+    "example": "sed -i 's/localhost/127.0.0.1/g' config.js",
+    "keywords": ["replace", "substitute", "modify", "edit", "regex"]
+  },
+  {
+    "name": "cat",
+    "category": "Text Processing",
+    "description": "Concatenate and display the content of files.",
+    "example": "cat /etc/hosts",
+    "keywords": ["view", "show", "print", "display", "file"]
+  },
+  {
+    "name": "less",
+    "category": "Text Processing",
+    "description": "View file content or command output interactively, allowing forward and backward navigation.",
+    "example": "less syslog.log",
+    "keywords": ["view", "scroll", "interactive", "pager"]
+  },
+  {
+    "name": "uname",
+    "category": "System Info",
+    "description": "Print detailed system information about the operating system and kernel.",
+    "example": "uname -a",
+    "keywords": ["kernel", "os", "release", "architecture"]
+  },
+  {
+    "name": "df",
+    "category": "System Info",
+    "description": "Show the amount of disk space available on file systems.",
+    "example": "df -h",
+    "keywords": ["disk", "storage", "space", "free", "usage"]
+  },
+  {
+    "name": "du",
+    "category": "System Info",
+    "description": "Estimate file and directory space usage.",
+    "example": "du -sh *",
+    "keywords": ["disk", "size", "folder", "space", "usage"]
+  },
+  {
+    "name": "free",
+    "category": "System Info",
+    "description": "Display the amount of free and used physical memory (RAM) and swap space.",
+    "example": "free -h",
+    "keywords": ["memory", "ram", "swap", "free", "usage"]
+  },
+  {
+    "name": "tar",
+    "category": "Archiving",
+    "description": "Archive utility used to combine multiple files into a single tarball, or compress them.",
+    "example": "tar -czvf backup.tar.gz /var/www",
+    "keywords": ["compress", "archive", "tarball", "backup", "extract"]
+  },
+  {
+    "name": "zip",
+    "category": "Archiving",
+    "description": "Package and compress (archive) files.",
+    "example": "zip -r backup.zip src/",
+    "keywords": ["compress", "archive", "backup"]
+  },
+  {
+    "name": "unzip",
+    "category": "Archiving",
+    "description": "Extract compressed files from a ZIP archive.",
+    "example": "unzip backup.zip -d target_dir/",
+    "keywords": ["extract", "uncompress", "decompress", "archive"]
+  },
+  {
+    "name": "git clone",
+    "category": "Git",
+    "description": "Clone a repository into a new directory.",
+    "example": "git clone https://github.com/Derssa/akal.git",
+    "keywords": ["git", "clone", "download", "repo"]
+  },
+  {
+    "name": "git status",
+    "category": "Git",
+    "description": "Show the working tree status, showing staged, unstaged, and untracked files.",
+    "example": "git status",
+    "keywords": ["git", "changes", "files", "status"]
+  },
+  {
+    "name": "git commit",
+    "category": "Git",
+    "description": "Record changes to the repository by creating a new commit snapshot.",
+    "example": "git commit -m \"feat: implement new features\"",
+    "keywords": ["git", "save", "record", "commit"]
+  },
+  {
+    "name": "git push",
+    "category": "Git",
+    "description": "Update remote references using local refs, uploading commits to the remote repo.",
+    "example": "git push origin main",
+    "keywords": ["git", "upload", "publish", "sync", "remote"]
+  }
+]
