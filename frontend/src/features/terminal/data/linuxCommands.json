@@ -217,31 +217,150 @@
     "keywords": ["extract", "uncompress", "decompress", "archive"]
   },
   {
+    "name": "git init",
+    "category": "Git",
+    "description": "Initialize a new local Git repository in the current directory.",
+    "example": "git init",
+    "keywords": ["git", "initialize", "new", "repository", "local", "start"]
+  },
+  {
     "name": "git clone",
     "category": "Git",
-    "description": "Clone a repository into a new directory.",
+    "description": "Clone an existing remote repository into a new local directory.",
     "example": "git clone https://github.com/Derssa/akal.git",
-    "keywords": ["git", "clone", "download", "repo"]
+    "keywords": ["git", "clone", "download", "repo", "copy"]
+  },
+  {
+    "name": "git add",
+    "category": "Git",
+    "description": "Stage files and changes to prepare them for the next commit.",
+    "example": "git add src/index.css",
+    "keywords": ["git", "stage", "add", "files", "prepare"]
+  },
+  {
+    "name": "git diff",
+    "category": "Git",
+    "description": "Show differences between the working tree, index, or commits.",
+    "example": "git diff README.md",
+    "keywords": ["git", "changes", "compare", "differences", "unstaged"]
   },
   {
     "name": "git status",
     "category": "Git",
-    "description": "Show the working tree status, showing staged, unstaged, and untracked files.",
+    "description": "Show the status of the working tree (staged, unstaged, untracked files).",
     "example": "git status",
-    "keywords": ["git", "changes", "files", "status"]
+    "keywords": ["git", "changes", "files", "status", "untracked"]
   },
   {
     "name": "git commit",
     "category": "Git",
-    "description": "Record changes to the repository by creating a new commit snapshot.",
+    "description": "Create a new snapshot commit of the staged changes.",
     "example": "git commit -m \"feat: implement new features\"",
-    "keywords": ["git", "save", "record", "commit"]
+    "keywords": ["git", "save", "record", "commit", "message"]
+  },
+  {
+    "name": "git log",
+    "category": "Git",
+    "description": "Show the list of historical commits for the active branch.",
+    "example": "git log --oneline -n 5",
+    "keywords": ["git", "history", "commits", "logs", "past"]
+  },
+  {
+    "name": "git branch",
+    "category": "Git",
+    "description": "List, create, or delete branches.",
+    "example": "git branch feature/canvas-grid",
+    "keywords": ["git", "branch", "list", "new", "delete", "create"]
+  },
+  {
+    "name": "git checkout",
+    "category": "Git",
+    "description": "Switch branches or restore working tree files.",
+    "example": "git checkout dev",
+    "keywords": ["git", "switch", "branch", "restore", "discard"]
+  },
+  {
+    "name": "git pull",
+    "category": "Git",
+    "description": "Fetch from and integrate (merge/rebase) remote changes with another branch.",
+    "example": "git pull origin dev",
+    "keywords": ["git", "pull", "update", "fetch", "sync", "remote"]
   },
   {
     "name": "git push",
     "category": "Git",
-    "description": "Update remote references using local refs, uploading commits to the remote repo.",
+    "description": "Upload local commits to a remote repository reference.",
     "example": "git push origin main",
     "keywords": ["git", "upload", "publish", "sync", "remote"]
+  },
+  {
+    "name": "git merge",
+    "category": "Git",
+    "description": "Join two or more development histories (branches) together.",
+    "example": "git merge feature/canvas-grid",
+    "keywords": ["git", "merge", "combine", "join", "integrate"]
+  },
+  {
+    "name": "git stash",
+    "category": "Git",
+    "description": "Stash the changes in a dirty working directory away to return to a clean state.",
+    "example": "git stash pop",
+    "keywords": ["git", "stash", "save", "temporary", "restore", "pop"]
+  },
+  {
+    "name": "git remote",
+    "category": "Git",
+    "description": "Manage set of tracked remote repositories.",
+    "example": "git remote add origin https://github.com/user/repo.git",
+    "keywords": ["git", "remote", "origin", "links", "url"]
+  },
+  {
+    "name": "git rebase",
+    "category": "Git",
+    "description": "Reapply commits on top of another base tip (advanced).",
+    "example": "git rebase main",
+    "keywords": ["git", "rebase", "history", "interactive", "rewrite"]
+  },
+  {
+    "name": "git cherry-pick",
+    "category": "Git",
+    "description": "Apply the changes introduced by some existing commits onto the current branch.",
+    "example": "git cherry-pick a1b2c3d",
+    "keywords": ["git", "copy", "commit", "apply", "select"]
+  },
+  {
+    "name": "git reset",
+    "category": "Git",
+    "description": "Reset current HEAD to the specified state (e.g. discard all local changes with --hard).",
+    "example": "git reset --hard HEAD~1",
+    "keywords": ["git", "reset", "undo", "hard", "soft", "discard"]
+  },
+  {
+    "name": "git revert",
+    "category": "Git",
+    "description": "Revert an existing commit by creating a new reversing commit (safe history).",
+    "example": "git revert a1b2c3d",
+    "keywords": ["git", "undo", "revert", "safe", "new-commit"]
+  },
+  {
+    "name": "git reflog",
+    "category": "Git",
+    "description": "Reference log to manage and recover lost commits or actions.",
+    "example": "git reflog",
+    "keywords": ["git", "recovery", "history", "lost", "undo"]
+  },
+  {
+    "name": "git blame",
+    "category": "Git",
+    "description": "Show what revision and author last modified each line of a file.",
+    "example": "git blame src/index.css",
+    "keywords": ["git", "author", "line", "modified", "history", "who"]
+  },
+  {
+    "name": "git merge --squash",
+    "category": "Git",
+    "description": "Combine all commits from a feature branch into a single commit upon merging.",
+    "example": "git merge --squash feature/canvas-grid",
+    "keywords": ["git", "squash", "combine", "merge", "single-commit"]
   }
 ]
