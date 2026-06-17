@@ -22,7 +22,7 @@ import SubnetNode from '../../features/nodes/SubnetNode/SubnetNode';
 import RoutingTableModal from '../../features/nodes/SubnetNode/RoutingTableModal';
 import SecurityGroupsModal from '../../features/nodes/SecurityGroups/SecurityGroupsModal';
 import type { SecurityGroupRule } from '../../features/nodes/SecurityGroups/SecurityGroupsModal';
-import NetworkSimulatorPanel from '../../features/nodes/SecurityGroups/NetworkSimulatorPanel';
+import VpcModal from '../../features/nodes/VpcNode/VpcModal';
 
 interface CanvasPageProps {
   projectId: string;
@@ -80,6 +80,7 @@ export default function CanvasPage({ projectId, projectName, onBackToProjects, o
   // Phase 3 Modal states
   const [inspectingSubnet, setInspectingSubnet] = useState<{ id: string; name: string } | null>(null);
   const [inspectingSecurityGroup, setInspectingSecurityGroup] = useState<{ id: string; name: string; type: string } | null>(null);
+  const [inspectingVpc, setInspectingVpc] = useState<{ id: string; name: string } | null>(null);
 
   // Drag and drop tracking
   const [reactFlowInstance, setReactFlowInstance] = useState<any>(null);
@@ -174,7 +175,13 @@ export default function CanvasPage({ projectId, projectName, onBackToProjects, o
         type: 'vpc',
         position: vpc.position,
         style: { width: vpc.width, height: vpc.height },
-        data: { id: vpc.id, name: vpc.name }
+        data: {
+          id: vpc.id,
+          name: vpc.name,
+          onConfigure: (id: string, name: string) => {
+            setInspectingVpc({ id, name });
+          }
+        }
       }));
 
       // 2. Map Subnet nodes
@@ -618,14 +625,6 @@ export default function CanvasPage({ projectId, projectName, onBackToProjects, o
             <Background variant={BackgroundVariant.Dots} color="#C0C0C0" gap={24} size={1.5} />
             <Controls />
           </ReactFlow>
-
-          {/* Traffic Route Simulator */}
-          <NetworkSimulatorPanel
-            nodes={containers}
-            subnets={networkConfig.subnets}
-            nodeSecurityGroups={networkConfig.nodeSecurityGroups}
-            nodeSubnetMap={networkConfig.nodeSubnetMap}
-          />
         </div>
 
         <NodeLibrary />
@@ -736,6 +735,28 @@ export default function CanvasPage({ projectId, projectName, onBackToProjects, o
               [inspectingSecurityGroup.id]: rules
             };
             saveNetworkConfig({ ...networkConfig, nodeSecurityGroups: updatedSecurityGroups });
+          }}
+        />
+      )}
+
+      {inspectingVpc && (
+        <VpcModal
+          vpcId={inspectingVpc.id}
+          vpcName={inspectingVpc.name}
+          subnets={networkConfig.subnets}
+          nodes={containers}
+          nodeSecurityGroups={networkConfig.nodeSecurityGroups}
+          nodeSubnetMap={networkConfig.nodeSubnetMap}
+          onClose={() => setInspectingVpc(null)}
+          onRenameVpc={(newName) => {
+            const updatedVpcs = networkConfig.vpcs.map(v => {
+              if (v.id === inspectingVpc.id) {
+                return { ...v, name: newName };
+              }
+              return v;
+            });
+            saveNetworkConfig({ ...networkConfig, vpcs: updatedVpcs });
+            setInspectingVpc({ id: inspectingVpc.id, name: newName });
           }}
         />
       )}
