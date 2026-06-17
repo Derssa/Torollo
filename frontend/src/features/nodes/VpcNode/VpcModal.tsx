@@ -19,6 +19,7 @@ interface VpcModalProps {
   nodeSubnetMap: Record<string, string>;
   onClose: () => void;
   onSaveVpcConfig: (config: VPCConfig) => void;
+  initialTab?: 'info' | 'simulator';
 }
 
 export default function VpcModal({
@@ -28,9 +29,10 @@ export default function VpcModal({
   nodeSecurityGroups,
   nodeSubnetMap,
   onClose,
-  onSaveVpcConfig
+  onSaveVpcConfig,
+  initialTab = 'info'
 }: VpcModalProps) {
-  const [activeTab, setActiveTab] = useState<'info' | 'simulator'>('info');
+  const [activeTab] = useState<'info' | 'simulator'>(initialTab);
   
   // VPC Config State Form
   const [name, setName] = useState(vpcConfig.name);
@@ -149,36 +151,12 @@ export default function VpcModal({
         <div style={styles.header}>
           <div style={styles.titleRow}>
             <Shield size={18} color="var(--color-accent)" />
-            <span style={styles.title}>Project VPC Configuration</span>
+            <span style={styles.title}>
+              {activeTab === 'info' ? 'Project VPC Settings' : 'VPC Traffic Routing Simulator'}
+            </span>
           </div>
           <button onClick={onClose} style={styles.closeBtn}>
             <X size={18} />
-          </button>
-        </div>
-
-        {/* Tab Selector */}
-        <div style={styles.tabsRow}>
-          <button
-            onClick={() => setActiveTab('info')}
-            style={{
-              ...styles.tabBtn,
-              borderBottom: activeTab === 'info' ? '2px solid var(--color-accent)' : '2px solid transparent',
-              color: activeTab === 'info' ? 'var(--color-accent)' : 'var(--color-text-secondary)',
-              fontWeight: activeTab === 'info' ? 700 : 500
-            }}
-          >
-            VPC settings & Info
-          </button>
-          <button
-            onClick={() => setActiveTab('simulator')}
-            style={{
-              ...styles.tabBtn,
-              borderBottom: activeTab === 'simulator' ? '2px solid var(--color-accent)' : '2px solid transparent',
-              color: activeTab === 'simulator' ? 'var(--color-accent)' : 'var(--color-text-secondary)',
-              fontWeight: activeTab === 'simulator' ? 700 : 500
-            }}
-          >
-            Traffic Route Simulator
           </button>
         </div>
 

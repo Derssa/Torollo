@@ -155,6 +155,7 @@ export default function CanvasPage({ projectId, projectName, onBackToProjects, o
   });
 
   const [showVpcSettings, setShowVpcSettings] = useState(false);
+  const [showTrafficSimulator, setShowTrafficSimulator] = useState(false);
 
   const nodeTypes = useMemo(() => ({ 
     ubuntu: UbuntuNode,
@@ -989,6 +990,7 @@ export default function CanvasPage({ projectId, projectName, onBackToProjects, o
         onRefresh={fetchContainers}
         onSave={saveGraphLocally}
         onConfigureVpc={() => setShowVpcSettings(true)}
+        onSimulateTraffic={() => setShowTrafficSimulator(true)}
       />
 
       <div style={styles.bodyWrapper}>
@@ -1162,6 +1164,26 @@ export default function CanvasPage({ projectId, projectName, onBackToProjects, o
             showToast("VPC configuration saved");
             triggerArchitectureAudit(newConfig);
           }}
+          initialTab="info"
+        />
+      )}
+
+      {showTrafficSimulator && (
+        <VpcModal
+          vpcConfig={networkConfig.vpcConfig}
+          subnets={networkConfig.subnets}
+          nodes={containers}
+          nodeSecurityGroups={networkConfig.nodeSecurityGroups}
+          nodeSubnetMap={networkConfig.nodeSubnetMap}
+          onClose={() => setShowTrafficSimulator(false)}
+          onSaveVpcConfig={(config) => {
+            const newConfig = { ...networkConfig, vpcConfig: config };
+            saveNetworkConfig(newConfig);
+            setShowTrafficSimulator(false);
+            showToast("VPC configuration saved");
+            triggerArchitectureAudit(newConfig);
+          }}
+          initialTab="simulator"
         />
       )}
 
