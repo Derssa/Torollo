@@ -45,26 +45,14 @@ export function validateArchitecture(
 
   // --- 1. ERROR CHECKS ---
   
-  // Subnets must be in a VPC
-  networkConfig.subnets.forEach(subnet => {
-    if (!subnet.vpcId) {
-      errors.push(`Subnet "${subnet.name}" is not placed inside any VPC. All subnets must reside inside a VPC.`);
-    }
-  });
-
-  // Nodes must be inside a subnet (which must be in a VPC)
+  // Nodes must map to subnets that exist (if they map to one)
   containers.forEach(node => {
     const subnetId = networkConfig.nodeSubnetMap[node.id];
-    if (!subnetId) {
-      errors.push(`Node "${node.name}" is not placed inside any subnet. All active nodes must reside inside a subnet.`);
-      return;
-    }
-
-    const subnet = networkConfig.subnets.find(s => s.id === subnetId);
-    if (!subnet) {
-      errors.push(`Node "${node.name}" is assigned to a subnet that does not exist.`);
-    } else if (!subnet.vpcId) {
-      errors.push(`Node "${node.name}" is in subnet "${subnet.name}", which is not inside a VPC.`);
+    if (subnetId && !subnetId.startsWith('vpc-')) {
+      const subnet = networkConfig.subnets.find(s => s.id === subnetId);
+      if (!subnet) {
+        errors.push(`Node "${node.name}" is assigned to a subnet that does not exist.`);
+      }
     }
   });
 

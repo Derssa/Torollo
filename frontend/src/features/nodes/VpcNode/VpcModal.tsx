@@ -3,29 +3,41 @@ import { X, Shield, Send, CheckCircle2, XCircle } from 'lucide-react';
 import type { ContainerData } from '../../../shared/types';
 import type { SecurityGroupRule } from '../SecurityGroups/SecurityGroupsModal';
 
+export interface VPCConfig {
+  name: string;
+  cidr: string;
+  dnsEnabled: boolean;
+  igwEnabled: boolean;
+  description: string;
+}
+
 interface VpcModalProps {
-  vpcId: string;
-  vpcName: string;
+  vpcConfig: VPCConfig;
   subnets: Array<{ id: string; name: string; type: 'public' | 'private'; vpcId: string | null }>;
   nodes: ContainerData[];
   nodeSecurityGroups: Record<string, SecurityGroupRule[]>;
   nodeSubnetMap: Record<string, string>;
   onClose: () => void;
-  onRenameVpc: (name: string) => void;
+  onSaveVpcConfig: (config: VPCConfig) => void;
 }
 
 export default function VpcModal({
-  vpcId,
-  vpcName,
+  vpcConfig,
   subnets,
   nodes,
   nodeSecurityGroups,
   nodeSubnetMap,
   onClose,
-  onRenameVpc
+  onSaveVpcConfig
 }: VpcModalProps) {
   const [activeTab, setActiveTab] = useState<'info' | 'simulator'>('info');
-  const [vpcNameInput, setVpcNameInput] = useState(vpcName);
+  
+  // VPC Config State Form
+  const [name, setName] = useState(vpcConfig.name);
+  const [cidr, setCidr] = useState(vpcConfig.cidr);
+  const [dnsEnabled, setDnsEnabled] = useState(vpcConfig.dnsEnabled);
+  const [igwEnabled, setIgwEnabled] = useState(vpcConfig.igwEnabled);
+  const [description, setDescription] = useState(vpcConfig.description);
 
   // Traffic Simulator state
   const [sourceNodeId, setSourceNodeId] = useState('');
@@ -37,16 +49,15 @@ export default function VpcModal({
     details?: string;
   } | null>(null);
 
-  // Filter nodes in this VPC
-  const vpcSubnets = subnets.filter(s => s.vpcId === vpcId);
-  const vpcSubnetIds = vpcSubnets.map(s => s.id);
-  const vpcNodes = nodes.filter(n => vpcSubnetIds.includes(nodeSubnetMap[n.id] || ''));
-
-  const handleRenameSubmit = (e: React.FormEvent) => {
+  const handleSaveSettings = (e: React.FormEvent) => {
     e.preventDefault();
-    if (vpcNameInput.trim()) {
-      onRenameVpc(vpcNameInput.trim());
-    }
+    onSaveVpcConfig({
+      name,
+      cidr,
+      dnsEnabled,
+      igwEnabled,
+      description
+    });
   };
 
   const handleSimulate = () => {
@@ -83,32 +94,7 @@ export default function VpcModal({
     const sourceSubnetId = nodeSubnetMap[sourceNode.id];
     const destSubnetId = nodeSubnetMap[destNode.id];
 
-    const sourceSubnet = subnets.find(s => s.id === sourceSubnetId);
-    const destSubnet = subnets.find(s => s.id === destSubnetId);
-
-    // 1. Check VPC Boundaries
-    const sourceVpcId = sourceSubnet?.vpcId || null;
-    const destVpcId = destSubnet?.vpcId || null;
-
-    if (sourceVpcId !== destVpcId) {
-      setSimulationResult({
-        success: false,
-        message: 'Connection Blocked',
-        details: 'Blocked: Nodes are in different VPCs. Inter-VPC traffic is isolated by default.'
-      });
-      return;
-    }
-
-    if (!sourceVpcId) {
-      setSimulationResult({
-        success: false,
-        message: 'Connection Blocked',
-        details: 'Blocked: Nodes must be assigned to subnets inside a VPC to communicate.'
-      });
-      return;
-    }
-
-    // 2. Check Security Group Rules (Destination Inbound Rules)
+    // 1. Check Security Group Rules (Destination Inbound Rules)
     const destRules = nodeSecurityGroups[destNode.id] || [];
     const inboundRules = destRules.filter(r => r.type === 'inbound');
 
@@ -163,7 +149,7 @@ export default function VpcModal({
         <div style={styles.header}>
           <div style={styles.titleRow}>
             <Shield size={18} color="var(--color-accent)" />
-            <span style={styles.title}>VPC Manager: {vpcName}</span>
+            <span style={styles.title}>Project VPC Configuration</span>
           </div>
           <button onClick={onClose} style={styles.closeBtn}>
             <X size={18} />
@@ -181,7 +167,7 @@ export default function VpcModal({
               fontWeight: activeTab === 'info' ? 700 : 500
             }}
           >
-            VPC Subnets & Info
+            VPC settings & Info
           </button>
           <button
             onClick={() => setActiveTab('simulator')}
@@ -199,26 +185,66 @@ export default function VpcModal({
         <div style={styles.body}>
           {activeTab === 'info' && (
             <div style={styles.tabContent}>
-              <form onSubmit={handleRenameSubmit} style={styles.renameForm}>
+              <form onSubmit={handleSaveSettings} style={styles.formSettings}>
                 <div style={styles.formGroup}>
-                  <label style={styles.label}>Rename VPC</label>
-                  <div style={styles.inputRow}>
-                    <input
-                      type="text"
-                      value={vpcNameInput}
-                      onChange={(e) => setVpcNameInput(e.target.value)}
-                      style={styles.input}
-                    />
-                    <button type="submit" style={styles.renameBtn}>Update Name</button>
-                  </div>
+                  <label style={styles.label}>VPC Name</label>
+                  <input
+                    type="text"
+                    value={name}
+                    onChange={(e) => setName(e.target.value)}
+                    style={styles.input}
+                    placeholder="e.g. Primary VPC"
+                  />
                 </div>
+                <div style={styles.formGroup}>
+                  <label style={styles.label}>CIDR Block</label>
+                  <input
+                    type="text"
+                    value={cidr}
+                    onChange={(e) => setCidr(e.target.value)}
+                    style={styles.input}
+                    placeholder="e.g. 10.0.0.0/16"
+                  />
+                </div>
+                <div style={styles.formGroup}>
+                  <label style={styles.label}>Description</label>
+                  <textarea
+                    value={description}
+                    onChange={(e) => setDescription(e.target.value)}
+                    style={styles.textarea}
+                    placeholder="Describe this VPC..."
+                  />
+                </div>
+                <div style={styles.checkboxGroup}>
+                  <label style={styles.checkboxLabel}>
+                    <input
+                      type="checkbox"
+                      checked={dnsEnabled}
+                      onChange={(e) => setDnsEnabled(e.target.checked)}
+                      style={styles.checkbox}
+                    />
+                    <span>DNS Resolution Enabled</span>
+                  </label>
+                </div>
+                <div style={styles.checkboxGroup}>
+                  <label style={styles.checkboxLabel}>
+                    <input
+                      type="checkbox"
+                      checked={igwEnabled}
+                      onChange={(e) => setIgwEnabled(e.target.checked)}
+                      style={styles.checkbox}
+                    />
+                    <span>Internet Gateway (IGW) Attached</span>
+                  </label>
+                </div>
+                <button type="submit" style={styles.saveBtnSettings}>Save Configurations</button>
               </form>
 
               <div style={styles.section}>
-                <h4 style={styles.sectionTitle}>Subnets inside this VPC ({vpcSubnets.length})</h4>
-                {vpcSubnets.length > 0 ? (
+                <h4 style={styles.sectionTitle}>Active Subnets ({subnets.length})</h4>
+                {subnets.length > 0 ? (
                   <div style={styles.list}>
-                    {vpcSubnets.map(subnet => (
+                    {subnets.map(subnet => (
                       <div key={subnet.id} style={styles.listItem}>
                         <div style={styles.listItemTitle}>{subnet.name}</div>
                         <span style={{
@@ -232,25 +258,7 @@ export default function VpcModal({
                     ))}
                   </div>
                 ) : (
-                  <p style={styles.emptyText}>No subnets are currently dropped inside this VPC.</p>
-                )}
-              </div>
-
-              <div style={styles.section}>
-                <h4 style={styles.sectionTitle}>Active Server/DB Instances ({vpcNodes.length})</h4>
-                {vpcNodes.length > 0 ? (
-                  <div style={styles.list}>
-                    {vpcNodes.map(node => (
-                      <div key={node.id} style={styles.listItem}>
-                        <div>{node.name}</div>
-                        <span style={styles.nodeTypeBadge}>
-                          {node.type ? node.type.toUpperCase() : 'UBUNTU'}
-                        </span>
-                      </div>
-                    ))}
-                  </div>
-                ) : (
-                  <p style={styles.emptyText}>No server or database instances are currently inside this VPC's subnets.</p>
+                  <p style={styles.emptyText}>No subnets exist in the VPC. Add subnets from the Node Library sidebar.</p>
                 )}
               </div>
             </div>
@@ -269,7 +277,7 @@ export default function VpcModal({
                     <option value="">-- Select Source --</option>
                     {nodes.map(n => (
                       <option key={n.id} value={n.id}>
-                        {n.name} ({nodeSubnetMap[n.id] ? 'Subnet' : 'No Subnet'})
+                        {n.name} ({nodeSubnetMap[n.id] ? 'Subnet' : 'Root VPC'})
                       </option>
                     ))}
                   </select>
@@ -285,7 +293,7 @@ export default function VpcModal({
                     <option value="">-- Select Destination --</option>
                     {nodes.map(n => (
                       <option key={n.id} value={n.id}>
-                        {n.name} ({nodeSubnetMap[n.id] ? 'Subnet' : 'No Subnet'})
+                        {n.name} ({nodeSubnetMap[n.id] ? 'Subnet' : 'Root VPC'})
                       </option>
                     ))}
                   </select>
@@ -421,9 +429,12 @@ const styles: Record<string, React.CSSProperties> = {
     flexDirection: 'column',
     gap: '16px',
   },
-  renameForm: {
+  formSettings: {
+    display: 'flex',
+    flexDirection: 'column',
+    gap: '14px',
     borderBottom: '1px solid var(--border-color)',
-    paddingBottom: '16px',
+    paddingBottom: '20px',
   },
   formGroup: {
     display: 'flex',
@@ -443,17 +454,51 @@ const styles: Record<string, React.CSSProperties> = {
     color: 'var(--color-text-muted)',
     textTransform: 'uppercase',
   },
-  inputRow: {
-    display: 'flex',
-    gap: '8px',
-  },
   input: {
-    flex: 1,
-    padding: '6px 10px',
+    padding: '8px 12px',
     border: '1px solid var(--border-color)',
-    borderRadius: '6px',
-    fontSize: '12px',
+    borderRadius: '8px',
+    fontSize: '13px',
     outline: 'none',
+  },
+  textarea: {
+    padding: '8px 12px',
+    border: '1px solid var(--border-color)',
+    borderRadius: '8px',
+    fontSize: '13px',
+    outline: 'none',
+    resize: 'vertical',
+    minHeight: '60px',
+    fontFamily: 'var(--font-sans)',
+  },
+  checkboxGroup: {
+    display: 'flex',
+    alignItems: 'center',
+  },
+  checkboxLabel: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: '8px',
+    fontSize: '13px',
+    cursor: 'pointer',
+    color: 'var(--color-text-secondary)',
+  },
+  checkbox: {
+    width: '16px',
+    height: '16px',
+    cursor: 'pointer',
+  },
+  saveBtnSettings: {
+    backgroundColor: 'var(--color-accent)',
+    color: '#FFF',
+    border: 'none',
+    borderRadius: '8px',
+    padding: '10px 16px',
+    fontSize: '13px',
+    fontWeight: 600,
+    cursor: 'pointer',
+    marginTop: '6px',
+    transition: 'background-color 0.2s',
   },
   inputPort: {
     padding: '6px 10px',
@@ -463,16 +508,6 @@ const styles: Record<string, React.CSSProperties> = {
     outline: 'none',
     boxSizing: 'border-box',
     height: '32px',
-  },
-  renameBtn: {
-    backgroundColor: 'var(--color-accent)',
-    color: '#FFF',
-    border: 'none',
-    borderRadius: '6px',
-    padding: '6px 12px',
-    fontSize: '12px',
-    fontWeight: 600,
-    cursor: 'pointer',
   },
   section: {
     display: 'flex',
@@ -510,14 +545,6 @@ const styles: Record<string, React.CSSProperties> = {
     fontWeight: 700,
     padding: '2px 6px',
     borderRadius: '4px',
-  },
-  nodeTypeBadge: {
-    fontSize: '9px',
-    fontWeight: 700,
-    padding: '2px 6px',
-    borderRadius: '4px',
-    backgroundColor: '#E5E7EB',
-    color: '#4B5563',
   },
   emptyText: {
     margin: 0,

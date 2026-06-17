@@ -93,20 +93,6 @@ export default function NodeLibrary({ onCollapseChange }: NodeLibraryProps) {
             
             <div
               draggable
-              onDragStart={(e) => handleDragStart(e, 'vpc')}
-              style={styles.draggableNode}
-            >
-              <div style={styles.iconBox} className="glass">
-                <Network size={18} color="#3B82F6" />
-              </div>
-              <div style={styles.nodeInfo}>
-                <span style={styles.nodeName}>Virtual Private Cloud</span>
-                <span style={styles.nodeDesc}>Logical network boundary</span>
-              </div>
-            </div>
-
-            <div
-              draggable
               onDragStart={(e) => handleDragStart(e, 'subnet-public')}
               style={styles.draggableNode}
             >
@@ -161,14 +147,6 @@ export default function NodeLibrary({ onCollapseChange }: NodeLibraryProps) {
             title="Drag MySQL"
           >
             <Database size={20} color="#F29111" />
-          </div>
-          <div
-            draggable
-            onDragStart={(e) => handleDragStart(e, 'vpc')}
-            style={styles.collapsedIconNode}
-            title="Drag VPC"
-          >
-            <Network size={20} color="#3B82F6" />
           </div>
           <div
             draggable
