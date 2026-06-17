@@ -1,4 +1,4 @@
-import { Eye, EyeOff, Route } from 'lucide-react';
+import { Eye, EyeOff, Route, Trash } from 'lucide-react';
 
 export default function SubnetNode({ data }: any) {
   const isPublic = data.type === 'public';
@@ -40,7 +40,7 @@ export default function SubnetNode({ data }: any) {
         style={{
           position: 'absolute',
           top: '-12px',
-          right: '12px',
+          right: '34px',
           backgroundColor: 'var(--bg-surface-solid)',
           border: '1px solid var(--border-color)',
           color: 'var(--color-text-secondary)',
@@ -59,6 +59,32 @@ export default function SubnetNode({ data }: any) {
       >
         <Route size={10} />
         <span>Routes</span>
+      </button>
+
+      <button
+        onClick={(e) => {
+          e.stopPropagation();
+          data.onDelete?.(data.id);
+        }}
+        style={{
+          position: 'absolute',
+          top: '-12px',
+          right: '12px',
+          backgroundColor: '#EF4444',
+          border: 'none',
+          color: '#FFFFFF',
+          padding: '3px 4px',
+          borderRadius: '4px',
+          cursor: 'pointer',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          boxShadow: '0 1px 2px rgba(0,0,0,0.1)',
+          zIndex: 10,
+        }}
+        title="Delete Subnet"
+      >
+        <Trash size={9} />
       </button>
     </div>
   );
