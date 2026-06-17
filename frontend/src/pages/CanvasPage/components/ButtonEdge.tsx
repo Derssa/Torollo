@@ -26,8 +26,8 @@ export default function ButtonEdge({
 
   const onEdgeClick = (evt: React.MouseEvent) => {
     evt.stopPropagation();
-    if (data?.onDelete) {
-      data.onDelete(id);
+    if (data && (data as any).onDelete) {
+      (data as any).onDelete(id);
     }
   };
 

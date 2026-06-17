@@ -21,7 +21,7 @@ export interface Subnet {
 }
 
 export interface NetworkConfig {
-  vpcs: VPC[];
+  vpcs?: VPC[];
   subnets: Subnet[];
   nodeSubnetMap: Record<string, string>;
   nodeSecurityGroups: Record<string, SecurityGroupRule[]>;

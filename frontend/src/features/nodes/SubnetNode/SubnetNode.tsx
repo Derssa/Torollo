@@ -1,7 +1,6 @@
 import { Eye, EyeOff, Route, Trash } from 'lucide-react';
-import { NodeResizer } from '@xyflow/react';
 
-export default function SubnetNode({ id, data, selected }: any) {
+export default function SubnetNode({ id, data }: any) {
   const isPublic = data.type === 'public';
   const isHovered = data.hoverStatus === 'valid' || data.hoverStatus === 'invalid';
   
@@ -15,7 +14,7 @@ export default function SubnetNode({ id, data, selected }: any) {
     : 'none';
 
   const cols = data.columns || 2;
-  const rows = Math.max(1, Math.round(((data.height || 240) - 50) / 190));
+  const rows = data.rows || 1;
 
   const placeholders = [];
   for (let r = 0; r < rows; r++) {
@@ -25,27 +24,43 @@ export default function SubnetNode({ id, data, selected }: any) {
           key={`placeholder-${r}-${c}`}
           style={{
             position: 'absolute',
-            left: 40 + c * 280,
+            left: 60 + c * 340,
             top: 60 + r * 190,
             width: 220,
             height: 140,
-            border: '2.5px dashed rgba(0, 0, 0, 0.045)',
+            border: '2.5px dashed rgba(0, 0, 0, 0.055)',
             borderRadius: '12px',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
-            color: 'rgba(0, 0, 0, 0.12)',
-            fontSize: '11px',
-            fontWeight: 700,
+            color: isPublic ? 'rgba(16, 185, 129, 0.35)' : 'rgba(245, 158, 11, 0.35)',
+            fontSize: '24px',
+            fontWeight: 300,
             pointerEvents: 'none',
             backgroundColor: 'rgba(0, 0, 0, 0.005)'
           }}
         >
-          Slot {r * cols + c + 1}
+          +
         </div>
       );
     }
   }
+
+  const btnStyle = {
+    backgroundColor: 'rgba(255, 255, 255, 0.2)',
+    border: 'none',
+    color: '#FFFFFF',
+    width: '16px',
+    height: '16px',
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderRadius: '2px',
+    cursor: 'pointer',
+    fontSize: '11px',
+    fontWeight: 'bold' as const,
+    padding: 0,
+  };
 
   return (
     <div style={{
@@ -60,24 +75,16 @@ export default function SubnetNode({ id, data, selected }: any) {
       position: 'relative',
       transition: 'all 0.2s ease',
     }}>
-      <NodeResizer
-        color={borderColor}
-        minWidth={300}
-        minHeight={240}
-        grid={[280, 190]}
-        isVisible={true}
-        onResizeStop={(evt, params) => data.onResize?.(evt, { id, ...params })}
-      />
       {placeholders}
       <div style={{
         position: 'absolute',
-        top: '-12px',
+        top: '-16px',
         left: '12px',
         backgroundColor: isPublic ? '#10B981' : '#F59E0B',
         color: '#FFFFFF',
-        fontSize: '10px',
+        fontSize: '12px',
         fontWeight: 700,
-        padding: '2px 8px',
+        padding: '4px 10px',
         borderRadius: '8px',
         display: 'flex',
         alignItems: 'center',
@@ -85,8 +92,102 @@ export default function SubnetNode({ id, data, selected }: any) {
         boxShadow: '0 2px 4px rgba(0,0,0,0.1)',
         zIndex: 10,
       }}>
-        {isPublic ? <Eye size={10} /> : <EyeOff size={10} />}
+        {isPublic ? <Eye size={12} /> : <EyeOff size={12} />}
         <span>{data.name || (isPublic ? 'Public Subnet' : 'Private Subnet')}</span>
+
+        {/* Grid Controls (Rows & Cols) */}
+        <div 
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: '4px',
+            borderLeft: '1px solid rgba(255,255,255,0.3)',
+            paddingLeft: '6px',
+            marginLeft: '4px',
+            pointerEvents: 'auto'
+          }}
+          onClick={(e) => e.stopPropagation()}
+        >
+          <span style={{ fontSize: '11px', opacity: 0.9 }}>Grid:</span>
+          
+          <div style={{ display: 'flex', alignItems: 'center', gap: '2px' }}>
+            <button
+              onClick={() => data.onResize?.(id, 'columns', cols - 1)}
+              style={btnStyle}
+              title="Reduce Columns"
+            >
+              -
+            </button>
+            <input
+              type="number"
+              min={1}
+              value={cols}
+              onChange={(e) => {
+                const val = parseInt(e.target.value, 10);
+                if (!isNaN(val)) data.onResize?.(id, 'columns', val);
+              }}
+              style={{
+                width: '28px',
+                background: 'rgba(255,255,255,0.15)',
+                border: 'none',
+                color: '#ffffff',
+                fontSize: '11px',
+                padding: '0 2px',
+                textAlign: 'center',
+                borderRadius: '2px',
+                fontWeight: 'bold',
+                height: '16px',
+              }}
+            />
+            <button
+              onClick={() => data.onResize?.(id, 'columns', cols + 1)}
+              style={btnStyle}
+              title="Increase Columns"
+            >
+              +
+            </button>
+          </div>
+
+          <span style={{ fontSize: '11px', opacity: 0.9 }}>x</span>
+
+          <div style={{ display: 'flex', alignItems: 'center', gap: '2px' }}>
+            <button
+              onClick={() => data.onResize?.(id, 'rows', rows - 1)}
+              style={btnStyle}
+              title="Reduce Rows"
+            >
+              -
+            </button>
+            <input
+              type="number"
+              min={1}
+              value={rows}
+              onChange={(e) => {
+                const val = parseInt(e.target.value, 10);
+                if (!isNaN(val)) data.onResize?.(id, 'rows', val);
+              }}
+              style={{
+                width: '28px',
+                background: 'rgba(255,255,255,0.15)',
+                border: 'none',
+                color: '#ffffff',
+                fontSize: '11px',
+                padding: '0 2px',
+                textAlign: 'center',
+                borderRadius: '2px',
+                fontWeight: 'bold',
+                height: '16px',
+              }}
+            />
+            <button
+              onClick={() => data.onResize?.(id, 'rows', rows + 1)}
+              style={btnStyle}
+              title="Increase Rows"
+            >
+              +
+            </button>
+          </div>
+        </div>
       </div>
 
       <button
@@ -96,14 +197,14 @@ export default function SubnetNode({ id, data, selected }: any) {
         }}
         style={{
           position: 'absolute',
-          top: '-12px',
-          right: '34px',
+          top: '-16px',
+          right: '38px',
           backgroundColor: 'var(--bg-surface-solid)',
           border: '1px solid var(--border-color)',
           color: 'var(--color-text-secondary)',
-          fontSize: '9px',
+          fontSize: '11px',
           fontWeight: 600,
-          padding: '2px 6px',
+          padding: '3px 8px',
           borderRadius: '4px',
           display: 'flex',
           alignItems: 'center',
@@ -114,7 +215,7 @@ export default function SubnetNode({ id, data, selected }: any) {
         }}
         title="Manage Subnet Routing Table"
       >
-        <Route size={10} />
+        <Route size={12} />
         <span>Routes</span>
       </button>
 
@@ -125,12 +226,12 @@ export default function SubnetNode({ id, data, selected }: any) {
         }}
         style={{
           position: 'absolute',
-          top: '-12px',
+          top: '-16px',
           right: '12px',
           backgroundColor: '#EF4444',
           border: 'none',
           color: '#FFFFFF',
-          padding: '3px 4px',
+          padding: '4px 6px',
           borderRadius: '4px',
           cursor: 'pointer',
           display: 'flex',
@@ -141,7 +242,7 @@ export default function SubnetNode({ id, data, selected }: any) {
         }}
         title="Delete Subnet"
       >
-        <Trash size={9} />
+        <Trash size={12} />
       </button>
     </div>
   );

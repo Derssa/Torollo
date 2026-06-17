@@ -94,7 +94,6 @@ export default function VpcModal({
     }
 
     const sourceSubnetId = nodeSubnetMap[sourceNode.id];
-    const destSubnetId = nodeSubnetMap[destNode.id];
 
     // 1. Check Security Group Rules (Destination Inbound Rules)
     const destRules = nodeSecurityGroups[destNode.id] || [];

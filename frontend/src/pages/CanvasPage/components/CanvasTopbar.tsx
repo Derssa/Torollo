@@ -1,9 +1,9 @@
-import { Server, ArrowLeft, RefreshCw, Save, Plus, Network, Play } from 'lucide-react';
+import { Server, ArrowLeft, RefreshCw, Save, Network, Play } from 'lucide-react';
 
 interface CanvasTopbarProps {
   projectName: string;
   loading: boolean;
-  creating: boolean;
+  creating?: boolean;
   onBack: () => void;
   onRefresh: () => void;
   onSave: () => void;
@@ -14,7 +14,7 @@ interface CanvasTopbarProps {
 export default function CanvasTopbar({
   projectName,
   loading,
-  creating,
+  creating: _creating,
   onBack,
   onRefresh,
   onSave,
