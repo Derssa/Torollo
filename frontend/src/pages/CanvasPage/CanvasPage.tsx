@@ -20,7 +20,8 @@ import CanvasFooter from './components/CanvasFooter';
 import VpcNode from '../../features/nodes/VpcNode/VpcNode';
 import SubnetNode from '../../features/nodes/SubnetNode/SubnetNode';
 import RoutingTableModal from '../../features/nodes/SubnetNode/RoutingTableModal';
-import SecurityGroupsModal, { SecurityGroupRule } from '../../features/nodes/SecurityGroups/SecurityGroupsModal';
+import SecurityGroupsModal from '../../features/nodes/SecurityGroups/SecurityGroupsModal';
+import type { SecurityGroupRule } from '../../features/nodes/SecurityGroups/SecurityGroupsModal';
 import NetworkSimulatorPanel from '../../features/nodes/SecurityGroups/NetworkSimulatorPanel';
 
 interface CanvasPageProps {
