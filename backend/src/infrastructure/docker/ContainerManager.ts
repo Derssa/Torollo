@@ -280,7 +280,11 @@ export class ContainerManager {
 
       stream.on('end', () => {
         const warningText = 'mysql: [Warning] Using a password on the command line interface can be insecure.';
-        const cleanOutput = output.replace(warningText, '').trim();
+        let cleanOutput = output.replace(warningText, '').trim();
+        
+        if (cleanOutput.includes("Can't connect to local MySQL server through socket") || cleanOutput.includes("ERROR 2002 (HY000)")) {
+          cleanOutput = "ERROR: Database server is still starting up. Please wait 5-10 seconds for initialization to complete and try again.";
+        }
         resolve(cleanOutput);
       });
 
