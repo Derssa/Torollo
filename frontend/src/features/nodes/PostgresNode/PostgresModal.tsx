@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { X, Database, Table, Columns, Play, Copy, Check, Search, BookOpen, Terminal, RefreshCw, AlertCircle, Eye } from 'lucide-react';
 import { API_BASE } from '../../../shared/types';
+import postgresCheatSheet from './data/postgresCheatSheet.json';
 
 interface PostgresModalProps {
   containerId: string;
@@ -25,80 +26,7 @@ interface DBNode {
   error?: boolean;
 }
 
-const CHEAT_SHEET_DATA = [
-  {
-    name: "psql Connection",
-    category: "Connection",
-    description: "Connect to database from command line.",
-    example: "psql -U postgres -d postgres"
-  },
-  {
-    name: "Create Database",
-    category: "Database Commands",
-    description: "Create a new database.",
-    example: "CREATE DATABASE my_shop_db;"
-  },
-  {
-    name: "List Databases",
-    category: "Database Commands",
-    description: "psql shortcut to list all databases.",
-    example: "\\l"
-  },
-  {
-    name: "Switch Database",
-    category: "Database Commands",
-    description: "psql shortcut to switch to another database.",
-    example: "\\c my_shop_db"
-  },
-  {
-    name: "Create Table",
-    category: "Table Commands",
-    description: "Create a table with columns and data types.",
-    example: "CREATE TABLE users (\n  id SERIAL PRIMARY KEY,\n  name VARCHAR(100) NOT NULL,\n  email VARCHAR(100) UNIQUE,\n  created_at TIMESTAMP DEFAULT NOW()\n);"
-  },
-  {
-    name: "Insert Rows",
-    category: "Queries",
-    description: "Insert new data into a table.",
-    example: "INSERT INTO users (name, email) VALUES\n('Alice Smith', 'alice@example.com'),\n('Bob Jones', 'bob@example.com');"
-  },
-  {
-    name: "Select Data",
-    category: "Queries",
-    description: "Query and filter records.",
-    example: "SELECT name, email FROM users WHERE name LIKE 'A%';"
-  },
-  {
-    name: "Update Data",
-    category: "Queries",
-    description: "Modify existing table rows.",
-    example: "UPDATE users SET email = 'alice.new@example.com' WHERE id = 1;"
-  },
-  {
-    name: "Delete Data",
-    category: "Queries",
-    description: "Delete rows from a table.",
-    example: "DELETE FROM users WHERE id = 2;"
-  },
-  {
-    name: "Inner Join",
-    category: "Joins",
-    description: "Join records from two tables sharing matching keys.",
-    example: "SELECT orders.id, users.name\nFROM orders\nINNER JOIN users ON orders.user_id = users.id;"
-  },
-  {
-    name: "Left Join",
-    category: "Joins",
-    description: "Get all records from the left table, plus matched records from the right.",
-    example: "SELECT users.name, orders.id\nFROM users\nLEFT JOIN orders ON users.id = orders.user_id;"
-  },
-  {
-    name: "Create Index",
-    category: "Indexes",
-    description: "Speed up search query lookups on a column.",
-    example: "CREATE INDEX idx_users_email ON users(email);"
-  }
-];
+const CHEAT_SHEET_DATA = postgresCheatSheet;
 
 export default function PostgresModal({ containerId, nodeName, projectId, onClose }: PostgresModalProps) {
   const [activeTab, setActiveTab] = useState<'explorer' | 'shell' | 'cheatsheet'>('explorer');
