@@ -438,7 +438,7 @@ export default function CanvasPage({ projectId, projectName, onBackToProjects, o
           ...existing,
           id: subnet.id,
           type: 'subnet',
-          parentId: subnet.vpcId || undefined,
+          parentId: undefined,
           position: subnet.position,
           style: { width: subnet.width, height: subnet.height },
           data: {
