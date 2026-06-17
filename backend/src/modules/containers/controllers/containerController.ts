@@ -15,12 +15,12 @@ export class ContainerController {
   public static async create(req: Request, res: Response): Promise<void> {
     try {
       const { projectId } = req.params;
-      const { name } = req.body;
+      const { name, type } = req.body;
       if (!name) {
         res.status(400).json({ error: 'Name is required' });
         return;
       }
-      const container = await ContainerService.createContainer(projectId as string, name);
+      const container = await ContainerService.createContainer(projectId as string, name, type || 'ubuntu');
       res.status(201).json(container);
     } catch (err: any) {
       res.status(500).json({ error: err.message });
@@ -49,6 +49,31 @@ export class ContainerController {
     try {
       await ContainerService.deleteContainer(req.params.id as string);
       res.json({ success: true });
+    } catch (err: any) {
+      res.status(500).json({ error: err.message });
+    }
+  }
+
+  public static async postgresExplorer(req: Request, res: Response): Promise<void> {
+    try {
+      const { id } = req.params;
+      const explorerData = await ContainerService.getPostgresExplorer(id as string);
+      res.json(explorerData);
+    } catch (err: any) {
+      res.status(500).json({ error: err.message });
+    }
+  }
+
+  public static async postgresQuery(req: Request, res: Response): Promise<void> {
+    try {
+      const { id } = req.params;
+      const { query, database } = req.body;
+      if (!query) {
+        res.status(400).json({ error: 'Query is required' });
+        return;
+      }
+      const result = await ContainerService.executePostgresQuery(id as string, database || 'postgres', query);
+      res.json({ result });
     } catch (err: any) {
       res.status(500).json({ error: err.message });
     }
