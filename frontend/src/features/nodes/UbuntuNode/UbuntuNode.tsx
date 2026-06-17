@@ -1,6 +1,6 @@
 import { Handle, Position } from '@xyflow/react';
 import { Play, Square, Trash2, Terminal as TermIcon, HardDrive, Shield } from 'lucide-react';
-import styles from './UbuntuNode.module.css';
+import styles from '../ServiceNode.module.css';
 
 interface UbuntuNodeProps {
   data: any; // Use any to support onSecurityGroupOpen prop dynamically

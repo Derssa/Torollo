@@ -1,6 +1,6 @@
 import { Handle, Position } from '@xyflow/react';
 import { Play, Square, Trash2, Database, Search, Shield } from 'lucide-react';
-import styles from '../UbuntuNode/UbuntuNode.module.css'; // Reuse core card styles for visual parity!
+import styles from '../ServiceNode.module.css'; // Reuse core card styles for visual parity!
 
 interface PostgresNodeProps {
   data: any; // Use any to support onSecurityGroupOpen prop dynamically
