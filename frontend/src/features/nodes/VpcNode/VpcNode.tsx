@@ -1,14 +1,26 @@
 import { Shield, Settings, Trash } from 'lucide-react';
 
 export default function VpcNode({ data }: any) {
+  const isHovered = data.hoverStatus === 'valid' || data.hoverStatus === 'invalid';
+  const borderColor = isHovered 
+    ? (data.hoverStatus === 'valid' ? '#10B981' : '#EF4444') 
+    : 'var(--color-accent)';
+  const boxShadow = isHovered 
+    ? (data.hoverStatus === 'valid' ? '0 0 20px rgba(16, 185, 129, 0.5)' : '0 0 20px rgba(239, 68, 68, 0.5)') 
+    : 'none';
+
   return (
     <div style={{
       width: '100%',
       height: '100%',
-      border: '2px dashed var(--color-accent)',
+      border: `2px dashed ${borderColor}`,
       borderRadius: '12px',
-      backgroundColor: 'rgba(37, 99, 235, 0.02)',
+      backgroundColor: isHovered 
+        ? (data.hoverStatus === 'valid' ? 'rgba(16, 185, 129, 0.05)' : 'rgba(239, 68, 68, 0.05)') 
+        : 'rgba(37, 99, 235, 0.02)',
+      boxShadow,
       position: 'relative',
+      transition: 'all 0.2s ease',
     }}>
       <div style={{
         position: 'absolute',

@@ -2,15 +2,29 @@ import { Eye, EyeOff, Route, Trash } from 'lucide-react';
 
 export default function SubnetNode({ data }: any) {
   const isPublic = data.type === 'public';
+  const isHovered = data.hoverStatus === 'valid' || data.hoverStatus === 'invalid';
+  
+  const defaultColor = isPublic ? '#10B981' : '#F59E0B';
+  const borderColor = isHovered 
+    ? (data.hoverStatus === 'valid' ? '#10B981' : '#EF4444') 
+    : defaultColor;
+    
+  const boxShadow = isHovered 
+    ? (data.hoverStatus === 'valid' ? '0 0 15px rgba(16, 185, 129, 0.4)' : '0 0 15px rgba(239, 68, 68, 0.4)') 
+    : 'none';
 
   return (
     <div style={{
       width: '100%',
       height: '100%',
-      border: `2px dotted ${isPublic ? '#10B981' : '#F59E0B'}`,
+      border: `2px dotted ${borderColor}`,
       borderRadius: '8px',
-      backgroundColor: isPublic ? 'rgba(16, 185, 129, 0.015)' : 'rgba(245, 158, 11, 0.015)',
+      backgroundColor: isHovered 
+        ? (data.hoverStatus === 'valid' ? 'rgba(16, 185, 129, 0.04)' : 'rgba(239, 68, 68, 0.04)') 
+        : (isPublic ? 'rgba(16, 185, 129, 0.015)' : 'rgba(245, 158, 11, 0.015)'),
+      boxShadow,
       position: 'relative',
+      transition: 'all 0.2s ease',
     }}>
       <div style={{
         position: 'absolute',

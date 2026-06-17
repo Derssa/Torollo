@@ -543,11 +543,216 @@ export default function CanvasPage({ projectId, projectName, onBackToProjects, o
     };
   }, []);
 
+  const onNodeDrag = useCallback((_event: any, draggedNode: Node) => {
+    if (!reactFlowInstance) return;
+
+    const currentNodes = reactFlowInstance.getNodes();
+
+    // 1. Calculate absolute coordinates of dragged node center
+    let absX = draggedNode.position.x;
+    let absY = draggedNode.position.y;
+    if (draggedNode.parentId) {
+      const parentPos = getAbsoluteCoordinates(draggedNode.parentId, currentNodes);
+      absX += parentPos.x;
+      absY += parentPos.y;
+    }
+
+    const nodeWidth = draggedNode.width || (draggedNode.type === 'vpc' ? 600 : draggedNode.type === 'subnet' ? 260 : 220);
+    const nodeHeight = draggedNode.height || (draggedNode.type === 'vpc' ? 400 : draggedNode.type === 'subnet' ? 180 : 140);
+    const centerX = absX + nodeWidth / 2;
+    const centerY = absY + nodeHeight / 2;
+
+    let hoveredId: string | null = null;
+    let isValid = false;
+
+    // Check intersection with subnets first (higher priority for service nodes)
+    if (draggedNode.type !== 'subnet' && draggedNode.type !== 'vpc') {
+      // Service node dragged
+      for (const subnet of networkConfig.subnets) {
+        let subnetAbsX = subnet.position.x;
+        let subnetAbsY = subnet.position.y;
+        if (subnet.vpcId) {
+          const parentVpc = networkConfig.vpcs.find(v => v.id === subnet.vpcId);
+          if (parentVpc) {
+            subnetAbsX += parentVpc.position.x;
+            subnetAbsY += parentVpc.position.y;
+          }
+        }
+        if (
+          centerX >= subnetAbsX &&
+          centerX <= subnetAbsX + subnet.width &&
+          centerY >= subnetAbsY &&
+          centerY <= subnetAbsY + subnet.height
+        ) {
+          hoveredId = subnet.id;
+          isValid = true;
+          break;
+        }
+      }
+
+      // If not in a subnet, check VPCs
+      if (!hoveredId) {
+        for (const vpc of networkConfig.vpcs) {
+          if (
+            centerX >= vpc.position.x &&
+            centerX <= vpc.position.x + vpc.width &&
+            centerY >= vpc.position.y &&
+            centerY <= vpc.position.y + vpc.height
+          ) {
+            hoveredId = vpc.id;
+            isValid = true;
+            break;
+          }
+        }
+      }
+    } else if (draggedNode.type === 'subnet') {
+      // Subnet dragged: can go into VPC
+      for (const vpc of networkConfig.vpcs) {
+        if (
+          centerX >= vpc.position.x &&
+          centerX <= vpc.position.x + vpc.width &&
+          centerY >= vpc.position.y &&
+          centerY <= vpc.position.y + vpc.height
+        ) {
+          hoveredId = vpc.id;
+          isValid = true;
+          break;
+        }
+      }
+
+      // Check if dropped inside another subnet (invalid)
+      for (const subnet of networkConfig.subnets) {
+        if (subnet.id === draggedNode.id) continue;
+        let subnetAbsX = subnet.position.x;
+        let subnetAbsY = subnet.position.y;
+        if (subnet.vpcId) {
+          const parentVpc = networkConfig.vpcs.find(v => v.id === subnet.vpcId);
+          if (parentVpc) {
+            subnetAbsX += parentVpc.position.x;
+            subnetAbsY += parentVpc.position.y;
+          }
+        }
+        if (
+          centerX >= subnetAbsX &&
+          centerX <= subnetAbsX + subnet.width &&
+          centerY >= subnetAbsY &&
+          centerY <= subnetAbsY + subnet.height
+        ) {
+          hoveredId = subnet.id;
+          isValid = false; // invalid!
+          break;
+        }
+      }
+    } else if (draggedNode.type === 'vpc') {
+      // VPC dragged: cannot go inside another VPC
+      for (const vpc of networkConfig.vpcs) {
+        if (vpc.id === draggedNode.id) continue;
+        if (
+          centerX >= vpc.position.x &&
+          centerX <= vpc.position.x + vpc.width &&
+          centerY >= vpc.position.y &&
+          centerY <= vpc.position.y + vpc.height
+        ) {
+          hoveredId = vpc.id;
+          isValid = false; // invalid!
+          break;
+        }
+      }
+    }
+
+    // Update real-time position in coordinates map for auto-growing calculations
+    let tempNodeSubnetMap = { ...networkConfig.nodeSubnetMap };
+    
+    // If we are hovering a valid container, assume it's parented temporarily for sizing check
+    if (hoveredId && isValid) {
+      tempNodeSubnetMap[draggedNode.id] = hoveredId;
+    } else if (draggedNode.type !== 'vpc' && draggedNode.type !== 'subnet') {
+      // Dragging service node outside of any container
+      delete tempNodeSubnetMap[draggedNode.id];
+    }
+
+    // Calculate temp positions relative to the hovered container
+    let tempPos = { x: absX, y: absY };
+    if (hoveredId && isValid) {
+      if (hoveredId.startsWith('subnet-')) {
+        const subnet = networkConfig.subnets.find(s => s.id === hoveredId);
+        if (subnet) {
+          let subnetAbsX = subnet.position.x;
+          let subnetAbsY = subnet.position.y;
+          if (subnet.vpcId) {
+            const parentVpc = networkConfig.vpcs.find(v => v.id === subnet.vpcId);
+            if (parentVpc) {
+              subnetAbsX += parentVpc.position.x;
+              subnetAbsY += parentVpc.position.y;
+            }
+          }
+          tempPos = { x: absX - subnetAbsX, y: absY - subnetAbsY };
+        }
+      } else if (hoveredId.startsWith('vpc-')) {
+        const vpc = networkConfig.vpcs.find(v => v.id === hoveredId);
+        if (vpc) {
+          tempPos = { x: absX - vpc.position.x, y: absY - vpc.position.y };
+        }
+      }
+    }
+
+    const currentPositions = {
+      ...positionsRef.current,
+      [draggedNode.id]: tempPos
+    };
+
+    const tempConfig = {
+      ...networkConfig,
+      nodeSubnetMap: tempNodeSubnetMap
+    };
+
+    const grownConfig = autoGrowContainers(tempConfig, containers, currentPositions);
+
+    setNodes(prev => prev.map(n => {
+      // Apply grew sizes to subnets
+      if (n.type === 'subnet') {
+        const subnet = grownConfig.subnets.find(s => s.id === n.id);
+        const isHoverTarget = n.id === hoveredId;
+        return {
+          ...n,
+          style: { ...n.style, width: subnet?.width, height: subnet?.height },
+          data: {
+            ...n.data,
+            hoverStatus: isHoverTarget ? (isValid ? 'valid' : 'invalid') : null
+          }
+        };
+      }
+      // Apply grew sizes to VPCs
+      if (n.type === 'vpc') {
+        const vpc = grownConfig.vpcs.find(v => v.id === n.id);
+        const isHoverTarget = n.id === hoveredId;
+        return {
+          ...n,
+          style: { ...n.style, width: vpc?.width, height: vpc?.height },
+          data: {
+            ...n.data,
+            hoverStatus: isHoverTarget ? (isValid ? 'valid' : 'invalid') : null
+          }
+        };
+      }
+      return n;
+    }));
+
+  }, [reactFlowInstance, networkConfig, containers, setNodes]);
+
   // Save position to ref and localStorage when drag ends (auto-save with overlapping logic)
   const onNodeDragStop = useCallback((_event: any, draggedNode: Node) => {
     if (!reactFlowInstance) return;
 
     const currentNodes = reactFlowInstance.getNodes();
+
+    // Reset all hoverStatus
+    setNodes(prev => prev.map(n => {
+      if (n.data && n.data.hoverStatus) {
+        return { ...n, data: { ...n.data, hoverStatus: null } };
+      }
+      return n;
+    }));
 
     // Calculate final absolute coordinates of dragged node
     let absX = draggedNode.position.x;
@@ -666,6 +871,20 @@ export default function CanvasPage({ projectId, projectName, onBackToProjects, o
         return;
       }
 
+      // Subnet boundary change checks
+      const original = dragStartPositionsRef.current[draggedNode.id];
+      const oldVpcId = original?.parentId;
+      if (oldVpcId !== targetVpcId) {
+        const oldVpc = networkConfig.vpcs.find(v => v.id === oldVpcId);
+        const newVpc = networkConfig.vpcs.find(v => v.id === targetVpcId);
+        if (oldVpcId) {
+          showNotification({ type: 'warning', message: `Subnet "${draggedNode.data.name}" removed from VPC "${oldVpc?.name || 'VPC'}"` });
+        }
+        if (targetVpcId) {
+          showNotification({ type: 'success', message: `Subnet "${draggedNode.data.name}" added to VPC "${newVpc?.name || 'VPC'}"` });
+        }
+      }
+
       const updatedSubnets = networkConfig.subnets.map(s => {
         if (s.id === draggedNode.id) {
           const finalPos = { x: absX - targetVpcPos.x, y: absY - targetVpcPos.y };
@@ -683,7 +902,7 @@ export default function CanvasPage({ projectId, projectName, onBackToProjects, o
       triggerArchitectureAudit(newConfig);
     }
     else {
-      // Container node
+      // Container/Service node
       const subnetWidth = 260;
       const subnetHeight = 180;
       const nodeCenterX = absX + 120;
@@ -717,6 +936,7 @@ export default function CanvasPage({ projectId, projectName, onBackToProjects, o
 
       // Check if it is inside any VPC directly
       let targetVpcId: string | null = null;
+      let targetVpcPos = { x: 0, y: 0 };
       if (!targetSubnetId) {
         for (const vpc of networkConfig.vpcs) {
           if (
@@ -726,6 +946,7 @@ export default function CanvasPage({ projectId, projectName, onBackToProjects, o
             nodeCenterY <= vpc.position.y + 400
           ) {
             targetVpcId = vpc.id;
+            targetVpcPos = vpc.position;
             break;
           }
         }
@@ -734,6 +955,33 @@ export default function CanvasPage({ projectId, projectName, onBackToProjects, o
       if (!targetSubnetId && !targetVpcId) {
         revertNode('Invalid placement: Service nodes must reside inside a VPC boundary.');
         return;
+      }
+
+      const original = dragStartPositionsRef.current[draggedNode.id];
+      const oldParentId = original?.parentId;
+      const newParentId = targetSubnetId || targetVpcId || undefined;
+
+      if (oldParentId !== newParentId) {
+        const oldSubnet = networkConfig.subnets.find(s => s.id === oldParentId);
+        const oldVpc = networkConfig.vpcs.find(v => v.id === oldParentId);
+        const newSubnet = networkConfig.subnets.find(s => s.id === newParentId);
+        const newVpc = networkConfig.vpcs.find(v => v.id === newParentId);
+
+        if (oldParentId) {
+          if (oldParentId.startsWith('subnet-')) {
+            showNotification({ type: 'warning', message: `Node "${draggedNode.data.name}" removed from Subnet "${oldSubnet?.name || 'Subnet'}"` });
+          } else if (oldParentId.startsWith('vpc-')) {
+            showNotification({ type: 'warning', message: `Node "${draggedNode.data.name}" removed from VPC "${oldVpc?.name || 'VPC'}"` });
+          }
+        }
+
+        if (newParentId) {
+          if (newParentId.startsWith('subnet-')) {
+            showNotification({ type: 'success', message: `Node "${draggedNode.data.name}" added to Subnet "${newSubnet?.name || 'Subnet'}"` });
+          } else if (newParentId.startsWith('vpc-')) {
+            showNotification({ type: 'success', message: `Node "${draggedNode.data.name}" added to VPC "${newVpc?.name || 'VPC'}"` });
+          }
+        }
       }
 
       const updatedNodeSubnetMap = { ...networkConfig.nodeSubnetMap };
@@ -750,6 +998,12 @@ export default function CanvasPage({ projectId, projectName, onBackToProjects, o
         if (!updatedSecurityGroups[draggedNode.id] || updatedSecurityGroups[draggedNode.id].length === 0) {
           updatedSecurityGroups[draggedNode.id] = initDefaultRules(draggedNode.id, draggedNode.type || 'ubuntu', targetSubnetId);
         }
+      } else if (targetVpcId) {
+        updatedNodeSubnetMap[draggedNode.id] = targetVpcId;
+        positionsRef.current[draggedNode.id] = {
+          x: absX - targetVpcPos.x,
+          y: absY - targetVpcPos.y
+        };
       } else {
         delete updatedNodeSubnetMap[draggedNode.id];
         positionsRef.current[draggedNode.id] = { x: absX, y: absY };
@@ -760,7 +1014,7 @@ export default function CanvasPage({ projectId, projectName, onBackToProjects, o
       saveNetworkConfig(newConfig);
       triggerArchitectureAudit(newConfig);
     }
-  }, [reactFlowInstance, networkConfig, projectId, saveNetworkConfig, setNodes, triggerArchitectureAudit, showNotification]);
+  }, [reactFlowInstance, networkConfig, projectId, saveNetworkConfig, setNodes, triggerArchitectureAudit, showNotification, containers]);
 
   const onNodesDelete = useCallback((deleted: Node[]) => {
     let updatedVpcs = [...networkConfig.vpcs];
@@ -1077,6 +1331,7 @@ export default function CanvasPage({ projectId, projectName, onBackToProjects, o
             nodeTypes={nodeTypes}
             onNodesChange={onNodesChange}
             onNodeDragStart={onNodeDragStart}
+            onNodeDrag={onNodeDrag}
             onNodeDragStop={onNodeDragStop}
             onNodesDelete={onNodesDelete}
             onEdgesDelete={onEdgesDelete}
