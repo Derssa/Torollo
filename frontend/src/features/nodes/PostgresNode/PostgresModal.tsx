@@ -229,7 +229,11 @@ export default function PostgresModal({ containerId, nodeName, projectId, onClos
                     <div style={styles.treeRow} onClick={() => toggleDBExpand(node.database)}>
                       <Database size={16} color="#3B82F6" style={{ marginRight: 8 }} />
                       <span style={styles.dbName}>{node.database}</span>
-                      {node.error && <AlertCircle size={14} color="#EF4444" style={{ marginLeft: 8 }} title="Database offline/unreachable" />}
+                      {node.error && (
+                        <span title="Database offline/unreachable">
+                          <AlertCircle size={14} color="#EF4444" style={{ marginLeft: 8 }} />
+                        </span>
+                      )}
                     </div>
 
                     {expandedDBs[node.database] && (

@@ -233,7 +233,11 @@ export default function MysqlModal({ containerId, nodeName, projectId, onClose }
                       <div style={styles.treeRow} onClick={() => toggleDBExpand(node.database)}>
                         <Database size={16} color="#F29111" style={{ marginRight: 8 }} />
                         <span style={styles.dbName}>{node.database}</span>
-                        {node.error && <AlertCircle size={14} color="#EF4444" style={{ marginLeft: 8 }} title="Database offline/unreachable" />}
+                        {node.error && (
+                           <span title="Database offline/unreachable">
+                             <AlertCircle size={14} color="#EF4444" style={{ marginLeft: 8 }} />
+                           </span>
+                         )}
                       </div>
 
                       {expandedDBs[node.database] && (
