@@ -1145,7 +1145,7 @@ export default function CanvasPage({ projectId, projectName, onBackToProjects, o
       )}
 
       {toast && (
-        <ToastNotification message={toast} onDismiss={dismissToast} />
+        <ToastNotification type={toast.type} message={toast.message} onDismiss={dismissToast} />
       )}
     </div>
   );
