@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useCallback } from 'react';
 import Modal from './Modal';
 import { CheckCircle } from 'lucide-react';
 
@@ -60,12 +60,12 @@ const toastStyles: Record<string, React.CSSProperties> = {
 export function useToast() {
   const [toast, setToast] = useState<string | null>(null);
 
-  const showToast = (message: string, duration = 3000) => {
+  const showToast = useCallback((message: string, duration = 3000) => {
     setToast(message);
     setTimeout(() => setToast(null), duration);
-  };
+  }, []);
 
-  const dismissToast = () => setToast(null);
+  const dismissToast = useCallback(() => setToast(null), []);
 
   return { toast, showToast, dismissToast };
 }
