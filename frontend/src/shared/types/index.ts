@@ -5,6 +5,8 @@ export interface ContainerData {
   name: string;
   state: string;
   status: string;
+  type?: 'ubuntu' | 'postgres';
+  port?: string;
 }
 
 export interface Project {

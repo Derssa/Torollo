@@ -4,6 +4,9 @@ import type { Node, Edge } from '@xyflow/react';
 import '@xyflow/react/dist/style.css';
 
 import UbuntuNode from '../../features/nodes/UbuntuNode/UbuntuNode';
+import PostgresNode from '../../features/nodes/PostgresNode/PostgresNode';
+import PostgresModal from '../../features/nodes/PostgresNode/PostgresModal';
+import NodeLibrary from './components/NodeLibrary';
 import { useContainers } from '../../shared/hooks/useContainers';
 import { useToast, ToastNotification } from '../../shared/components/Toast';
 import InputModal from '../../shared/components/InputModal';
@@ -33,9 +36,15 @@ export default function CanvasPage({ projectId, projectName, onBackToProjects, o
     deleteContainer,
   } = useContainers({ projectId, onToast: showToast });
 
-  // Modal state
+  // Modal and inspector states
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [deleteTarget, setDeleteTarget] = useState<string | null>(null);
+  const [inspectingPostgres, setInspectingPostgres] = useState<{ id: string; name: string } | null>(null);
+
+  // Drag and drop tracking
+  const [reactFlowInstance, setReactFlowInstance] = useState<any>(null);
+  const [dropState, setDropState] = useState<{ position: { x: number; y: number }; type: string } | null>(null);
+  const dropPositionsRef = useRef<Record<string, { x: number; y: number }>>({});
 
   // React Flow managed nodes state
   const [nodes, setNodes, onNodesChange] = useNodesState([]);
@@ -44,7 +53,10 @@ export default function CanvasPage({ projectId, projectName, onBackToProjects, o
   // Ref to track saved positions (avoids re-render loops)
   const positionsRef = useRef<Record<string, { x: number; y: number }>>({});
 
-  const nodeTypes = useMemo(() => ({ ubuntu: UbuntuNode }), []);
+  const nodeTypes = useMemo(() => ({ 
+    ubuntu: UbuntuNode,
+    postgres: PostgresNode
+  }), []);
 
   // Load saved positions and start polling
   useEffect(() => {
@@ -69,32 +81,43 @@ export default function CanvasPage({ projectId, projectName, onBackToProjects, o
         const existing = prevNodes.find(n => n.id === c.id);
         const defaultX = 150 + (index % 3) * 280;
         const defaultY = 150 + Math.floor(index / 3) * 220;
+        
         const savedPos = positionsRef.current[c.id];
-        const position = existing?.position || savedPos || { x: defaultX, y: defaultY };
+        const dropPos = dropPositionsRef.current[c.name];
+        if (dropPos) {
+          positionsRef.current[c.id] = dropPos;
+          delete dropPositionsRef.current[c.name];
+        }
+
+        const position = existing?.position || dropPos || savedPos || { x: defaultX, y: defaultY };
+        const nodeType = c.type || 'ubuntu';
 
         return {
           id: c.id,
-          type: 'ubuntu',
+          type: nodeType,
           position,
           data: {
             id: c.id,
             name: c.name,
             state: c.state,
             status: c.status,
+            port: c.port,
             onStart: startContainer,
             onStop: stopContainer,
             onDelete: (id: string) => setDeleteTarget(id),
             onTerminalOpen: onTerminalOpen,
+            onInspect: (id: string, name: string) => setInspectingPostgres({ id, name }),
           },
         };
       });
     });
   }, [containers, startContainer, stopContainer, onTerminalOpen, setNodes]);
 
-  // Save position to ref when drag ends
+  // Save position to ref and localStorage when drag ends (auto-save)
   const onNodeDragStop = useCallback((_event: any, node: Node) => {
     positionsRef.current[node.id] = { x: node.position.x, y: node.position.y };
-  }, []);
+    localStorage.setItem(`akal-lab-graph-layout-${projectId}`, JSON.stringify(positionsRef.current));
+  }, [projectId]);
 
   const saveGraphLocally = () => {
     const currentPositions: Record<string, { x: number; y: number }> = {};
@@ -108,7 +131,20 @@ export default function CanvasPage({ projectId, projectName, onBackToProjects, o
 
   const handleCreateNode = async (name: string) => {
     setShowCreateModal(false);
-    await createContainer(name);
+    const type = dropState?.type || 'ubuntu';
+    const position = dropState?.position;
+
+    if (position) {
+      dropPositionsRef.current[name] = position;
+    }
+
+    setDropState(null);
+    await createContainer(name, type);
+  };
+
+  const handleCancelCreate = () => {
+    setShowCreateModal(false);
+    setDropState(null);
   };
 
   const handleDeleteConfirmed = async () => {
@@ -122,6 +158,33 @@ export default function CanvasPage({ projectId, projectName, onBackToProjects, o
     }
   };
 
+  // React Flow Drag-and-Drop handlers
+  const onDragOver = useCallback((event: React.DragEvent) => {
+    event.preventDefault();
+    event.dataTransfer.dropEffect = 'move';
+  }, []);
+
+  const onDrop = useCallback(
+    (event: React.DragEvent) => {
+      event.preventDefault();
+
+      if (!reactFlowInstance) return;
+
+      const type = event.dataTransfer.getData('application/reactflow');
+
+      if (!type) return;
+
+      const position = reactFlowInstance.screenToFlowPosition({
+        x: event.clientX,
+        y: event.clientY,
+      });
+
+      setDropState({ position, type });
+      setShowCreateModal(true);
+    },
+    [reactFlowInstance]
+  );
+
   return (
     <div style={styles.wrapper}>
       <CanvasTopbar
@@ -131,22 +194,30 @@ export default function CanvasPage({ projectId, projectName, onBackToProjects, o
         onBack={onBackToProjects}
         onRefresh={fetchContainers}
         onSave={saveGraphLocally}
-        onCreate={() => setShowCreateModal(true)}
       />
 
-      {/* Main React Flow Workspace */}
-      <div style={styles.canvasContainer}>
-        <ReactFlow
-          nodes={nodes}
-          edges={edges}
-          nodeTypes={nodeTypes}
-          onNodesChange={onNodesChange}
-          onNodeDragStop={onNodeDragStop}
-          fitView
+      <div style={styles.bodyWrapper}>
+        {/* Main React Flow Workspace */}
+        <div 
+          style={styles.canvasContainer}
+          onDragOver={onDragOver}
+          onDrop={onDrop}
         >
-          <Background variant={BackgroundVariant.Dots} color="#C0C0C0" gap={24} size={1.5} />
-          <Controls />
-        </ReactFlow>
+          <ReactFlow
+            nodes={nodes}
+            edges={edges}
+            nodeTypes={nodeTypes}
+            onNodesChange={onNodesChange}
+            onNodeDragStop={onNodeDragStop}
+            onInit={setReactFlowInstance}
+            fitView
+          >
+            <Background variant={BackgroundVariant.Dots} color="#C0C0C0" gap={24} size={1.5} />
+            <Controls />
+          </ReactFlow>
+        </div>
+
+        <NodeLibrary />
       </div>
 
       <CanvasFooter containers={containers} />
@@ -154,13 +225,17 @@ export default function CanvasPage({ projectId, projectName, onBackToProjects, o
       {/* Modals */}
       {showCreateModal && (
         <InputModal
-          title="Create Ubuntu Node"
+          title={dropState?.type === 'postgres' ? "Create PostgreSQL Node" : "Create Ubuntu Node"}
           label="Give your new container a descriptive name."
-          placeholder="e.g. web-server, api-gateway"
-          defaultValue={`node-${containers.length + 1}`}
+          placeholder={dropState?.type === 'postgres' ? "e.g. pg-db, main-store" : "e.g. web-server, api-gateway"}
+          defaultValue={
+            dropState?.type === 'postgres'
+              ? `postgres-${containers.filter(c => c.type === 'postgres').length + 1}`
+              : `node-${containers.filter(c => !c.type || c.type === 'ubuntu').length + 1}`
+          }
           submitText="Create Node"
           onSubmit={handleCreateNode}
-          onCancel={() => setShowCreateModal(false)}
+          onCancel={handleCancelCreate}
         />
       )}
 
@@ -172,6 +247,15 @@ export default function CanvasPage({ projectId, projectName, onBackToProjects, o
           variant="danger"
           onConfirm={handleDeleteConfirmed}
           onCancel={() => setDeleteTarget(null)}
+        />
+      )}
+
+      {inspectingPostgres && (
+        <PostgresModal
+          containerId={inspectingPostgres.id}
+          nodeName={inspectingPostgres.name}
+          projectId={projectId}
+          onClose={() => setInspectingPostgres(null)}
         />
       )}
 
@@ -189,6 +273,14 @@ const styles: Record<string, React.CSSProperties> = {
     height: '100%',
     width: '100%',
     position: 'relative',
+  },
+  bodyWrapper: {
+    display: 'flex',
+    flexDirection: 'row',
+    flex: 1,
+    height: 'calc(100% - 57px)',
+    width: '100%',
+    overflow: 'hidden',
   },
   canvasContainer: {
     flex: 1,

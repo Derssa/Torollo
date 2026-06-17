@@ -1,0 +1,366 @@
+[
+  {
+    "name": "ls",
+    "category": "File System",
+    "description": "List directory contents.",
+    "example": "ls -la",
+    "keywords": ["files", "directories", "show", "list", "all"]
+  },
+  {
+    "name": "cd",
+    "category": "File System",
+    "description": "Change the current working directory.",
+    "example": "cd /var/log",
+    "keywords": ["directory", "folder", "navigate", "move"]
+  },
+  {
+    "name": "pwd",
+    "category": "File System",
+    "description": "Print the absolute path of the current working directory.",
+    "example": "pwd",
+    "keywords": ["path", "location", "where", "directory"]
+  },
+  {
+    "name": "mkdir",
+    "category": "File System",
+    "description": "Create new directories.",
+    "example": "mkdir -p src/components",
+    "keywords": ["directory", "folder", "new", "create", "make"]
+  },
+  {
+    "name": "rm",
+    "category": "File System",
+    "description": "Remove files or directories recursively.",
+    "example": "rm -rf tmp/cache",
+    "keywords": ["delete", "remove", "erase", "folder", "file"]
+  },
+  {
+    "name": "cp",
+    "category": "File System",
+    "description": "Copy files and directories.",
+    "example": "cp -r src/ dist/",
+    "keywords": ["duplicate", "copy", "backup", "folder", "file"]
+  },
+  {
+    "name": "mv",
+    "category": "File System",
+    "description": "Move or rename files and directories.",
+    "example": "mv old_name.txt new_name.txt",
+    "keywords": ["rename", "move", "transfer", "cut"]
+  },
+  {
+    "name": "find",
+    "category": "File System",
+    "description": "Search for files in a directory hierarchy based on name, size, type, etc.",
+    "example": "find . -name \"*.log\"",
+    "keywords": ["search", "locate", "file", "filter"]
+  },
+  {
+    "name": "chmod",
+    "category": "Permissions",
+    "description": "Change the read, write, and execute permissions of files and directories.",
+    "example": "chmod 755 start.sh",
+    "keywords": ["permissions", "rights", "executable", "security"]
+  },
+  {
+    "name": "chown",
+    "category": "Permissions",
+    "description": "Change the user and/or group ownership of files and directories.",
+    "example": "chown -R www-data:www-data /var/www",
+    "keywords": ["owner", "ownership", "user", "group"]
+  },
+  {
+    "name": "ps",
+    "category": "Process Management",
+    "description": "Report a snapshot of the current active processes.",
+    "example": "ps aux | grep node",
+    "keywords": ["process", "tasks", "running", "jobs", "active"]
+  },
+  {
+    "name": "top",
+    "category": "Process Management",
+    "description": "Display dynamic, real-time view of running system processes and CPU/RAM usage.",
+    "example": "top",
+    "keywords": ["monitor", "cpu", "memory", "usage", "real-time"]
+  },
+  {
+    "name": "htop",
+    "category": "Process Management",
+    "description": "Interactive and visually enhanced command-line process viewer.",
+    "example": "htop",
+    "keywords": ["monitor", "cpu", "memory", "process", "interactive"]
+  },
+  {
+    "name": "kill",
+    "category": "Process Management",
+    "description": "Send a signal to terminate a process by its Process ID (PID).",
+    "example": "kill -9 1234",
+    "keywords": ["stop", "force", "terminate", "sigkill", "end"]
+  },
+  {
+    "name": "curl",
+    "category": "Networking",
+    "description": "Transfer data from or to a server using supported network protocols (HTTP, HTTPS, etc.).",
+    "example": "curl -X POST -H \"Content-Type: application/json\" -d '{\"key\":\"val\"}' http://localhost:5000/api",
+    "keywords": ["http", "request", "api", "download", "post", "get"]
+  },
+  {
+    "name": "wget",
+    "category": "Networking",
+    "description": "Non-interactive network downloader to retrieve files from servers.",
+    "example": "wget https://example.com/file.zip",
+    "keywords": ["download", "fetch", "retrieve", "http", "ftp"]
+  },
+  {
+    "name": "ping",
+    "category": "Networking",
+    "description": "Send ICMP ECHO_REQUEST packets to verify network connectivity to a host.",
+    "example": "ping -c 4 google.com",
+    "keywords": ["network", "latency", "host", "online", "reachability"]
+  },
+  {
+    "name": "netstat",
+    "category": "Networking",
+    "description": "Print network connections, routing tables, and interface statistics.",
+    "example": "netstat -tulpn",
+    "keywords": ["ports", "connections", "sockets", "listening"]
+  },
+  {
+    "name": "ip",
+    "category": "Networking",
+    "description": "Show / manipulate routing, network devices, interfaces, and tunnels.",
+    "example": "ip addr show",
+    "keywords": ["interface", "address", "networking", "routing", "config"]
+  },
+  {
+    "name": "grep",
+    "category": "Text Processing",
+    "description": "Search text for lines matching a regular expression or string query.",
+    "example": "grep -rn \"TODO\" src/",
+    "keywords": ["find", "search", "filter", "pattern", "text"]
+  },
+  {
+    "name": "awk",
+    "category": "Text Processing",
+    "description": "Pattern scanning and processing language, highly useful for columns and logs manipulation.",
+    "example": "awk '{print $1, $3}' access.log",
+    "keywords": ["columns", "logs", "format", "extract", "parse"]
+  },
+  {
+    "name": "sed",
+    "category": "Text Processing",
+    "description": "Stream editor for filtering and transforming text dynamically.",
+    "example": "sed -i 's/localhost/127.0.0.1/g' config.js",
+    "keywords": ["replace", "substitute", "modify", "edit", "regex"]
+  },
+  {
+    "name": "cat",
+    "category": "Text Processing",
+    "description": "Concatenate and display the content of files.",
+    "example": "cat /etc/hosts",
+    "keywords": ["view", "show", "print", "display", "file"]
+  },
+  {
+    "name": "less",
+    "category": "Text Processing",
+    "description": "View file content or command output interactively, allowing forward and backward navigation.",
+    "example": "less syslog.log",
+    "keywords": ["view", "scroll", "interactive", "pager"]
+  },
+  {
+    "name": "uname",
+    "category": "System Info",
+    "description": "Print detailed system information about the operating system and kernel.",
+    "example": "uname -a",
+    "keywords": ["kernel", "os", "release", "architecture"]
+  },
+  {
+    "name": "df",
+    "category": "System Info",
+    "description": "Show the amount of disk space available on file systems.",
+    "example": "df -h",
+    "keywords": ["disk", "storage", "space", "free", "usage"]
+  },
+  {
+    "name": "du",
+    "category": "System Info",
+    "description": "Estimate file and directory space usage.",
+    "example": "du -sh *",
+    "keywords": ["disk", "size", "folder", "space", "usage"]
+  },
+  {
+    "name": "free",
+    "category": "System Info",
+    "description": "Display the amount of free and used physical memory (RAM) and swap space.",
+    "example": "free -h",
+    "keywords": ["memory", "ram", "swap", "free", "usage"]
+  },
+  {
+    "name": "tar",
+    "category": "Archiving",
+    "description": "Archive utility used to combine multiple files into a single tarball, or compress them.",
+    "example": "tar -czvf backup.tar.gz /var/www",
+    "keywords": ["compress", "archive", "tarball", "backup", "extract"]
+  },
+  {
+    "name": "zip",
+    "category": "Archiving",
+    "description": "Package and compress (archive) files.",
+    "example": "zip -r backup.zip src/",
+    "keywords": ["compress", "archive", "backup"]
+  },
+  {
+    "name": "unzip",
+    "category": "Archiving",
+    "description": "Extract compressed files from a ZIP archive.",
+    "example": "unzip backup.zip -d target_dir/",
+    "keywords": ["extract", "uncompress", "decompress", "archive"]
+  },
+  {
+    "name": "git init",
+    "category": "Git",
+    "description": "Initialize a new local Git repository in the current directory.",
+    "example": "git init",
+    "keywords": ["git", "initialize", "new", "repository", "local", "start"]
+  },
+  {
+    "name": "git clone",
+    "category": "Git",
+    "description": "Clone an existing remote repository into a new local directory.",
+    "example": "git clone https://github.com/Derssa/akal.git",
+    "keywords": ["git", "clone", "download", "repo", "copy"]
+  },
+  {
+    "name": "git add",
+    "category": "Git",
+    "description": "Stage files and changes to prepare them for the next commit.",
+    "example": "git add src/index.css",
+    "keywords": ["git", "stage", "add", "files", "prepare"]
+  },
+  {
+    "name": "git diff",
+    "category": "Git",
+    "description": "Show differences between the working tree, index, or commits.",
+    "example": "git diff README.md",
+    "keywords": ["git", "changes", "compare", "differences", "unstaged"]
+  },
+  {
+    "name": "git status",
+    "category": "Git",
+    "description": "Show the status of the working tree (staged, unstaged, untracked files).",
+    "example": "git status",
+    "keywords": ["git", "changes", "files", "status", "untracked"]
+  },
+  {
+    "name": "git commit",
+    "category": "Git",
+    "description": "Create a new snapshot commit of the staged changes.",
+    "example": "git commit -m \"feat: implement new features\"",
+    "keywords": ["git", "save", "record", "commit", "message"]
+  },
+  {
+    "name": "git log",
+    "category": "Git",
+    "description": "Show the list of historical commits for the active branch.",
+    "example": "git log --oneline -n 5",
+    "keywords": ["git", "history", "commits", "logs", "past"]
+  },
+  {
+    "name": "git branch",
+    "category": "Git",
+    "description": "List, create, or delete branches.",
+    "example": "git branch feature/canvas-grid",
+    "keywords": ["git", "branch", "list", "new", "delete", "create"]
+  },
+  {
+    "name": "git checkout",
+    "category": "Git",
+    "description": "Switch branches or restore working tree files.",
+    "example": "git checkout dev",
+    "keywords": ["git", "switch", "branch", "restore", "discard"]
+  },
+  {
+    "name": "git pull",
+    "category": "Git",
+    "description": "Fetch from and integrate (merge/rebase) remote changes with another branch.",
+    "example": "git pull origin dev",
+    "keywords": ["git", "pull", "update", "fetch", "sync", "remote"]
+  },
+  {
+    "name": "git push",
+    "category": "Git",
+    "description": "Upload local commits to a remote repository reference.",
+    "example": "git push origin main",
+    "keywords": ["git", "upload", "publish", "sync", "remote"]
+  },
+  {
+    "name": "git merge",
+    "category": "Git",
+    "description": "Join two or more development histories (branches) together.",
+    "example": "git merge feature/canvas-grid",
+    "keywords": ["git", "merge", "combine", "join", "integrate"]
+  },
+  {
+    "name": "git stash",
+    "category": "Git",
+    "description": "Stash the changes in a dirty working directory away to return to a clean state.",
+    "example": "git stash pop",
+    "keywords": ["git", "stash", "save", "temporary", "restore", "pop"]
+  },
+  {
+    "name": "git remote",
+    "category": "Git",
+    "description": "Manage set of tracked remote repositories.",
+    "example": "git remote add origin https://github.com/user/repo.git",
+    "keywords": ["git", "remote", "origin", "links", "url"]
+  },
+  {
+    "name": "git rebase",
+    "category": "Git",
+    "description": "Reapply commits on top of another base tip (advanced).",
+    "example": "git rebase main",
+    "keywords": ["git", "rebase", "history", "interactive", "rewrite"]
+  },
+  {
+    "name": "git cherry-pick",
+    "category": "Git",
+    "description": "Apply the changes introduced by some existing commits onto the current branch.",
+    "example": "git cherry-pick a1b2c3d",
+    "keywords": ["git", "copy", "commit", "apply", "select"]
+  },
+  {
+    "name": "git reset",
+    "category": "Git",
+    "description": "Reset current HEAD to the specified state (e.g. discard all local changes with --hard).",
+    "example": "git reset --hard HEAD~1",
+    "keywords": ["git", "reset", "undo", "hard", "soft", "discard"]
+  },
+  {
+    "name": "git revert",
+    "category": "Git",
+    "description": "Revert an existing commit by creating a new reversing commit (safe history).",
+    "example": "git revert a1b2c3d",
+    "keywords": ["git", "undo", "revert", "safe", "new-commit"]
+  },
+  {
+    "name": "git reflog",
+    "category": "Git",
+    "description": "Reference log to manage and recover lost commits or actions.",
+    "example": "git reflog",
+    "keywords": ["git", "recovery", "history", "lost", "undo"]
+  },
+  {
+    "name": "git blame",
+    "category": "Git",
+    "description": "Show what revision and author last modified each line of a file.",
+    "example": "git blame src/index.css",
+    "keywords": ["git", "author", "line", "modified", "history", "who"]
+  },
+  {
+    "name": "git merge --squash",
+    "category": "Git",
+    "description": "Combine all commits from a feature branch into a single commit upon merging.",
+    "example": "git merge --squash feature/canvas-grid",
+    "keywords": ["git", "squash", "combine", "merge", "single-commit"]
+  }
+]

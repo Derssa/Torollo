@@ -7,7 +7,6 @@ interface CanvasTopbarProps {
   onBack: () => void;
   onRefresh: () => void;
   onSave: () => void;
-  onCreate: () => void;
 }
 
 export default function CanvasTopbar({
@@ -17,7 +16,6 @@ export default function CanvasTopbar({
   onBack,
   onRefresh,
   onSave,
-  onCreate,
 }: CanvasTopbarProps) {
   return (
     <div style={styles.topbar} className="glass">
@@ -43,11 +41,6 @@ export default function CanvasTopbar({
         <button onClick={onSave} style={styles.saveBtn} title="Save Layout Locally">
           <Save size={16} style={{ marginRight: 6 }} />
           Save Graph
-        </button>
-
-        <button onClick={onCreate} style={styles.addBtn} disabled={creating}>
-          <Plus size={16} style={{ marginRight: 6 }} />
-          {creating ? 'Creating...' : 'Add Ubuntu Node'}
         </button>
       </div>
     </div>

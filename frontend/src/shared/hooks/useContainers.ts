@@ -33,13 +33,13 @@ export function useContainers({ projectId, onToast }: UseContainersOptions) {
     }
   }, [baseUrl]);
 
-  const createContainer = useCallback(async (name: string) => {
+  const createContainer = useCallback(async (name: string, type: string = 'ubuntu') => {
     try {
       setCreating(true);
       const res = await fetch(baseUrl, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ name }),
+        body: JSON.stringify({ name, type }),
       });
       if (res.ok) {
         onToast?.(`Node "${name}" created successfully`);

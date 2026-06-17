@@ -5,8 +5,8 @@ export class ContainerService {
     return ContainerManager.listContainersByProject(projectId);
   }
 
-  public static async createContainer(projectId: string, name: string): Promise<ContainerInfo> {
-    return ContainerManager.createContainer(projectId, name);
+  public static async createContainer(projectId: string, name: string, type?: string): Promise<ContainerInfo> {
+    return ContainerManager.createContainer(projectId, name, type);
   }
 
   public static async startContainer(id: string): Promise<void> {
@@ -19,5 +19,76 @@ export class ContainerService {
 
   public static async deleteContainer(id: string): Promise<void> {
     await ContainerManager.deleteContainer(id);
+  }
+
+  public static async getPostgresExplorer(containerId: string) {
+    // Get list of databases (filtering out templates)
+    const dbsRaw = await ContainerManager.executePsqlCommand(
+      containerId,
+      'postgres',
+      "SELECT datname FROM pg_database WHERE datistemplate = false AND datname NOT IN ('template1');",
+      ['-t', '-A']
+    );
+    const databases = dbsRaw.split('\n').map(db => db.trim()).filter(Boolean);
+
+    // Ensure 'postgres' is listed if not already present
+    if (!databases.includes('postgres')) {
+      databases.unshift('postgres');
+    }
+
+    const explorer: any[] = [];
+
+    for (const db of databases) {
+      try {
+        // Get public tables in this database
+        const tablesRaw = await ContainerManager.executePsqlCommand(
+          containerId,
+          db,
+          "SELECT tablename FROM pg_tables WHERE schemaname = 'public';",
+          ['-t', '-A']
+        );
+        const tables = tablesRaw.split('\n').map(t => t.trim()).filter(Boolean);
+
+        const tableNodes: any[] = [];
+        for (const table of tables) {
+          // Get columns and types in this table
+          const colsRaw = await ContainerManager.executePsqlCommand(
+            containerId,
+            db,
+            `SELECT column_name, data_type FROM information_schema.columns WHERE table_name = '${table}';`,
+            ['-t', '-A', '-F', ':']
+          );
+          const columns = colsRaw.split('\n').map(line => {
+            const parts = line.split(':');
+            return {
+              name: parts[0]?.trim(),
+              type: parts[1]?.trim()
+            };
+          }).filter(c => c.name);
+
+          tableNodes.push({
+            name: table,
+            columns
+          });
+        }
+
+        explorer.push({
+          database: db,
+          tables: tableNodes
+        });
+      } catch (err) {
+        explorer.push({
+          database: db,
+          tables: [],
+          error: true
+        });
+      }
+    }
+
+    return explorer;
+  }
+
+  public static async executePostgresQuery(containerId: string, database: string, query: string): Promise<string> {
+    return ContainerManager.executePsqlCommand(containerId, database, query);
   }
 }
