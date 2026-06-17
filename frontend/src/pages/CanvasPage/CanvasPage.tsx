@@ -230,6 +230,27 @@ export default function CanvasPage({ projectId, projectName, onBackToProjects, o
     triggerArchitectureAudit(newConfig);
   }, [networkConfig, saveNetworkConfig, showToast, triggerArchitectureAudit]);
 
+  const handleSubnetResize = useCallback((event: any, { id, width, height }: any) => {
+    if (!id.startsWith('subnet-')) return;
+
+    const newColumns = Math.max(1, Math.round((width - 20) / 280));
+
+    const updatedSubnets = networkConfig.subnets.map(s => {
+      if (s.id === id) {
+        return {
+          ...s,
+          width,
+          height,
+          columns: newColumns
+        };
+      }
+      return s;
+    });
+
+    const newConfig = { ...networkConfig, subnets: updatedSubnets };
+    saveNetworkConfig(newConfig);
+  }, [networkConfig, saveNetworkConfig]);
+
   const handleDeleteEdge = useCallback((edgeId: string) => {
     const match = edgeId.match(/^edge-([^-]+)-([^-]+)-(.+)$/);
     if (!match) return;
@@ -455,7 +476,8 @@ export default function CanvasPage({ projectId, projectName, onBackToProjects, o
             onManageRoutes: (id: string, name: string) => {
               setInspectingSubnet({ id, name });
             },
-            onDelete: handleDeleteSubnet
+            onDelete: handleDeleteSubnet,
+            onResize: handleSubnetResize
           }
         };
       });
@@ -537,7 +559,7 @@ export default function CanvasPage({ projectId, projectName, onBackToProjects, o
 
       return [...subnetNodes, ...containerNodes];
     });
-  }, [containers, startContainer, stopContainer, onTerminalOpen, setNodes, networkConfig, saveNetworkConfig, handleDeleteSubnet]);
+  }, [containers, startContainer, stopContainer, onTerminalOpen, setNodes, networkConfig, saveNetworkConfig, handleDeleteSubnet, handleSubnetResize]);
 
   // Recursively calculate absolute coordinates of a node
   const getAbsoluteCoordinates = (nodeId: string, currentNodes: Node[]): { x: number; y: number } => {
@@ -1016,26 +1038,7 @@ export default function CanvasPage({ projectId, projectName, onBackToProjects, o
     [reactFlowInstance, networkConfig, saveNetworkConfig, showNotification, triggerArchitectureAudit]
   );
 
-  const onNodeResize = useCallback((event: any, { id, width, height }: any) => {
-    if (!id.startsWith('subnet-')) return;
 
-    const newColumns = Math.max(1, Math.round((width - 20) / 280));
-
-    const updatedSubnets = networkConfig.subnets.map(s => {
-      if (s.id === id) {
-        return {
-          ...s,
-          width,
-          height,
-          columns: newColumns
-        };
-      }
-      return s;
-    });
-
-    const newConfig = { ...networkConfig, subnets: updatedSubnets };
-    saveNetworkConfig(newConfig);
-  }, [networkConfig, saveNetworkConfig]);
 
   return (
     <div style={styles.wrapper}>
@@ -1084,7 +1087,6 @@ export default function CanvasPage({ projectId, projectName, onBackToProjects, o
             onNodesDelete={onNodesDelete}
             onEdgesDelete={onEdgesDelete}
             onConnect={onConnect}
-            onNodeResize={onNodeResize}
             onInit={setReactFlowInstance}
             fitView
           >
