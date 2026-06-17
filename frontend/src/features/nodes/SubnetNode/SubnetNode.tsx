@@ -31,7 +31,9 @@ export default function SubnetNode({ data, selected }: any) {
         color={borderColor}
         minWidth={300}
         minHeight={240}
-        isVisible={selected}
+        grid={[280, 190]}
+        isVisible={true}
+        onResize={(evt, params) => data.onResize?.(evt, params)}
       />
       <div style={{
         position: 'absolute',
