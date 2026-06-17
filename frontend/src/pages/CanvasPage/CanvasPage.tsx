@@ -6,6 +6,8 @@ import '@xyflow/react/dist/style.css';
 import UbuntuNode from '../../features/nodes/UbuntuNode/UbuntuNode';
 import PostgresNode from '../../features/nodes/PostgresNode/PostgresNode';
 import PostgresModal from '../../features/nodes/PostgresNode/PostgresModal';
+import MysqlNode from '../../features/nodes/MysqlNode/MysqlNode';
+import MysqlModal from '../../features/nodes/MysqlNode/MysqlModal';
 import NodeLibrary from './components/NodeLibrary';
 import { useContainers } from '../../shared/hooks/useContainers';
 import { useToast, ToastNotification } from '../../shared/components/Toast';
@@ -40,6 +42,7 @@ export default function CanvasPage({ projectId, projectName, onBackToProjects, o
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [deleteTarget, setDeleteTarget] = useState<string | null>(null);
   const [inspectingPostgres, setInspectingPostgres] = useState<{ id: string; name: string } | null>(null);
+  const [inspectingMysql, setInspectingMysql] = useState<{ id: string; name: string } | null>(null);
 
   // Drag and drop tracking
   const [reactFlowInstance, setReactFlowInstance] = useState<any>(null);
@@ -55,7 +58,8 @@ export default function CanvasPage({ projectId, projectName, onBackToProjects, o
 
   const nodeTypes = useMemo(() => ({ 
     ubuntu: UbuntuNode,
-    postgres: PostgresNode
+    postgres: PostgresNode,
+    mysql: MysqlNode
   }), []);
 
   // Load saved positions and start polling
@@ -106,7 +110,13 @@ export default function CanvasPage({ projectId, projectName, onBackToProjects, o
             onStop: stopContainer,
             onDelete: (id: string) => setDeleteTarget(id),
             onTerminalOpen: onTerminalOpen,
-            onInspect: (id: string, name: string) => setInspectingPostgres({ id, name }),
+            onInspect: (id: string, name: string) => {
+              if (nodeType === 'mysql') {
+                setInspectingMysql({ id, name });
+              } else {
+                setInspectingPostgres({ id, name });
+              }
+            },
           },
         };
       });
@@ -225,12 +235,26 @@ export default function CanvasPage({ projectId, projectName, onBackToProjects, o
       {/* Modals */}
       {showCreateModal && (
         <InputModal
-          title={dropState?.type === 'postgres' ? "Create PostgreSQL Node" : "Create Ubuntu Node"}
+          title={
+            dropState?.type === 'postgres' 
+              ? "Create PostgreSQL Node" 
+              : dropState?.type === 'mysql'
+              ? "Create MySQL Node"
+              : "Create Ubuntu Node"
+          }
           label="Give your new container a descriptive name."
-          placeholder={dropState?.type === 'postgres' ? "e.g. pg-db, main-store" : "e.g. web-server, api-gateway"}
+          placeholder={
+            dropState?.type === 'postgres' 
+              ? "e.g. pg-db, main-store" 
+              : dropState?.type === 'mysql'
+              ? "e.g. mysql-db, orders"
+              : "e.g. web-server, api-gateway"
+          }
           defaultValue={
             dropState?.type === 'postgres'
               ? `postgres-${containers.filter(c => c.type === 'postgres').length + 1}`
+              : dropState?.type === 'mysql'
+              ? `mysql-${containers.filter(c => c.type === 'mysql').length + 1}`
               : `node-${containers.filter(c => !c.type || c.type === 'ubuntu').length + 1}`
           }
           submitText="Create Node"
@@ -256,6 +280,15 @@ export default function CanvasPage({ projectId, projectName, onBackToProjects, o
           nodeName={inspectingPostgres.name}
           projectId={projectId}
           onClose={() => setInspectingPostgres(null)}
+        />
+      )}
+
+      {inspectingMysql && (
+        <MysqlModal
+          containerId={inspectingMysql.id}
+          nodeName={inspectingMysql.name}
+          projectId={projectId}
+          onClose={() => setInspectingMysql(null)}
         />
       )}
 

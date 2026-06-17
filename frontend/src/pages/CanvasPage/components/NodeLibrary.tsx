@@ -72,6 +72,19 @@ export default function NodeLibrary({ onCollapseChange }: NodeLibraryProps) {
                 <span style={styles.nodeDesc}>Relational DB + Shell</span>
               </div>
             </div>
+            <div
+              draggable
+              onDragStart={(e) => handleDragStart(e, 'mysql')}
+              style={styles.draggableNode}
+            >
+              <div style={styles.iconBox} className="glass">
+                <Database size={18} color="#F29111" />
+              </div>
+              <div style={styles.nodeInfo}>
+                <span style={styles.nodeName}>MySQL</span>
+                <span style={styles.nodeDesc}>Oracle DB + Shell</span>
+              </div>
+            </div>
           </div>
         </div>
       )}
@@ -93,6 +106,14 @@ export default function NodeLibrary({ onCollapseChange }: NodeLibraryProps) {
             title="Drag PostgreSQL"
           >
             <Database size={20} color="#10B981" />
+          </div>
+          <div 
+            draggable 
+            onDragStart={(e) => handleDragStart(e, 'mysql')}
+            style={styles.collapsedIconNode}
+            title="Drag MySQL"
+          >
+            <Database size={20} color="#F29111" />
           </div>
         </div>
       )}
