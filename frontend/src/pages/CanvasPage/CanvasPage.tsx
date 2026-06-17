@@ -128,6 +128,8 @@ export default function CanvasPage({ projectId, projectName, onBackToProjects, o
   const dropSubnetsRef = useRef<Record<string, string>>({});
   const pendingSubnetIdRef = useRef<string | null>(null);
   const dragStartPositionsRef = useRef<Record<string, { x: number; y: number; parentId?: string }>>({});
+  const prevDbCountRef = useRef(0);
+  const hasShownCacheWarningRef = useRef(false);
 
   // React Flow managed nodes state
   const [nodes, setNodes, onNodesChange] = useNodesState<Node>([]);
@@ -170,10 +172,35 @@ export default function CanvasPage({ projectId, projectName, onBackToProjects, o
 
   const triggerArchitectureAudit = useCallback((configToValidate: NetworkConfig) => {
     const result = validateArchitecture(configToValidate, containers);
+    
+    // Detect DB nodes count
+    const currentDbCount = containers.filter(c => ['postgres', 'mysql'].includes(c.type || '')).length;
+    if (currentDbCount > prevDbCountRef.current) {
+      hasShownCacheWarningRef.current = false;
+    }
+    prevDbCountRef.current = currentDbCount;
+
+    let warnings = result.warnings;
+    const hasCacheWarning = warnings.some(w => w.includes('No caching tier'));
+
+    if (hasCacheWarning) {
+      if (hasShownCacheWarningRef.current) {
+        // Filter it out so it doesn't toast again
+        warnings = warnings.filter(w => !w.includes('No caching tier'));
+      } else {
+        // Mark as shown so subsequent non-add actions don't trigger it
+        hasShownCacheWarningRef.current = true;
+      }
+    } else {
+      if (currentDbCount === 0) {
+        hasShownCacheWarningRef.current = false;
+      }
+    }
+
     if (result.errors.length > 0) {
       showNotification({ type: 'error', message: result.errors[0] });
-    } else if (result.warnings.length > 0) {
-      showNotification({ type: 'warning', message: result.warnings[0] });
+    } else if (warnings.length > 0) {
+      showNotification({ type: 'warning', message: warnings[0] });
     } else if (result.successes.length > 0) {
       showNotification({ type: 'success', message: result.successes[0] });
     }
