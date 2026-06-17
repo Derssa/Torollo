@@ -326,47 +326,56 @@ export default function CanvasPage({ projectId, projectName, onBackToProjects, o
       saveNetworkConfig({ ...networkConfig, nodeSubnetMap: updatedNodeSubnetMap, nodeSecurityGroups: updatedSecurityGroups });
     }
 
-    setNodes(() => {
+    setNodes(prevNodes => {
       // 1. Map VPC nodes
-      const vpcNodes = networkConfig.vpcs.map(vpc => ({
-        id: vpc.id,
-        type: 'vpc',
-        position: vpc.position,
-        style: { width: vpc.width, height: vpc.height },
-        data: {
+      const vpcNodes = networkConfig.vpcs.map(vpc => {
+        const existing = prevNodes.find(n => n.id === vpc.id);
+        return {
+          ...existing,
           id: vpc.id,
-          name: vpc.name,
-          onConfigure: (id: string, name: string) => {
-            setInspectingVpc({ id, name });
-          },
-          onDelete: handleDeleteVpc
-        }
-      }));
+          type: 'vpc',
+          position: vpc.position,
+          style: { width: vpc.width, height: vpc.height },
+          data: {
+            id: vpc.id,
+            name: vpc.name,
+            onConfigure: (id: string, name: string) => {
+              setInspectingVpc({ id, name });
+            },
+            onDelete: handleDeleteVpc
+          }
+        };
+      });
 
       // 2. Map Subnet nodes
-      const subnetNodes = networkConfig.subnets.map(subnet => ({
-        id: subnet.id,
-        type: 'subnet',
-        parentId: subnet.vpcId || undefined,
-        extent: subnet.vpcId ? 'parent' as const : undefined,
-        position: subnet.position,
-        style: { width: subnet.width, height: subnet.height },
-        data: {
+      const subnetNodes = networkConfig.subnets.map(subnet => {
+        const existing = prevNodes.find(n => n.id === subnet.id);
+        return {
+          ...existing,
           id: subnet.id,
-          name: subnet.name,
-          type: subnet.type,
-          onManageRoutes: (id: string, name: string) => {
-            setInspectingSubnet({ id, name });
-          },
-          onDelete: handleDeleteSubnet
-        }
-      }));
+          type: 'subnet',
+          parentId: subnet.vpcId || undefined,
+          extent: subnet.vpcId ? 'parent' as const : undefined,
+          position: subnet.position,
+          style: { width: subnet.width, height: subnet.height },
+          data: {
+            id: subnet.id,
+            name: subnet.name,
+            type: subnet.type,
+            onManageRoutes: (id: string, name: string) => {
+              setInspectingSubnet({ id, name });
+            },
+            onDelete: handleDeleteSubnet
+          }
+        };
+      });
 
       // 3. Map container nodes
       const containerNodes = containers.map((c, index) => {
+        const existing = prevNodes.find(n => n.id === c.id);
         const defaultX = 150 + (index % 3) * 280;
         const defaultY = 150 + Math.floor(index / 3) * 220;
-
+        
         const savedPos = positionsRef.current[c.id];
         const dropPos = dropPositionsRef.current[c.name];
         if (dropPos) {
@@ -374,11 +383,12 @@ export default function CanvasPage({ projectId, projectName, onBackToProjects, o
           delete dropPositionsRef.current[c.name];
         }
 
-        const position = dropPos || savedPos || { x: defaultX, y: defaultY };
+        const position = existing?.position || dropPos || savedPos || { x: defaultX, y: defaultY };
         const nodeType = c.type || 'ubuntu';
         const parentId = updatedNodeSubnetMap[c.id] || undefined;
 
         return {
+          ...existing,
           id: c.id,
           type: nodeType,
           parentId,
