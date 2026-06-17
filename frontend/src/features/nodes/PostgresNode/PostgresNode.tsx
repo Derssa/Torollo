@@ -53,7 +53,7 @@ export default function PostgresNode({ data }: PostgresNodeProps) {
 
       <div className={styles.details}>
         <span className={styles.label}>Port:</span>
-        <span className={styles.value}>{data.port ? data.port : 'N/A'}</span>
+        <span className={styles.value}>5432</span>
       </div>
 
       <div className={styles.actions}>
