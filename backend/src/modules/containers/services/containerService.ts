@@ -91,4 +91,71 @@ export class ContainerService {
   public static async executePostgresQuery(containerId: string, database: string, query: string): Promise<string> {
     return ContainerManager.executePsqlCommand(containerId, database, query);
   }
+
+  public static async getMysqlExplorer(containerId: string) {
+    const dbsRaw = await ContainerManager.executeMysqlCommand(
+      containerId,
+      'mysql',
+      'SHOW DATABASES;',
+      ['-N', '-B']
+    );
+    const systemDbs = ['information_schema', 'mysql', 'performance_schema', 'sys'];
+    const databases = dbsRaw
+      .split('\n')
+      .map(db => db.trim())
+      .filter(db => db && !systemDbs.includes(db));
+
+    const explorer: any[] = [];
+
+    for (const db of databases) {
+      try {
+        const tablesRaw = await ContainerManager.executeMysqlCommand(
+          containerId,
+          db,
+          'SHOW TABLES;',
+          ['-N', '-B']
+        );
+        const tables = tablesRaw.split('\n').map(t => t.trim()).filter(Boolean);
+
+        const tableNodes: any[] = [];
+        for (const table of tables) {
+          const colsRaw = await ContainerManager.executeMysqlCommand(
+            containerId,
+            db,
+            `SELECT COLUMN_NAME, DATA_TYPE FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_SCHEMA = '${db}' AND TABLE_NAME = '${table}';`,
+            ['-N', '-B']
+          );
+          const columns = colsRaw.split('\n').map(line => {
+            const parts = line.split('\t');
+            return {
+              name: parts[0]?.trim(),
+              type: parts[1]?.trim()
+            };
+          }).filter(c => c.name);
+
+          tableNodes.push({
+            name: table,
+            columns
+          });
+        }
+
+        explorer.push({
+          database: db,
+          tables: tableNodes
+        });
+      } catch (err) {
+        explorer.push({
+          database: db,
+          tables: [],
+          error: true
+        });
+      }
+    }
+
+    return explorer;
+  }
+
+  public static async executeMysqlQuery(containerId: string, database: string, query: string): Promise<string> {
+    return ContainerManager.executeMysqlCommand(containerId, database, query);
+  }
 }
