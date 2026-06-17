@@ -1,4 +1,4 @@
-import { Shield, Settings } from 'lucide-react';
+import { Shield, Settings, Trash } from 'lucide-react';
 
 export default function VpcNode({ data }: any) {
   return (
@@ -38,7 +38,7 @@ export default function VpcNode({ data }: any) {
         style={{
           position: 'absolute',
           top: '-12px',
-          right: '16px',
+          right: '38px',
           backgroundColor: 'var(--bg-surface-solid)',
           border: '1px solid var(--border-color)',
           color: 'var(--color-text-secondary)',
@@ -57,6 +57,32 @@ export default function VpcNode({ data }: any) {
       >
         <Settings size={10} />
         <span>Configure</span>
+      </button>
+
+      <button
+        onClick={(e) => {
+          e.stopPropagation();
+          data.onDelete?.(data.id);
+        }}
+        style={{
+          position: 'absolute',
+          top: '-12px',
+          right: '16px',
+          backgroundColor: '#EF4444',
+          border: 'none',
+          color: '#FFFFFF',
+          padding: '3px 4px',
+          borderRadius: '4px',
+          cursor: 'pointer',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          boxShadow: '0 1px 2px rgba(0,0,0,0.1)',
+          zIndex: 10,
+        }}
+        title="Delete VPC"
+      >
+        <Trash size={9} />
       </button>
     </div>
   );
