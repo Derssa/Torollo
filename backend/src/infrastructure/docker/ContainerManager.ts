@@ -257,7 +257,8 @@ export class ContainerManager {
     const container = docker.getContainer(containerId);
     
     const exec = await container.exec({
-      Cmd: ['mysql', '-u', 'root', '-pmysql', '-D', database, ...extraArgs, '-e', sqlQuery],
+      Cmd: ['mysql', '-u', 'root', '-D', database, ...extraArgs, '-e', sqlQuery],
+      Env: ['MYSQL_PWD=mysql'],
       AttachStdout: true,
       AttachStderr: true
     });
@@ -278,7 +279,9 @@ export class ContainerManager {
       });
 
       stream.on('end', () => {
-        resolve(output.trim());
+        const warningText = 'mysql: [Warning] Using a password on the command line interface can be insecure.';
+        const cleanOutput = output.replace(warningText, '').trim();
+        resolve(cleanOutput);
       });
 
       stream.on('error', (err) => {
