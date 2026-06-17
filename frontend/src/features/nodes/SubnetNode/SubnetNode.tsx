@@ -1,6 +1,7 @@
 import { Eye, EyeOff, Route, Trash } from 'lucide-react';
+import { NodeResizer } from '@xyflow/react';
 
-export default function SubnetNode({ data }: any) {
+export default function SubnetNode({ data, selected }: any) {
   const isPublic = data.type === 'public';
   const isHovered = data.hoverStatus === 'valid' || data.hoverStatus === 'invalid';
   
@@ -26,6 +27,12 @@ export default function SubnetNode({ data }: any) {
       position: 'relative',
       transition: 'all 0.2s ease',
     }}>
+      <NodeResizer
+        color={borderColor}
+        minWidth={300}
+        minHeight={240}
+        isVisible={selected}
+      />
       <div style={{
         position: 'absolute',
         top: '-12px',

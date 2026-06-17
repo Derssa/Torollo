@@ -42,6 +42,7 @@ interface Subnet {
   position: { x: number; y: number };
   width: number;
   height: number;
+  columns?: number;
   routes: Array<{ destination: string; target: string; description: string }>;
 }
 
@@ -68,25 +69,30 @@ function autoGrowContainers(
   const paddingRight = 40;
   const paddingTop = 60;
   const paddingBottom = 40;
-  const numColumns = 2;
 
   // 1. Grow Subnets based on nested services and auto-position them
   const updatedSubnets = config.subnets.map(subnet => {
     const subnetNodes = containers.filter(c => config.nodeSubnetMap[c.id] === subnet.id);
+    const colsLimit = subnet.columns || 2;
+
     if (subnetNodes.length === 0) {
-      return { ...subnet, width: defaultSubnetWidth, height: defaultSubnetHeight };
+      return { 
+        ...subnet, 
+        width: subnet.width || defaultSubnetWidth, 
+        height: subnet.height || defaultSubnetHeight 
+      };
     }
 
-    const cols = Math.min(subnetNodes.length, numColumns);
-    const rows = Math.ceil(subnetNodes.length / numColumns);
+    const cols = Math.min(subnetNodes.length, colsLimit);
+    const rows = Math.ceil(subnetNodes.length / colsLimit);
 
     const calculatedWidth = paddingLeft + cols * (nodeWidth + gapX) - gapX + paddingRight;
     const calculatedHeight = paddingTop + rows * (nodeHeight + gapY) - gapY + paddingBottom;
 
     return {
       ...subnet,
-      width: Math.max(defaultSubnetWidth, calculatedWidth),
-      height: Math.max(defaultSubnetHeight, calculatedHeight)
+      width: Math.max(subnet.width || defaultSubnetWidth, calculatedWidth),
+      height: Math.max(subnet.height || defaultSubnetHeight, calculatedHeight)
     };
   });
 
@@ -483,7 +489,8 @@ export default function CanvasPage({ projectId, projectName, onBackToProjects, o
             const gapY = 50;
             const paddingLeft = 40;
             const paddingTop = 60;
-            const numColumns = 2;
+            const subnet = networkConfig.subnets.find(s => s.id === parentId);
+            const numColumns = subnet?.columns || 2;
 
             const col = indexInSubnet % numColumns;
             const row = Math.floor(indexInSubnet / numColumns);
@@ -1009,6 +1016,27 @@ export default function CanvasPage({ projectId, projectName, onBackToProjects, o
     [reactFlowInstance, networkConfig, saveNetworkConfig, showNotification, triggerArchitectureAudit]
   );
 
+  const onNodeResize = useCallback((event: any, { id, width, height }: any) => {
+    if (!id.startsWith('subnet-')) return;
+
+    const newColumns = Math.max(1, Math.round((width - 20) / 280));
+
+    const updatedSubnets = networkConfig.subnets.map(s => {
+      if (s.id === id) {
+        return {
+          ...s,
+          width,
+          height,
+          columns: newColumns
+        };
+      }
+      return s;
+    });
+
+    const newConfig = { ...networkConfig, subnets: updatedSubnets };
+    saveNetworkConfig(newConfig);
+  }, [networkConfig, saveNetworkConfig]);
+
   return (
     <div style={styles.wrapper}>
       <CanvasTopbar
@@ -1056,6 +1084,7 @@ export default function CanvasPage({ projectId, projectName, onBackToProjects, o
             onNodesDelete={onNodesDelete}
             onEdgesDelete={onEdgesDelete}
             onConnect={onConnect}
+            onNodeResize={onNodeResize}
             onInit={setReactFlowInstance}
             fitView
           >
