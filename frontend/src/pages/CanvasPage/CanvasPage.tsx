@@ -91,7 +91,6 @@ export default function CanvasPage({ projectId, projectName, onBackToProjects, o
 
   // React Flow managed nodes state
   const [nodes, setNodes, onNodesChange] = useNodesState<Node>([]);
-  const edges: Edge[] = [];
 
   // Ref to track saved positions (avoids re-render loops)
   const positionsRef = useRef<Record<string, { x: number; y: number }>>({});
@@ -104,7 +103,7 @@ export default function CanvasPage({ projectId, projectName, onBackToProjects, o
     nodeSecurityGroups: {}
   });
 
-  const nodeTypes = useMemo(() => ({
+  const nodeTypes = useMemo(() => ({ 
     ubuntu: UbuntuNode,
     postgres: PostgresNode,
     mysql: MysqlNode,
@@ -117,6 +116,157 @@ export default function CanvasPage({ projectId, projectName, onBackToProjects, o
     setNetworkConfig(newConfig);
     localStorage.setItem(`akal-lab-network-config-${projectId}`, JSON.stringify(newConfig));
   }, [projectId]);
+
+  // VPC and Subnet direct deletion handlers
+  const handleDeleteVpc = useCallback((vpcId: string) => {
+    const updatedVpcs = networkConfig.vpcs.filter(v => v.id !== vpcId);
+    const updatedSubnets = networkConfig.subnets.map(s => {
+      if (s.vpcId === vpcId) return { ...s, vpcId: null };
+      return s;
+    });
+    saveNetworkConfig({ ...networkConfig, vpcs: updatedVpcs, subnets: updatedSubnets });
+    showToast("VPC deleted successfully");
+  }, [networkConfig, saveNetworkConfig, showToast]);
+
+  const handleDeleteSubnet = useCallback((subnetId: string) => {
+    const updatedSubnets = networkConfig.subnets.filter(s => s.id !== subnetId);
+    const updatedNodeSubnetMap = { ...networkConfig.nodeSubnetMap };
+    Object.keys(updatedNodeSubnetMap).forEach(k => {
+      if (updatedNodeSubnetMap[k] === subnetId) delete updatedNodeSubnetMap[k];
+    });
+    saveNetworkConfig({ ...networkConfig, subnets: updatedSubnets, nodeSubnetMap: updatedNodeSubnetMap });
+    showToast("Subnet deleted successfully");
+  }, [networkConfig, saveNetworkConfig, showToast]);
+
+  // Dynamic Edges builder representing firewall rules
+  const edges = useMemo(() => {
+    const edgesList: Edge[] = [];
+    
+    containers.forEach(destNode => {
+      const destRules = networkConfig.nodeSecurityGroups[destNode.id] || [];
+      const destSubnetId = networkConfig.nodeSubnetMap[destNode.id];
+      if (!destSubnetId) return;
+      const destSubnet = networkConfig.subnets.find(s => s.id === destSubnetId);
+      const destVpcId = destSubnet?.vpcId;
+      if (!destVpcId) return;
+
+      const inboundAllowRules = destRules.filter(r => r.type === 'inbound' && r.action === 'ALLOW');
+      
+      inboundAllowRules.forEach(rule => {
+        containers.forEach(srcNode => {
+          if (srcNode.id === destNode.id) return;
+          
+          const srcSubnetId = networkConfig.nodeSubnetMap[srcNode.id];
+          if (!srcSubnetId) return;
+          const srcSubnet = networkConfig.subnets.find(s => s.id === srcSubnetId);
+          const srcVpcId = srcSubnet?.vpcId;
+          
+          // Must be in the same VPC
+          if (srcVpcId !== destVpcId) return;
+
+          // Check if source matches rule
+          let isMatch = false;
+          if (rule.source === '0.0.0.0/0') {
+            isMatch = true;
+          } else if (rule.source === srcSubnetId) {
+            isMatch = true;
+          } else if (rule.source === srcNode.id) {
+            isMatch = true;
+          }
+
+          if (isMatch) {
+            const edgeId = `edge-${srcNode.id}-${destNode.id}-${rule.port}`;
+            if (!edgesList.some(e => e.id === edgeId)) {
+              edgesList.push({
+                id: edgeId,
+                source: srcNode.id,
+                target: destNode.id,
+                animated: true,
+                label: `Port ${rule.port}`,
+                style: { stroke: '#10B981', strokeWidth: 2 },
+                labelStyle: { fill: '#374151', fontSize: 9, fontWeight: 700 }
+              });
+            }
+          }
+        });
+      });
+    });
+    
+    return edgesList;
+  }, [containers, networkConfig]);
+
+  // Handle manual connection line draws (automatically updates security group)
+  const onConnect = useCallback((connection: any) => {
+    const { source, target } = connection;
+    const targetNode = containers.find(n => n.id === target);
+    if (!targetNode) return;
+    const targetType = targetNode.type || 'ubuntu';
+    const defaultPort = targetType === 'postgres' ? '5432' : targetType === 'mysql' ? '3306' : '80';
+
+    const currentRules = networkConfig.nodeSecurityGroups[target] || [];
+    const alreadyExists = currentRules.some(r => r.type === 'inbound' && r.action === 'ALLOW' && r.port === defaultPort && r.source === source);
+    if (alreadyExists) return;
+
+    const newRule: SecurityGroupRule = {
+      id: `rule-${Math.random().toString(36).substr(2, 9)}`,
+      type: 'inbound',
+      action: 'ALLOW',
+      port: defaultPort,
+      source: source
+    };
+
+    const updatedSecurityGroups = {
+      ...networkConfig.nodeSecurityGroups,
+      [target]: [...currentRules, newRule]
+    };
+    saveNetworkConfig({ ...networkConfig, nodeSecurityGroups: updatedSecurityGroups });
+    showToast(`Security Group: Allowed Port ${defaultPort} inbound from ${targetNode.name}`);
+  }, [containers, networkConfig, saveNetworkConfig, showToast]);
+
+  // Handle connection line deletion (removes matching firewall rule)
+  const onEdgesDelete = useCallback((deletedEdges: Edge[]) => {
+    const updatedSecurityGroups = { ...networkConfig.nodeSecurityGroups };
+    let changed = false;
+
+    deletedEdges.forEach(edge => {
+      const targetId = edge.target;
+      const sourceId = edge.source;
+      
+      if (updatedSecurityGroups[targetId]) {
+        updatedSecurityGroups[targetId] = updatedSecurityGroups[targetId].filter(rule => {
+          const isMatch = rule.type === 'inbound' && rule.action === 'ALLOW' && (rule.source === sourceId || rule.source === '0.0.0.0/0');
+          if (isMatch) changed = true;
+          return !isMatch;
+        });
+      }
+    });
+
+    if (changed) {
+      saveNetworkConfig({ ...networkConfig, nodeSecurityGroups: updatedSecurityGroups });
+      showToast("Firewall rule removed");
+    }
+  }, [networkConfig, saveNetworkConfig, showToast]);
+
+  // Helper to generate default security group rules for network nodes
+  const initDefaultRules = (nodeId: string, nodeType: string, subnetId: string) => {
+    const defaultPort = nodeType === 'postgres' ? '5432' : nodeType === 'mysql' ? '3306' : '80';
+    return [
+      {
+        id: `rule-${Math.random().toString(36).substr(2, 9)}`,
+        type: 'inbound' as const,
+        action: 'ALLOW' as const,
+        port: defaultPort,
+        source: subnetId
+      },
+      {
+        id: `rule-${Math.random().toString(36).substr(2, 9)}`,
+        type: 'outbound' as const,
+        action: 'ALLOW' as const,
+        port: 'ALL',
+        source: '0.0.0.0/0'
+      }
+    ];
+  };
 
   // Load saved positions, network configurations and start polling
   useEffect(() => {
@@ -154,18 +304,26 @@ export default function CanvasPage({ projectId, projectName, onBackToProjects, o
   useEffect(() => {
     let configChanged = false;
     const updatedNodeSubnetMap = { ...networkConfig.nodeSubnetMap };
+    const updatedSecurityGroups = { ...networkConfig.nodeSecurityGroups };
 
     // Map dropped container positions or subnets if pending
     containers.forEach(c => {
       if (dropSubnetsRef.current[c.name]) {
-        updatedNodeSubnetMap[c.id] = dropSubnetsRef.current[c.name];
+        const subnetId = dropSubnetsRef.current[c.name];
+        updatedNodeSubnetMap[c.id] = subnetId;
+        
+        // Auto-configure default security rules on drop
+        if (!updatedSecurityGroups[c.id] || updatedSecurityGroups[c.id].length === 0) {
+          updatedSecurityGroups[c.id] = initDefaultRules(c.id, c.type || 'ubuntu', subnetId);
+        }
+
         delete dropSubnetsRef.current[c.name];
         configChanged = true;
       }
     });
 
     if (configChanged) {
-      saveNetworkConfig({ ...networkConfig, nodeSubnetMap: updatedNodeSubnetMap });
+      saveNetworkConfig({ ...networkConfig, nodeSubnetMap: updatedNodeSubnetMap, nodeSecurityGroups: updatedSecurityGroups });
     }
 
     setNodes(() => {
@@ -180,7 +338,8 @@ export default function CanvasPage({ projectId, projectName, onBackToProjects, o
           name: vpc.name,
           onConfigure: (id: string, name: string) => {
             setInspectingVpc({ id, name });
-          }
+          },
+          onDelete: handleDeleteVpc
         }
       }));
 
@@ -198,7 +357,8 @@ export default function CanvasPage({ projectId, projectName, onBackToProjects, o
           type: subnet.type,
           onManageRoutes: (id: string, name: string) => {
             setInspectingSubnet({ id, name });
-          }
+          },
+          onDelete: handleDeleteSubnet
         }
       }));
 
@@ -250,7 +410,7 @@ export default function CanvasPage({ projectId, projectName, onBackToProjects, o
 
       return [...vpcNodes, ...subnetNodes, ...containerNodes];
     });
-  }, [containers, startContainer, stopContainer, onTerminalOpen, setNodes, networkConfig, saveNetworkConfig]);
+  }, [containers, startContainer, stopContainer, onTerminalOpen, setNodes, networkConfig, saveNetworkConfig, handleDeleteVpc, handleDeleteSubnet]);
 
   // Recursively calculate absolute coordinates of a node
   const getAbsoluteCoordinates = (nodeId: string, currentNodes: Node[]): { x: number; y: number } => {
@@ -362,19 +522,26 @@ export default function CanvasPage({ projectId, projectName, onBackToProjects, o
       }
 
       const updatedNodeSubnetMap = { ...networkConfig.nodeSubnetMap };
+      const updatedSecurityGroups = { ...networkConfig.nodeSecurityGroups };
+
       if (targetSubnetId) {
         updatedNodeSubnetMap[draggedNode.id] = targetSubnetId;
         positionsRef.current[draggedNode.id] = {
           x: absX - targetSubnetAbsPos.x,
           y: absY - targetSubnetAbsPos.y
         };
+
+        // Automatically setup default firewall connections when dragged into subnet
+        if (!updatedSecurityGroups[draggedNode.id] || updatedSecurityGroups[draggedNode.id].length === 0) {
+          updatedSecurityGroups[draggedNode.id] = initDefaultRules(draggedNode.id, draggedNode.type || 'ubuntu', targetSubnetId);
+        }
       } else {
         delete updatedNodeSubnetMap[draggedNode.id];
         positionsRef.current[draggedNode.id] = { x: absX, y: absY };
       }
 
       localStorage.setItem(`akal-lab-graph-layout-${projectId}`, JSON.stringify(positionsRef.current));
-      saveNetworkConfig({ ...networkConfig, nodeSubnetMap: updatedNodeSubnetMap });
+      saveNetworkConfig({ ...networkConfig, nodeSubnetMap: updatedNodeSubnetMap, nodeSecurityGroups: updatedSecurityGroups });
     }
   }, [reactFlowInstance, networkConfig, projectId, saveNetworkConfig]);
 
@@ -607,7 +774,7 @@ export default function CanvasPage({ projectId, projectName, onBackToProjects, o
 
       <div style={styles.bodyWrapper}>
         {/* Main React Flow Workspace */}
-        <div
+        <div 
           style={styles.canvasContainer}
           onDragOver={onDragOver}
           onDrop={onDrop}
@@ -619,6 +786,8 @@ export default function CanvasPage({ projectId, projectName, onBackToProjects, o
             onNodesChange={onNodesChange}
             onNodeDragStop={onNodeDragStop}
             onNodesDelete={onNodesDelete}
+            onEdgesDelete={onEdgesDelete}
+            onConnect={onConnect}
             onInit={setReactFlowInstance}
             fitView
           >
