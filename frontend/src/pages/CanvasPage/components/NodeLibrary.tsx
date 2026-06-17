@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { ChevronLeft, ChevronRight, Server, Database, Library } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Server, Database, Library, Network } from 'lucide-react';
 
 interface NodeLibraryProps {
   onCollapseChange?: (collapsed: boolean) => void;
@@ -86,6 +86,53 @@ export default function NodeLibrary({ onCollapseChange }: NodeLibraryProps) {
               </div>
             </div>
           </div>
+
+          {/* Category: Networking */}
+          <div style={styles.category}>
+            <span style={styles.categoryTitle}>Networking</span>
+            
+            <div
+              draggable
+              onDragStart={(e) => handleDragStart(e, 'vpc')}
+              style={styles.draggableNode}
+            >
+              <div style={styles.iconBox} className="glass">
+                <Network size={18} color="#3B82F6" />
+              </div>
+              <div style={styles.nodeInfo}>
+                <span style={styles.nodeName}>Virtual Private Cloud</span>
+                <span style={styles.nodeDesc}>Logical network boundary</span>
+              </div>
+            </div>
+
+            <div
+              draggable
+              onDragStart={(e) => handleDragStart(e, 'subnet-public')}
+              style={styles.draggableNode}
+            >
+              <div style={styles.iconBox} className="glass">
+                <Network size={18} color="#10B981" />
+              </div>
+              <div style={styles.nodeInfo}>
+                <span style={styles.nodeName}>Public Subnet</span>
+                <span style={styles.nodeDesc}>Allows public access</span>
+              </div>
+            </div>
+
+            <div
+              draggable
+              onDragStart={(e) => handleDragStart(e, 'subnet-private')}
+              style={styles.draggableNode}
+            >
+              <div style={styles.iconBox} className="glass">
+                <Network size={18} color="#F59E0B" />
+              </div>
+              <div style={styles.nodeInfo}>
+                <span style={styles.nodeName}>Private Subnet</span>
+                <span style={styles.nodeDesc}>Internal instances only</span>
+              </div>
+            </div>
+          </div>
         </div>
       )}
 
@@ -114,6 +161,30 @@ export default function NodeLibrary({ onCollapseChange }: NodeLibraryProps) {
             title="Drag MySQL"
           >
             <Database size={20} color="#F29111" />
+          </div>
+          <div
+            draggable
+            onDragStart={(e) => handleDragStart(e, 'vpc')}
+            style={styles.collapsedIconNode}
+            title="Drag VPC"
+          >
+            <Network size={20} color="#3B82F6" />
+          </div>
+          <div
+            draggable
+            onDragStart={(e) => handleDragStart(e, 'subnet-public')}
+            style={styles.collapsedIconNode}
+            title="Drag Public Subnet"
+          >
+            <Network size={20} color="#10B981" />
+          </div>
+          <div
+            draggable
+            onDragStart={(e) => handleDragStart(e, 'subnet-private')}
+            style={styles.collapsedIconNode}
+            title="Drag Private Subnet"
+          >
+            <Network size={20} color="#F59E0B" />
           </div>
         </div>
       )}
