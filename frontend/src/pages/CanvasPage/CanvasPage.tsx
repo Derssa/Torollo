@@ -203,6 +203,15 @@ export default function CanvasPage({ projectId, projectName, onBackToProjects, o
   }, [containers, showNotification]);
 
   const handleDeleteSubnet = useCallback((subnetId: string) => {
+    const hasNodes = Object.values(networkConfig.nodeSubnetMap).some(sid => sid === subnetId);
+    if (hasNodes) {
+      showNotification({
+        type: 'error',
+        message: 'Cannot delete subnet: Move or delete all nodes inside the subnet first.'
+      });
+      return;
+    }
+
     const updatedSubnets = networkConfig.subnets.filter(s => s.id !== subnetId);
     const updatedNodeSubnetMap = { ...networkConfig.nodeSubnetMap };
     Object.keys(updatedNodeSubnetMap).forEach(k => {
@@ -212,7 +221,7 @@ export default function CanvasPage({ projectId, projectName, onBackToProjects, o
     saveNetworkConfig(newConfig);
     showToast("Subnet deleted successfully");
     triggerArchitectureAudit(newConfig);
-  }, [networkConfig, saveNetworkConfig, showToast, triggerArchitectureAudit]);
+  }, [networkConfig, saveNetworkConfig, showToast, triggerArchitectureAudit, showNotification]);
 
   const handleSubnetResize = useCallback((subnetId: string, dimension: 'columns' | 'rows', newValue: number) => {
     if (dimension === 'columns' && newValue < 2) return;
@@ -929,9 +938,22 @@ export default function CanvasPage({ projectId, projectName, onBackToProjects, o
           updatedSecurityGroups[draggedNode.id] = initDefaultRules(draggedNode.id, draggedNode.type || 'ubuntu', targetSubnetId);
         }
       } else {
-        delete updatedNodeSubnetMap[draggedNode.id];
-        const key = (draggedNode.type === 'subnet' ? draggedNode.id : draggedNode.data?.name) as string;
-        positionsRef.current[key] = { x: absX, y: absY };
+        // Revert container node drag to its original subnet position
+        showNotification({ type: 'warning', message: 'Nodes must reside within a subnet.' });
+        const original = dragStartPositionsRef.current[draggedNode.id];
+        if (original) {
+          setNodes(prev => prev.map(n => {
+            if (n.id === draggedNode.id) {
+              return {
+                ...n,
+                position: { x: original.x, y: original.y },
+                parentId: original.parentId
+              };
+            }
+            return n;
+          }));
+        }
+        return;
       }
 
       localStorage.setItem(`akal-lab-graph-layout-${projectId}`, JSON.stringify(positionsRef.current));
@@ -1119,6 +1141,11 @@ export default function CanvasPage({ projectId, projectName, onBackToProjects, o
             targetSubnetAbsPos = { x: subnetAbsX, y: subnetAbsY };
             break;
           }
+        }
+
+        if (!targetSubnetId) {
+          showNotification({ type: 'error', message: 'Nodes must reside within a subnet.' });
+          return;
         }
 
         let finalDropPos = position;
