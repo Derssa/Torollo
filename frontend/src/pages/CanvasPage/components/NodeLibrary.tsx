@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { ChevronLeft, ChevronRight, Server, Database, Library, Network } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Server, Database, Library, Network, Search } from 'lucide-react';
 
 interface NodeLibraryProps {
   onCollapseChange?: (collapsed: boolean) => void;
@@ -7,6 +7,7 @@ interface NodeLibraryProps {
 
 export default function NodeLibrary({ onCollapseChange }: NodeLibraryProps) {
   const [isCollapsed, setIsCollapsed] = useState(false);
+  const [searchQuery, setSearchQuery] = useState('');
 
   const toggleCollapse = () => {
     const nextCollapsed = !isCollapsed;
@@ -18,6 +19,67 @@ export default function NodeLibrary({ onCollapseChange }: NodeLibraryProps) {
     event.dataTransfer.setData('application/reactflow', nodeType);
     event.dataTransfer.effectAllowed = 'move';
   };
+
+  const categories = [
+    {
+      title: 'Networking',
+      nodes: [
+        {
+          type: 'subnet-public',
+          name: 'Public Subnet',
+          desc: 'Allows public access',
+          icon: <Network size={18} color="#10B981" />,
+          collapsedIcon: <Network size={20} color="#10B981" />
+        },
+        {
+          type: 'subnet-private',
+          name: 'Private Subnet',
+          desc: 'Internal instances only',
+          icon: <Network size={18} color="#F59E0B" />,
+          collapsedIcon: <Network size={20} color="#F59E0B" />
+        }
+      ]
+    },
+    {
+      title: 'Compute',
+      nodes: [
+        {
+          type: 'ubuntu',
+          name: 'Ubuntu Server',
+          desc: 'Standard terminal shell',
+          icon: <Server size={18} color="#3B82F6" />,
+          collapsedIcon: <Server size={20} color="#3B82F6" />
+        }
+      ]
+    },
+    {
+      title: 'Databases',
+      nodes: [
+        {
+          type: 'postgres',
+          name: 'PostgreSQL',
+          desc: 'Relational DB + Shell',
+          icon: <Database size={18} color="#10B981" />,
+          collapsedIcon: <Database size={20} color="#10B981" />
+        },
+        {
+          type: 'mysql',
+          name: 'MySQL',
+          desc: 'Oracle DB + Shell',
+          icon: <Database size={18} color="#F29111" />,
+          collapsedIcon: <Database size={20} color="#F29111" />
+        }
+      ]
+    }
+  ];
+
+  const filteredCategories = categories.map(cat => ({
+    ...cat,
+    nodes: cat.nodes.filter(node =>
+      node.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      node.desc.toLowerCase().includes(searchQuery.toLowerCase())
+    )
+  })).filter(cat => cat.nodes.length > 0);
 
   return (
     <div style={{
@@ -37,133 +99,62 @@ export default function NodeLibrary({ onCollapseChange }: NodeLibraryProps) {
       </div>
 
       {!isCollapsed && (
-        <div style={styles.content}>
-          {/* Category: Compute */}
-          <div style={styles.category}>
-            <span style={styles.categoryTitle}>Compute</span>
-            <div
-              draggable
-              onDragStart={(e) => handleDragStart(e, 'ubuntu')}
-              style={styles.draggableNode}
-            >
-              <div style={styles.iconBox} className="glass">
-                <Server size={18} color="#3B82F6" />
-              </div>
-              <div style={styles.nodeInfo}>
-                <span style={styles.nodeName}>Ubuntu Server</span>
-                <span style={styles.nodeDesc}>Standard terminal shell</span>
-              </div>
+        <>
+          <div style={styles.searchWrapper}>
+            <div style={styles.searchContainer}>
+              <Search size={14} color="var(--color-text-muted)" style={{ marginRight: 6 }} />
+              <input
+                type="text"
+                placeholder="Search nodes..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                style={styles.searchInput}
+              />
             </div>
           </div>
 
-          {/* Category: Databases */}
-          <div style={styles.category}>
-            <span style={styles.categoryTitle}>Databases</span>
-            <div
-              draggable
-              onDragStart={(e) => handleDragStart(e, 'postgres')}
-              style={styles.draggableNode}
-            >
-              <div style={styles.iconBox} className="glass">
-                <Database size={18} color="#10B981" />
+          <div style={styles.content}>
+            {filteredCategories.map(cat => (
+              <div key={cat.title} style={styles.category}>
+                <span style={styles.categoryTitle}>{cat.title}</span>
+                {cat.nodes.map(node => (
+                  <div
+                    key={node.type}
+                    draggable
+                    onDragStart={(e) => handleDragStart(e, node.type)}
+                    style={styles.draggableNode}
+                  >
+                    <div style={styles.iconBox} className="glass">
+                      {node.icon}
+                    </div>
+                    <div style={styles.nodeInfo}>
+                      <span style={styles.nodeName}>{node.name}</span>
+                      <span style={styles.nodeDesc}>{node.desc}</span>
+                    </div>
+                  </div>
+                ))}
               </div>
-              <div style={styles.nodeInfo}>
-                <span style={styles.nodeName}>PostgreSQL</span>
-                <span style={styles.nodeDesc}>Relational DB + Shell</span>
-              </div>
-            </div>
-            <div
-              draggable
-              onDragStart={(e) => handleDragStart(e, 'mysql')}
-              style={styles.draggableNode}
-            >
-              <div style={styles.iconBox} className="glass">
-                <Database size={18} color="#F29111" />
-              </div>
-              <div style={styles.nodeInfo}>
-                <span style={styles.nodeName}>MySQL</span>
-                <span style={styles.nodeDesc}>Oracle DB + Shell</span>
-              </div>
-            </div>
+            ))}
+            {filteredCategories.length === 0 && (
+              <div style={styles.emptySearch}>No matching nodes found</div>
+            )}
           </div>
-
-          {/* Category: Networking */}
-          <div style={styles.category}>
-            <span style={styles.categoryTitle}>Networking</span>
-            
-            <div
-              draggable
-              onDragStart={(e) => handleDragStart(e, 'subnet-public')}
-              style={styles.draggableNode}
-            >
-              <div style={styles.iconBox} className="glass">
-                <Network size={18} color="#10B981" />
-              </div>
-              <div style={styles.nodeInfo}>
-                <span style={styles.nodeName}>Public Subnet</span>
-                <span style={styles.nodeDesc}>Allows public access</span>
-              </div>
-            </div>
-
-            <div
-              draggable
-              onDragStart={(e) => handleDragStart(e, 'subnet-private')}
-              style={styles.draggableNode}
-            >
-              <div style={styles.iconBox} className="glass">
-                <Network size={18} color="#F59E0B" />
-              </div>
-              <div style={styles.nodeInfo}>
-                <span style={styles.nodeName}>Private Subnet</span>
-                <span style={styles.nodeDesc}>Internal instances only</span>
-              </div>
-            </div>
-          </div>
-        </div>
+        </>
       )}
 
       {isCollapsed && (
         <div style={styles.collapsedIcons}>
-          <div
-            draggable
-            onDragStart={(e) => handleDragStart(e, 'ubuntu')}
-            style={styles.collapsedIconNode}
-            title="Drag Ubuntu Server"
-          >
-            <Server size={20} color="#3B82F6" />
-          </div>
-          <div
-            draggable
-            onDragStart={(e) => handleDragStart(e, 'postgres')}
-            style={styles.collapsedIconNode}
-            title="Drag PostgreSQL"
-          >
-            <Database size={20} color="#10B981" />
-          </div>
-          <div
-            draggable
-            onDragStart={(e) => handleDragStart(e, 'mysql')}
-            style={styles.collapsedIconNode}
-            title="Drag MySQL"
-          >
-            <Database size={20} color="#F29111" />
-          </div>
-          <div
-            draggable
-            onDragStart={(e) => handleDragStart(e, 'subnet-public')}
-            style={styles.collapsedIconNode}
-            title="Drag Public Subnet"
-          >
-            <Network size={20} color="#10B981" />
-          </div>
-          <div
-            draggable
-            onDragStart={(e) => handleDragStart(e, 'subnet-private')}
-            style={styles.collapsedIconNode}
-            title="Drag Private Subnet"
-          >
-            <Network size={20} color="#F59E0B" />
-          </div>
+          {categories.flatMap(cat => cat.nodes).map(node => (
+            <div
+              key={node.type}
+              draggable
+              onDragStart={(e) => handleDragStart(e, node.type)}
+              style={styles.collapsedIconNode}
+              title={`Drag ${node.name}`}
+            >
+              {node.collapsedIcon}
+            </div>
+          ))}
         </div>
       )}
     </div>
@@ -210,6 +201,27 @@ const styles: Record<string, React.CSSProperties> = {
     justifyContent: 'center',
     marginLeft: 'auto',
     transition: 'background-color 0.2s',
+  },
+  searchWrapper: {
+    padding: '12px 16px 4px 16px',
+    boxSizing: 'border-box',
+  },
+  searchContainer: {
+    display: 'flex',
+    alignItems: 'center',
+    backgroundColor: 'rgba(0, 0, 0, 0.03)',
+    border: '1px solid var(--border-color)',
+    borderRadius: '6px',
+    padding: '6px 10px',
+  },
+  searchInput: {
+    border: 'none',
+    background: 'transparent',
+    outline: 'none',
+    fontSize: '12px',
+    width: '100%',
+    color: 'var(--color-text-primary)',
+    fontFamily: 'var(--font-sans)',
   },
   content: {
     flex: 1,
@@ -263,6 +275,13 @@ const styles: Record<string, React.CSSProperties> = {
   nodeDesc: {
     fontSize: '11px',
     color: 'var(--color-text-muted)',
+  },
+  emptySearch: {
+    fontSize: '12px',
+    color: 'var(--color-text-muted)',
+    textAlign: 'center',
+    marginTop: '20px',
+    fontStyle: 'italic',
   },
   collapsedIcons: {
     flex: 1,

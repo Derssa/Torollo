@@ -188,9 +188,6 @@ export default function VpcModal({
                     }}
                     placeholder="e.g. 10.0.0.0/16"
                   />
-                  <span style={{ fontSize: '11px', color: '#9CA3AF', marginTop: '2px' }}>
-                    AWS/Cloud simulation: The primary VPC CIDR block cannot be modified after creation.
-                  </span>
                 </div>
                 <div style={styles.formGroup}>
                   <label style={styles.label}>Description</label>
