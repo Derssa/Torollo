@@ -215,6 +215,15 @@ export class DockerNetworkProvider implements NetworkProvider {
       await this.runExec(containerId, ['iptables', '-F', 'AKAL-INPUT']);
       await this.runExec(containerId, ['iptables', '-F', 'AKAL-OUTPUT']);
 
+      // DNS Control: If DNS resolution is disabled, drop outbound port 53 traffic (DNS queries)
+      // This is placed before loopback rules to ensure local Docker DNS queries (sent to loopback resolver 127.0.0.11) are blocked.
+      const isDnsEnabled = config.vpcConfig?.dnsEnabled !== false;
+      if (!isDnsEnabled) {
+        console.log(`[DockerNetworkProvider] DNS is disabled. Blocking Port 53 outbound inside container ${containerId.slice(0, 12)}...`);
+        await this.runExec(containerId, ['iptables', '-A', 'AKAL-OUTPUT', '-p', 'udp', '--dport', '53', '-j', 'REJECT']);
+        await this.runExec(containerId, ['iptables', '-A', 'AKAL-OUTPUT', '-p', 'tcp', '--dport', '53', '-j', 'REJECT']);
+      }
+
       // 2. Allow established loopback and related connections (essential for container health & pings)
       await this.runExec(containerId, ['iptables', '-A', 'AKAL-INPUT', '-i', 'lo', '-j', 'ACCEPT']);
       await this.runExec(containerId, ['iptables', '-A', 'AKAL-OUTPUT', '-o', 'lo', '-j', 'ACCEPT']);
@@ -278,13 +287,7 @@ export class DockerNetworkProvider implements NetworkProvider {
         }
       }
 
-      // 4. DNS Control: If DNS resolution is disabled, drop outbound port 53 traffic (DNS queries)
-      const isDnsEnabled = config.vpcConfig?.dnsEnabled !== false;
-      if (!isDnsEnabled) {
-        console.log(`[DockerNetworkProvider] DNS is disabled. Blocking Port 53 outbound inside container ${containerId.slice(0, 12)}...`);
-        await this.runExec(containerId, ['iptables', '-A', 'AKAL-OUTPUT', '-p', 'udp', '--dport', '53', '-j', 'REJECT']);
-        await this.runExec(containerId, ['iptables', '-A', 'AKAL-OUTPUT', '-p', 'tcp', '--dport', '53', '-j', 'REJECT']);
-      }
+
 
       // 5. Internet Access Control (IGW, Private Subnet & Routing Table checks)
       const subnetId = config.nodeSubnetMap[ep.nodeId];
