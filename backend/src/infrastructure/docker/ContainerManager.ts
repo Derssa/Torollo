@@ -286,8 +286,7 @@ export class ContainerManager {
     const container = docker.getContainer(containerId);
     
     const exec = await container.exec({
-      Cmd: ['mysql', '-u', 'root', '-D', database, ...extraArgs, '-e', sqlQuery],
-      Env: ['MYSQL_PWD=mysql'],
+      Cmd: ['mysql', '-u', 'root', '-pmysql', '-D', database, ...extraArgs, '-e', sqlQuery],
       AttachStdout: true,
       AttachStderr: true
     });
@@ -311,7 +310,11 @@ export class ContainerManager {
         const warningText = 'mysql: [Warning] Using a password on the command line interface can be insecure.';
         let cleanOutput = output.replace(warningText, '').trim();
         
-        if (cleanOutput.includes("Can't connect to local MySQL server through socket") || cleanOutput.includes("ERROR 2002 (HY000)")) {
+        if (
+          cleanOutput.includes("Can't connect to local MySQL server through socket") || 
+          cleanOutput.includes("ERROR 2002 (HY000)") ||
+          cleanOutput.includes("ERROR 1045 (28000)")
+        ) {
           cleanOutput = "ERROR: Database server is still starting up. Please wait 5-10 seconds for initialization to complete and try again.";
         }
         resolve(cleanOutput);
