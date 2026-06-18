@@ -267,7 +267,8 @@ export class DockerNetworkProvider implements NetworkProvider {
         if (!isTarget && !isSource) continue;
 
         const rawProto = intent.protocol || 'all';
-        const port = intent.port || 'ALL';
+        const rawPort = intent.port || 'ALL';
+        const port = (typeof rawPort === 'string' && rawPort.toUpperCase() === 'ALL') ? 'ALL' : rawPort;
 
         const sourceIp = isTarget ? ipMap[intent.sourceNodeId || ''] : undefined;
         const targetIp = isSource ? ipMap[intent.targetNodeId || ''] : undefined;
