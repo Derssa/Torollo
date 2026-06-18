@@ -1325,11 +1325,15 @@ export default function CanvasPage({ projectId, projectName, onBackToProjects, o
                 : "e.g. web-server, api-gateway"
           }
           defaultValue={
-            dropState?.type === 'postgres'
-              ? `postgres-${containers.filter(c => c.type === 'postgres').length + 1}`
-              : dropState?.type === 'mysql'
-                ? `mysql-${containers.filter(c => c.type === 'mysql').length + 1}`
-                : `node-${containers.filter(c => !c.type || c.type === 'ubuntu').length + 1}`
+            (() => {
+              const type = dropState?.type || 'ubuntu';
+              const prefix = type === 'postgres' ? 'postgres-' : type === 'mysql' ? 'mysql-' : 'node-';
+              let suffix = 1;
+              while (containers.some(c => c.name === `${prefix}${suffix}`)) {
+                suffix++;
+              }
+              return `${prefix}${suffix}`;
+            })()
           }
           submitText="Create Node"
           onSubmit={handleCreateNode}
