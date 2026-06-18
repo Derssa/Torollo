@@ -55,6 +55,12 @@ export default function MysqlNode({ data }: MysqlNodeProps) {
         <span className={styles.label}>Port:</span>
         <span className={styles.value}>3306</span>
       </div>
+      {data.ip && (
+        <div className={styles.details}>
+          <span className={styles.label}>IP:</span>
+          <span className={styles.value} style={{ fontWeight: 'bold', color: '#10B981' }}>{data.ip}</span>
+        </div>
+      )}
 
       <div className={styles.actions}>
         {isRunning ? (

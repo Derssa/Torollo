@@ -626,6 +626,7 @@ export default function CanvasPage({ projectId, projectName, onBackToProjects, o
             state: c.state,
             status: c.status,
             port: c.port,
+            ip: c.ip,
             onStart: startContainer,
             onStop: stopContainer,
             onDelete: (id: string) => setDeleteTarget(id),

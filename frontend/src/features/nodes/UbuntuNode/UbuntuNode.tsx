@@ -55,6 +55,12 @@ export default function UbuntuNode({ data }: UbuntuNodeProps) {
         <span className={styles.label}>OS:</span>
         <span className={styles.value}>Ubuntu latest</span>
       </div>
+      {data.ip && (
+        <div className={styles.details}>
+          <span className={styles.label}>IP:</span>
+          <span className={styles.value} style={{ fontWeight: 'bold', color: '#10B981' }}>{data.ip}</span>
+        </div>
+      )}
 
       <div className={styles.actions}>
         {isRunning ? (
