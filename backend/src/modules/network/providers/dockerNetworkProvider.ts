@@ -301,6 +301,7 @@ export class DockerNetworkProvider implements NetworkProvider {
       if (!isInternetAllowed) {
         console.log(`[DockerNetworkProvider] Internet is blocked (IGW disabled, private subnet, or no IGW route) for container ${containerId.slice(0, 12)}.`);
         const vpcCidr = config.vpcConfig?.cidr || '10.0.0.0/16';
+        await this.runExec(containerId, ['iptables', '-A', 'AKAL-OUTPUT', '-d', '127.0.0.0/8', '-j', 'ACCEPT']);
         await this.runExec(containerId, ['iptables', '-A', 'AKAL-OUTPUT', '-d', vpcCidr, '-j', 'ACCEPT']);
         await this.runExec(containerId, ['iptables', '-A', 'AKAL-OUTPUT', '-j', 'REJECT']);
       } else {
