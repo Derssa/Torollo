@@ -65,26 +65,43 @@ export class DockerInitializer {
     }
 
     console.log(`Pulling ${label} image (first run only)...`);
-    await new Promise<void>((resolve, reject) => {
-      docker.pull(tag, {}, (err, stream) => {
-        if (err) return reject(err);
-        if (!stream) return reject(new Error('Pull stream is undefined'));
+    try {
+      await new Promise<void>((resolve, reject) => {
+        docker.pull(tag, {}, (err, stream) => {
+          if (err) return reject(err);
+          if (!stream) return reject(new Error('Pull stream is undefined'));
 
-        docker.modem.followProgress(
-          stream,
-          (errFinished) => {
-            if (errFinished) return reject(errFinished);
-            console.log(`${label} image ready`);
-            resolve();
-          },
-          (event) => {
-            if (event.status) {
-              const progress = event.progress ? ` ${event.progress}` : '';
-              console.log(`[Docker Hub Pull - ${label}] ${event.status}${progress}`);
+          docker.modem.followProgress(
+            stream,
+            (errFinished) => {
+              if (errFinished) return reject(errFinished);
+              console.log(`${label} image ready`);
+              resolve();
+            },
+            (event) => {
+              if (event.status) {
+                const progress = event.progress ? ` ${event.progress}` : '';
+                console.log(`[Docker Hub Pull - ${label}] ${event.status}${progress}`);
+              }
             }
-          }
-        );
+          );
+        });
       });
-    });
+    } catch (pullErr) {
+      console.warn(`[DockerInitializer] Failed to pull ${tag} (${pullErr}). Trying fallback...`);
+      if (tag === this.POSTGRES_IMAGE_TAG) {
+        const fallbackTag = 'postgres:15-alpine';
+        if (existingTags.includes(fallbackTag)) {
+          console.log(`[DockerInitializer] Tagging local ${fallbackTag} as ${tag}...`);
+          const img = docker.getImage(fallbackTag);
+          await img.tag({ repo: 'derssa/backend-lab-postgres', tag: 'v1' });
+          console.log(`[DockerInitializer] Tagged ${fallbackTag} as ${tag} successfully.`);
+        } else {
+          throw pullErr;
+        }
+      } else {
+        throw pullErr;
+      }
+    }
   }
 }

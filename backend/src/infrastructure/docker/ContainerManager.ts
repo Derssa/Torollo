@@ -61,26 +61,39 @@ export class ContainerManager {
 
     if (!hasImage) {
       console.log('Pulling Postgres image (first time only)...');
-      await new Promise<void>((resolve, reject) => {
-        docker.pull(this.POSTGRES_IMAGE_TAG, {}, (err, stream) => {
-          if (err) return reject(err);
-          if (!stream) return reject(new Error('Pull stream is undefined'));
+      try {
+        await new Promise<void>((resolve, reject) => {
+          docker.pull(this.POSTGRES_IMAGE_TAG, {}, (err, stream) => {
+            if (err) return reject(err);
+            if (!stream) return reject(new Error('Pull stream is undefined'));
 
-          docker.modem.followProgress(
-            stream,
-            (errFinished) => {
-              if (errFinished) return reject(errFinished);
-              resolve();
-            },
-            (event) => {
-              if (event.status) {
-                const progress = event.progress ? ` ${event.progress}` : '';
-                console.log(`[Docker Hub Pull - Postgres] ${event.status}${progress}`);
+            docker.modem.followProgress(
+              stream,
+              (errFinished) => {
+                if (errFinished) return reject(errFinished);
+                resolve();
+              },
+              (event) => {
+                if (event.status) {
+                  const progress = event.progress ? ` ${event.progress}` : '';
+                  console.log(`[Docker Hub Pull - Postgres] ${event.status}${progress}`);
+                }
               }
-            }
-          );
+            );
+          });
         });
-      });
+      } catch (pullErr) {
+        console.warn(`[ContainerManager] Failed to pull ${this.POSTGRES_IMAGE_TAG}. Trying fallback...`);
+        const fallbackTag = 'postgres:15-alpine';
+        const flatTags = images.flatMap(img => img.RepoTags || []);
+        if (flatTags.includes(fallbackTag)) {
+          console.log(`[ContainerManager] Tagging local ${fallbackTag} as ${this.POSTGRES_IMAGE_TAG}...`);
+          const img = docker.getImage(fallbackTag);
+          await img.tag({ repo: 'derssa/backend-lab-postgres', tag: 'v1' });
+        } else {
+          throw pullErr;
+        }
+      }
     }
   }
 
