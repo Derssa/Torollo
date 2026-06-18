@@ -199,12 +199,13 @@ export class ContainerManager {
     if (isPostgres) {
       createOpts.Env = ['POSTGRES_PASSWORD=postgres'];
       createOpts.Entrypoint = ['docker-entrypoint.sh'];
-      createOpts.Cmd = ['postgres'];
+      createOpts.Cmd = ['postgres', '-c', 'fsync=off', '-c', 'synchronous_commit=off', '-c', 'full_page_writes=off'];
       createOpts.HostConfig.PortBindings = {
         '5432/tcp': [{ HostPort: '' }]
       };
     } else if (isMysql) {
       createOpts.Env = ['MYSQL_ROOT_PASSWORD=mysql'];
+      createOpts.Cmd = ['mysqld', '--innodb-flush-log-at-trx-commit=2', '--innodb-doublewrite=0', '--skip-innodb-doublewrite'];
       createOpts.HostConfig.PortBindings = {
         '3306/tcp': [{ HostPort: '' }]
       };
