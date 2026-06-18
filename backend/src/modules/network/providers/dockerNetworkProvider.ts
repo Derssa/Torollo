@@ -272,10 +272,30 @@ export class DockerNetworkProvider implements NetworkProvider {
         }
       }
 
-      // 4. Default Outbound: ALLOW ALL (so container has internet/updates access)
-      await this.runExec(containerId, ['iptables', '-A', 'AKAL-OUTPUT', '-j', 'ACCEPT']);
+      // 4. DNS Control: If DNS resolution is disabled, drop outbound port 53 traffic (DNS queries)
+      const isDnsEnabled = config.vpcConfig?.dnsEnabled !== false;
+      if (!isDnsEnabled) {
+        console.log(`[DockerNetworkProvider] DNS is disabled. Blocking Port 53 outbound inside container ${containerId.slice(0, 12)}...`);
+        await this.runExec(containerId, ['iptables', '-A', 'AKAL-OUTPUT', '-p', 'udp', '--dport', '53', '-j', 'REJECT']);
+        await this.runExec(containerId, ['iptables', '-A', 'AKAL-OUTPUT', '-p', 'tcp', '--dport', '53', '-j', 'REJECT']);
+      }
 
-      // 5. Default Inbound: REJECT ALL (Zero-trust secure baseline)
+      // 5. Internet Access Control (IGW & Private Subnet checks)
+      const subnetId = config.nodeSubnetMap[ep.nodeId];
+      const subnet = config.subnets?.find((s: any) => s.id === subnetId);
+      const isIgwEnabled = config.vpcConfig?.igwEnabled !== false;
+      const isPublicSubnet = subnet?.type === 'public';
+
+      if (!isIgwEnabled || !isPublicSubnet) {
+        console.log(`[DockerNetworkProvider] Internet is blocked (IGW disabled or private subnet) for container ${containerId.slice(0, 12)}.`);
+        const vpcCidr = config.vpcConfig?.cidr || '10.0.0.0/16';
+        await this.runExec(containerId, ['iptables', '-A', 'AKAL-OUTPUT', '-d', vpcCidr, '-j', 'ACCEPT']);
+        await this.runExec(containerId, ['iptables', '-A', 'AKAL-OUTPUT', '-j', 'REJECT']);
+      } else {
+        await this.runExec(containerId, ['iptables', '-A', 'AKAL-OUTPUT', '-j', 'ACCEPT']);
+      }
+
+      // 6. Default Inbound: REJECT ALL (Zero-trust secure baseline)
       await this.runExec(containerId, ['iptables', '-A', 'AKAL-INPUT', '-j', 'REJECT']);
 
       // 6. Verification
