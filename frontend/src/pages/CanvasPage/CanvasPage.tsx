@@ -577,7 +577,7 @@ export default function CanvasPage({ projectId, projectName, onBackToProjects, o
             });
           };
 
-          if (col < 0 || col >= cols || row < 0 || row >= rows || isOccupied(col, row, c.id)) {
+          if (col < 0 || col >= cols || row < 0 || row >= rows) {
             let found = false;
             for (let r = 0; r < rows; r++) {
               for (let cp = 0; cp < cols; cp++) {
