@@ -59,9 +59,29 @@ export class DockerInitializer {
     }
   }
 
+  private static async ensureHostForwarding(): Promise<void> {
+    try {
+      console.log('[DockerInitializer] Configuring Docker host to allow forwarding between custom subnets...');
+      const temp = await docker.createContainer({
+        Image: 'alpine',
+        HostConfig: {
+          Privileged: true,
+          NetworkMode: 'host',
+          AutoRemove: true
+        },
+        Cmd: ['sh', '-c', 'apk add --no-cache iptables && iptables -I FORWARD -j ACCEPT']
+      });
+      await temp.start();
+      console.log('[DockerInitializer] Host forwarding rule applied successfully.');
+    } catch (err) {
+      console.error('[DockerInitializer] Failed to configure host forwarding:', err);
+    }
+  }
+
   private static async checkAndPullImages(): Promise<void> {
     try {
       await this.ensureSharedNetwork();
+      await this.ensureHostForwarding();
       const images = await docker.listImages();
       const tags = images.flatMap(img => img.RepoTags || []);
 
