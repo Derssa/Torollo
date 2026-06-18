@@ -136,13 +136,15 @@ export class DockerNetworkProvider implements NetworkProvider {
               } catch (err) {}
             }
             console.log(`[DockerNetworkProvider] Connecting container ${ep.containerName} to ${targetNetwork} with static IP ${targetIp}...`);
+            const containerNodeName = containerInfo.Names[0].replace(/^\//, '').replace(`akal-lab-${projectId}-`, '');
             try {
               await docker.getNetwork(targetNetwork).connect({
                 Container: containerInfo.Id,
                 EndpointConfig: {
                   IPAMConfig: {
                     IPv4Address: targetIp
-                  }
+                  },
+                  Aliases: [containerNodeName]
                 }
               });
             } catch (err) {
@@ -282,14 +284,17 @@ export class DockerNetworkProvider implements NetworkProvider {
         await this.runExec(containerId, ['iptables', '-A', 'AKAL-OUTPUT', '-p', 'tcp', '--dport', '53', '-j', 'REJECT']);
       }
 
-      // 5. Internet Access Control (IGW & Private Subnet checks)
+      // 5. Internet Access Control (IGW, Private Subnet & Routing Table checks)
       const subnetId = config.nodeSubnetMap[ep.nodeId];
       const subnet = config.subnets?.find((s: any) => s.id === subnetId);
       const isIgwEnabled = config.vpcConfig?.igwEnabled !== false;
       const isPublicSubnet = subnet?.type === 'public';
+      const hasIgwRoute = subnet?.routes?.some((r: any) => r.destination === '0.0.0.0/0' && r.target === 'igw');
 
-      if (!isIgwEnabled || !isPublicSubnet) {
-        console.log(`[DockerNetworkProvider] Internet is blocked (IGW disabled or private subnet) for container ${containerId.slice(0, 12)}.`);
+      const isInternetAllowed = isIgwEnabled && isPublicSubnet && hasIgwRoute;
+
+      if (!isInternetAllowed) {
+        console.log(`[DockerNetworkProvider] Internet is blocked (IGW disabled, private subnet, or no IGW route) for container ${containerId.slice(0, 12)}.`);
         const vpcCidr = config.vpcConfig?.cidr || '10.0.0.0/16';
         await this.runExec(containerId, ['iptables', '-A', 'AKAL-OUTPUT', '-d', vpcCidr, '-j', 'ACCEPT']);
         await this.runExec(containerId, ['iptables', '-A', 'AKAL-OUTPUT', '-j', 'REJECT']);
