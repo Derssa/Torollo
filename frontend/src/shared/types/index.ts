@@ -7,6 +7,7 @@ export interface ContainerData {
   status: string;
   type?: 'ubuntu' | 'postgres' | 'mysql';
   port?: string;
+  ip?: string;
 }
 
 export interface Project {

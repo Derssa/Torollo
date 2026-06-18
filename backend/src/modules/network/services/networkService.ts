@@ -38,7 +38,7 @@ export class NetworkService {
 
     // 5. Apply Plan via active provider
     try {
-      await this.provider.applyPlan(projectId, endpoints, intents);
+      await this.provider.applyPlan(projectId, endpoints, intents, config);
       this.policyHashes[projectId] = hash;
     } catch (err) {
       console.error(`[NetworkService] Failed to apply network plan:`, err);
@@ -67,7 +67,8 @@ export class NetworkService {
         if (sgRule.type === 'outbound') {
           const action = sgRule.action || 'ALLOW';
           const sgProto = (sgRule.protocol || 'ALL').toLowerCase() as 'all' | 'tcp' | 'udp' | 'icmp';
-          const port = sgProto === 'icmp' ? 'ALL' : (sgRule.port || 'ALL');
+          const rawPort = sgProto === 'icmp' ? 'ALL' : (sgRule.port || 'ALL');
+          const port = (typeof rawPort === 'string' && rawPort.toUpperCase() === 'ALL') ? 'ALL' : rawPort;
 
           const addOutboundRule = (dstId: string) => {
             rules.push({
@@ -117,7 +118,8 @@ export class NetworkService {
         if (sgRule.type === 'inbound') {
           const action = sgRule.action || 'ALLOW';
           const sgProto = (sgRule.protocol || 'ALL').toLowerCase() as 'all' | 'tcp' | 'udp' | 'icmp';
-          const port = sgProto === 'icmp' ? 'ALL' : (sgRule.port || 'ALL');
+          const rawPort = sgProto === 'icmp' ? 'ALL' : (sgRule.port || 'ALL');
+          const port = (typeof rawPort === 'string' && rawPort.toUpperCase() === 'ALL') ? 'ALL' : rawPort;
 
           const addInboundRule = (srcId: string) => {
             rules.push({

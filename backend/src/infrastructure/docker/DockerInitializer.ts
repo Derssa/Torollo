@@ -25,6 +25,25 @@ export class DockerInitializer {
   private static async ensureSharedNetwork(): Promise<void> {
     try {
       const networks = await docker.listNetworks();
+
+      // Clean up stale subnet networks on startup
+      for (const net of networks) {
+        if (net.Name.startsWith('akal-subnet-')) {
+          console.log(`[DockerInitializer] Cleaning up stale subnet network on startup: ${net.Name}`);
+          try {
+            const network = docker.getNetwork(net.Id);
+            const netInspect = await network.inspect();
+            const connectedContainers = Object.keys(netInspect.Containers || {});
+            for (const cId of connectedContainers) {
+              await network.disconnect({ Container: cId, Force: true });
+            }
+            await network.remove();
+          } catch (err) {
+            console.error(`Failed to clean up stale network ${net.Name}:`, err);
+          }
+        }
+      }
+
       const hasNetwork = networks.some(n => n.Name === 'akal-lab-network');
       if (!hasNetwork) {
         console.log('Creating global shared network: akal-lab-network...');
@@ -40,9 +59,37 @@ export class DockerInitializer {
     }
   }
 
+  private static async ensureHostForwarding(): Promise<void> {
+    try {
+      console.log('[DockerInitializer] Configuring Docker host to allow forwarding and preserve source IPs...');
+      const temp = await docker.createContainer({
+        Image: 'alpine',
+        HostConfig: {
+          Privileged: true,
+          NetworkMode: 'host',
+          AutoRemove: true
+        },
+        Cmd: [
+          'sh',
+          '-c',
+          'apk add --no-cache iptables && ' +
+          'iptables -C FORWARD -j ACCEPT 2>/dev/null || iptables -I FORWARD -j ACCEPT && ' +
+          'iptables -t nat -D POSTROUTING -s 10.0.0.0/8 -d 10.0.0.0/8 -j ACCEPT 2>/dev/null; iptables -t nat -I POSTROUTING -s 10.0.0.0/8 -d 10.0.0.0/8 -j ACCEPT && ' +
+          'iptables -t nat -D POSTROUTING -s 172.16.0.0/12 -d 172.16.0.0/12 -j ACCEPT 2>/dev/null; iptables -t nat -I POSTROUTING -s 172.16.0.0/12 -d 172.16.0.0/12 -j ACCEPT && ' +
+          'iptables -t nat -D POSTROUTING -s 192.168.0.0/16 -d 192.168.0.0/16 -j ACCEPT 2>/dev/null; iptables -t nat -I POSTROUTING -s 192.168.0.0/16 -d 192.168.0.0/16 -j ACCEPT'
+        ]
+      });
+      await temp.start();
+      console.log('[DockerInitializer] Host forwarding and NAT bypass rules applied successfully.');
+    } catch (err) {
+      console.error('[DockerInitializer] Failed to configure host forwarding/NAT bypass:', err);
+    }
+  }
+
   private static async checkAndPullImages(): Promise<void> {
     try {
       await this.ensureSharedNetwork();
+      await this.ensureHostForwarding();
       const images = await docker.listImages();
       const tags = images.flatMap(img => img.RepoTags || []);
 

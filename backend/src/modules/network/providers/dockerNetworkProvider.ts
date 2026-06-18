@@ -34,28 +34,187 @@ export class DockerNetworkProvider implements NetworkProvider {
     }
   }
 
-  public async applyPlan(projectId: string, endpoints: VirtualEndpoint[], intents: NetworkIntent[]): Promise<void> {
+  public async applyPlan(projectId: string, endpoints: VirtualEndpoint[], intents: NetworkIntent[], config: any): Promise<void> {
     console.log(`[DockerNetworkProvider] Applying network plan for project: ${projectId}`);
-    
+
+
     const dockerContainers = await docker.listContainers({ all: true });
     const ipMap: Record<string, string> = {};
     const idMap: Record<string, string> = {};
 
+    // 1. Obsolete Docker Subnet Network Cleanup
+    const allNetworks = await docker.listNetworks();
+    const activeSubnetIds = (config.subnets || []).map((s: any) => s.id);
+    
+    for (const net of allNetworks) {
+      if (net.Name.startsWith(`akal-subnet-${projectId}-`)) {
+        const subnetId = net.Name.replace(`akal-subnet-${projectId}-`, '');
+        if (!activeSubnetIds.includes(subnetId)) {
+          console.log(`[DockerNetworkProvider] Removing obsolete subnet network: ${net.Name}`);
+          try {
+            const network = docker.getNetwork(net.Id);
+            const netInspect = await network.inspect();
+            const connectedContainers = Object.keys(netInspect.Containers || {});
+            for (const cId of connectedContainers) {
+              await network.disconnect({ Container: cId, Force: true });
+            }
+            await network.remove();
+          } catch (err) {
+            console.error(`Failed to remove obsolete network ${net.Name}:`, err);
+          }
+        }
+      }
+    }
+
+    // 2. Ensure networks for active subnets exist
+    const resolvedCidrs: Record<string, string> = {};
+    for (const subnet of config.subnets || []) {
+      const cidr = subnet.cidr || `10.0.${config.subnets.indexOf(subnet) + 1}.0/24`;
+      const netName = `akal-subnet-${projectId}-${subnet.id}`;
+      try {
+        const activeCidr = await this.ensureNetwork(netName, cidr, allNetworks);
+        resolvedCidrs[subnet.id] = activeCidr;
+      } catch (err) {
+        console.error(`Failed to ensure network ${netName}:`, err);
+      }
+    }
+
+    // 3. Connect containers to their target subnet networks (or akal-lab-network) and assign static IPs
     for (const ep of endpoints) {
       const containerInfo = dockerContainers.find(c => 
         c.Id === ep.nodeId ||
         c.Id.startsWith(ep.nodeId) ||
         c.Names.some(name => name.replace(/^\//, '') === ep.containerName)
       );
-      if (containerInfo && containerInfo.State === 'running') {
-        const netSettings = containerInfo.NetworkSettings?.Networks?.['akal-lab-network'];
-        if (netSettings && netSettings.IPAddress) {
-          ipMap[ep.nodeId] = netSettings.IPAddress;
-          idMap[ep.nodeId] = containerInfo.Id;
-          console.log(`[DockerNetworkProvider] Resolved node ${ep.nodeId} -> Container ${containerInfo.Id.slice(0, 12)} (${netSettings.IPAddress})`);
+      if (!containerInfo || containerInfo.State !== 'running') continue;
+
+      const container = docker.getContainer(containerInfo.Id);
+      const inspect = await container.inspect();
+      const currentNetworks = Object.keys(inspect.NetworkSettings.Networks || {});
+
+      const subnetId = config.nodeSubnetMap[ep.nodeId];
+      if (subnetId) {
+        const subnet = config.subnets.find((s: any) => s.id === subnetId);
+        if (subnet) {
+          const cidr = resolvedCidrs[subnetId] || subnet.cidr || `10.0.${config.subnets.indexOf(subnet) + 1}.0/24`;
+          const prefixMatch = cidr.match(/^(\d+\.\d+\.\d+)\./);
+          const prefix = prefixMatch ? prefixMatch[1] + '.' : '';
+
+          let targetIp = '';
+          if (prefix) {
+            const configIp = config.nodeIpMap?.[ep.nodeId];
+            if (configIp && configIp.startsWith(prefix)) {
+              targetIp = configIp;
+            } else if (configIp) {
+              const suffixMatch = configIp.match(/\.(\d+)$/);
+              const suffix = suffixMatch ? suffixMatch[1] : '2';
+              targetIp = `${prefix}${suffix}`;
+            } else {
+              const subnetEndpoints = endpoints.filter(e => config.nodeSubnetMap[e.nodeId] === subnetId)
+                .sort((a, b) => a.containerName.localeCompare(b.containerName));
+              const idx = subnetEndpoints.findIndex(e => e.nodeId === ep.nodeId);
+              targetIp = `${prefix}${2 + idx}`;
+            }
+          }
+
+          const targetNetwork = `akal-subnet-${projectId}-${subnetId}`;
+
+          for (const netName of currentNetworks) {
+            if (netName !== targetNetwork && (netName.startsWith('akal-subnet-') || netName === 'akal-lab-network')) {
+              console.log(`[DockerNetworkProvider] Disconnecting container ${ep.containerName} from ${netName}...`);
+              try {
+                await docker.getNetwork(netName).disconnect({ Container: containerInfo.Id, Force: true });
+              } catch (err) {}
+            }
+          }
+
+          const isConnected = currentNetworks.includes(targetNetwork);
+          const currentIp = inspect.NetworkSettings.Networks[targetNetwork]?.IPAddress;
+
+          if (!isConnected || currentIp !== targetIp) {
+            if (isConnected) {
+              console.log(`[DockerNetworkProvider] Reconnecting container ${ep.containerName} to ${targetNetwork} due to IP mismatch...`);
+              try {
+                await docker.getNetwork(targetNetwork).disconnect({ Container: containerInfo.Id, Force: true });
+              } catch (err) {}
+            }
+            console.log(`[DockerNetworkProvider] Connecting container ${ep.containerName} to ${targetNetwork} with static IP ${targetIp}...`);
+            const containerNodeName = containerInfo.Names[0].replace(/^\//, '').replace(`akal-lab-${projectId}-`, '');
+            try {
+              await docker.getNetwork(targetNetwork).connect({
+                Container: containerInfo.Id,
+                EndpointConfig: {
+                  IPAMConfig: {
+                    IPv4Address: targetIp
+                  },
+                  Aliases: [containerNodeName]
+                }
+              });
+            } catch (err) {
+              console.error(`Failed to connect container ${ep.containerName} to network ${targetNetwork} with IP ${targetIp}:`, err);
+            }
+          }
         }
       } else {
-        console.log(`[DockerNetworkProvider] Container for node ${ep.nodeId} (${ep.containerName}) is not running or not found.`);
+        const targetNetwork = 'akal-lab-network';
+        for (const netName of currentNetworks) {
+          if (netName !== targetNetwork && netName.startsWith('akal-subnet-')) {
+            console.log(`[DockerNetworkProvider] Disconnecting container ${ep.containerName} from subnet network ${netName}...`);
+            try {
+              await docker.getNetwork(netName).disconnect({ Container: containerInfo.Id, Force: true });
+            } catch (err) {}
+          }
+        }
+
+        if (!currentNetworks.includes(targetNetwork)) {
+          console.log(`[DockerNetworkProvider] Reconnecting container ${ep.containerName} to default network ${targetNetwork}...`);
+          try {
+            await docker.getNetwork(targetNetwork).connect({ Container: containerInfo.Id });
+          } catch (err) {}
+        }
+      }
+    }
+
+    // Ensure Docker host-level forwarding and NAT bypass are applied dynamically to prevent Docker resets from wiping them
+    // This is run after all container connections to override any Docker-inserted POSTROUTING rules.
+    try {
+      const temp = await docker.createContainer({
+        Image: 'derssa/backend-lab-ubuntu:v1',
+        HostConfig: {
+          Privileged: true,
+          NetworkMode: 'host',
+          AutoRemove: true
+        },
+        Cmd: [
+          'sh',
+          '-c',
+          'iptables -C FORWARD -j ACCEPT 2>/dev/null || iptables -I FORWARD -j ACCEPT && ' +
+          'iptables -t nat -D POSTROUTING -s 10.0.0.0/8 -d 10.0.0.0/8 -j ACCEPT 2>/dev/null; iptables -t nat -I POSTROUTING -s 10.0.0.0/8 -d 10.0.0.0/8 -j ACCEPT && ' +
+          'iptables -t nat -D POSTROUTING -s 172.16.0.0/12 -d 172.16.0.0/12 -j ACCEPT 2>/dev/null; iptables -t nat -I POSTROUTING -s 172.16.0.0/12 -d 172.16.0.0/12 -j ACCEPT && ' +
+          'iptables -t nat -D POSTROUTING -s 192.168.0.0/16 -d 192.168.0.0/16 -j ACCEPT 2>/dev/null; iptables -t nat -I POSTROUTING -s 192.168.0.0/16 -d 192.168.0.0/16 -j ACCEPT'
+        ]
+      });
+      await temp.start();
+    } catch (err) {
+      console.warn('[DockerNetworkProvider] Failed to apply host iptables forwarding/NAT bypass:', err);
+    }
+
+    // 4. Build IP map and ID map using updated network inspects
+    const updatedDockerContainers = await docker.listContainers({ all: true });
+    for (const ep of endpoints) {
+      const containerInfo = updatedDockerContainers.find(c => 
+        c.Id === ep.nodeId ||
+        c.Id.startsWith(ep.nodeId) ||
+        c.Names.some(name => name.replace(/^\//, '') === ep.containerName)
+      );
+      if (containerInfo && containerInfo.State === 'running') {
+        const networks = containerInfo.NetworkSettings?.Networks || {};
+        const key = Object.keys(networks).find(k => k.startsWith('akal-'));
+        if (key && networks[key] && networks[key].IPAddress) {
+          ipMap[ep.nodeId] = networks[key].IPAddress;
+          idMap[ep.nodeId] = containerInfo.Id;
+          console.log(`[DockerNetworkProvider] Resolved subnet node ${ep.nodeId} -> Container ${containerInfo.Id.slice(0, 12)} (${networks[key].IPAddress})`);
+        }
       }
     }
 
@@ -63,6 +222,9 @@ export class DockerNetworkProvider implements NetworkProvider {
     for (const ep of endpoints) {
       const containerId = idMap[ep.nodeId];
       if (!containerId) continue;
+
+      const containerInfo = updatedDockerContainers.find(c => c.Id === containerId);
+      if (!containerInfo) continue;
 
       // Check if iptables is available inside this container
       const hasIptables = await this.runExec(containerId, ['sh', '-c', 'command -v iptables']);
@@ -81,15 +243,72 @@ export class DockerNetworkProvider implements NetworkProvider {
       await this.runExec(containerId, ['iptables', '-F', 'AKAL-INPUT']);
       await this.runExec(containerId, ['iptables', '-F', 'AKAL-OUTPUT']);
 
+      const isDnsEnabled = config.vpcConfig?.dnsEnabled !== false;
+
+      // 1.5 Configure /etc/hosts for cross-subnet DNS resolution (using true node names)
+      const selfNodeName = containerInfo.Names[0].replace(/^\//, '').replace(`akal-lab-${projectId}-`, '');
+      const hostsContent = [
+        '127.0.0.1 localhost',
+        '::1 localhost ip6-localhost ip6-loopback',
+        `${ipMap[ep.nodeId]} ${selfNodeName}`
+      ];
+
+      if (isDnsEnabled) {
+        for (const otherEp of endpoints) {
+          if (otherEp.nodeId === ep.nodeId) continue;
+          const otherIp = ipMap[otherEp.nodeId];
+          const otherContainerInfo = updatedDockerContainers.find(c => c.Id === idMap[otherEp.nodeId]);
+          if (otherIp && otherContainerInfo) {
+            const otherNodeName = otherContainerInfo.Names[0].replace(/^\//, '').replace(`akal-lab-${projectId}-`, '');
+            hostsContent.push(`${otherIp} ${otherNodeName}`);
+          }
+        }
+      }
+
+      const hostsStr = hostsContent.join('\n');
+      await this.runExec(containerId, ['sh', '-c', `cat << 'EOF' > /etc/hosts\n${hostsStr}\nEOF`]);
+
+      // DNS Control: If DNS resolution is disabled, drop outbound port 53 traffic (DNS queries)
+      // This is placed before loopback rules to ensure local Docker DNS queries (sent to loopback resolver 127.0.0.11) are blocked.
+      if (!isDnsEnabled) {
+        console.log(`[DockerNetworkProvider] DNS is disabled. Blocking Port 53 and local resolver 127.0.0.11 outbound inside container ${containerId.slice(0, 12)}...`);
+        await this.runExec(containerId, ['iptables', '-A', 'AKAL-OUTPUT', '-d', '127.0.0.11', '-j', 'REJECT']);
+        await this.runExec(containerId, ['iptables', '-A', 'AKAL-OUTPUT', '-p', 'udp', '--dport', '53', '-j', 'REJECT']);
+        await this.runExec(containerId, ['iptables', '-A', 'AKAL-OUTPUT', '-p', 'tcp', '--dport', '53', '-j', 'REJECT']);
+      }
+
       // 2. Allow established loopback and related connections (essential for container health & pings)
       await this.runExec(containerId, ['iptables', '-A', 'AKAL-INPUT', '-i', 'lo', '-j', 'ACCEPT']);
       await this.runExec(containerId, ['iptables', '-A', 'AKAL-OUTPUT', '-o', 'lo', '-j', 'ACCEPT']);
-      
+      await this.runExec(containerId, ['iptables', '-A', 'AKAL-OUTPUT', '-d', '127.0.0.0/8', '-j', 'ACCEPT']);
+
+      // 2.5. Routing Table & Internet Gateway Enforcement (Evaluated BEFORE conntrack and security groups)
+      const subnetId = config.nodeSubnetMap[ep.nodeId];
+      const subnet = config.subnets?.find((s: any) => s.id === subnetId);
+      const isIgwEnabled = config.vpcConfig?.igwEnabled !== false;
+      const isPublicSubnet = subnet?.type === 'public';
+      const hasIgwRoute = subnet?.routes?.some((r: any) => r.destination === '0.0.0.0/0' && r.target === 'igw');
+      const hasLocalRoute = subnet?.routes?.some((r: any) => r.destination === (config.vpcConfig?.cidr || '10.0.0.0/16') && r.target === 'local');
+
+      const isInternetAllowed = isIgwEnabled && isPublicSubnet && hasIgwRoute;
+      const vpcCidr = config.vpcConfig?.cidr || '10.0.0.0/16';
+
+      if (!hasLocalRoute) {
+        // Reject local VPC subnet-to-subnet traffic if local route is deleted
+        await this.runExec(containerId, ['iptables', '-A', 'AKAL-OUTPUT', '-d', vpcCidr, '-j', 'REJECT']);
+        await this.runExec(containerId, ['iptables', '-A', 'AKAL-INPUT', '-s', vpcCidr, '-j', 'REJECT']);
+      }
+
+      if (!isInternetAllowed) {
+        // Block external internet traffic (anything outside VPC CIDR) if internet access is blocked
+        await this.runExec(containerId, ['iptables', '-A', 'AKAL-OUTPUT', '!', '-d', vpcCidr, '-j', 'REJECT']);
+      }
+
       // Stateful rule tracking
       await this.runExec(containerId, ['iptables', '-A', 'AKAL-INPUT', '-m', 'conntrack', '--ctstate', 'ESTABLISHED,RELATED', '-j', 'ACCEPT']);
       await this.runExec(containerId, ['iptables', '-A', 'AKAL-OUTPUT', '-m', 'conntrack', '--ctstate', 'ESTABLISHED,RELATED', '-j', 'ACCEPT']);
 
-      // 3. Process intents affecting this node
+      // 3. Process intents affecting this node (Security Groups)
       for (const intent of intents) {
         if (intent.ownerNodeId !== ep.nodeId) continue;
 
@@ -100,7 +319,8 @@ export class DockerNetworkProvider implements NetworkProvider {
         if (!isTarget && !isSource) continue;
 
         const rawProto = intent.protocol || 'all';
-        const port = intent.port || 'ALL';
+        const rawPort = intent.port || 'ALL';
+        const port = (typeof rawPort === 'string' && rawPort.toUpperCase() === 'ALL') ? 'ALL' : rawPort;
 
         const sourceIp = isTarget ? ipMap[intent.sourceNodeId || ''] : undefined;
         const targetIp = isSource ? ipMap[intent.targetNodeId || ''] : undefined;
@@ -144,10 +364,16 @@ export class DockerNetworkProvider implements NetworkProvider {
         }
       }
 
-      // 4. Default Outbound: ALLOW ALL (so container has internet/updates access)
-      await this.runExec(containerId, ['iptables', '-A', 'AKAL-OUTPUT', '-j', 'ACCEPT']);
+      // 4. Default Outbound Fallthrough policy
+      if (isInternetAllowed) {
+        await this.runExec(containerId, ['iptables', '-A', 'AKAL-OUTPUT', '-j', 'ACCEPT']);
+      } else {
+        // If internet is blocked, but the traffic falls through routing/SG checks (so it is local VPC traffic), ACCEPT it.
+        await this.runExec(containerId, ['iptables', '-A', 'AKAL-OUTPUT', '-d', vpcCidr, '-j', 'ACCEPT']);
+        await this.runExec(containerId, ['iptables', '-A', 'AKAL-OUTPUT', '-j', 'REJECT']);
+      }
 
-      // 5. Default Inbound: REJECT ALL (Zero-trust secure baseline)
+      // 6. Default Inbound: REJECT ALL (Zero-trust secure baseline)
       await this.runExec(containerId, ['iptables', '-A', 'AKAL-INPUT', '-j', 'REJECT']);
 
       // 6. Verification
@@ -178,5 +404,74 @@ export class DockerNetworkProvider implements NetworkProvider {
         }
       }
     }
+
+    // Clean up all dynamic subnet networks created for this project
+    console.log(`[DockerNetworkProvider] Cleaning up subnet networks for project: ${projectId}`);
+    try {
+      const allNetworks = await docker.listNetworks();
+      for (const net of allNetworks) {
+        if (net.Name.startsWith(`akal-subnet-${projectId}-`)) {
+          console.log(`[DockerNetworkProvider] Deleting network ${net.Name}...`);
+          try {
+            const network = docker.getNetwork(net.Id);
+            const netInspect = await network.inspect();
+            const connectedContainers = Object.keys(netInspect.Containers || {});
+            for (const cId of connectedContainers) {
+              await network.disconnect({ Container: cId, Force: true });
+            }
+            await network.remove();
+          } catch (err) {
+            console.error(`Failed to delete network ${net.Name}:`, err);
+          }
+        }
+      }
+    } catch (err) {
+      console.error(`Failed to list/clean networks:`, err);
+    }
+  }
+
+  private async ensureNetwork(netName: string, cidr: string, allNetworks: any[]): Promise<string> {
+    const exists = allNetworks.some(n => n.Name === netName);
+    if (exists) {
+      try {
+        const net = docker.getNetwork(netName);
+        const inspect = await net.inspect();
+        const subnet = inspect.IPAM?.Config?.[0]?.Subnet;
+        if (subnet) return subnet;
+      } catch (e) {}
+      return cidr;
+    }
+
+    let currentCidr = cidr;
+    let attempts = 0;
+    while (attempts < 10) {
+      try {
+        console.log(`[DockerNetworkProvider] Creating network ${netName} with CIDR ${currentCidr}...`);
+        const gateway = currentCidr.replace(/\.0\/\d+$/, '.1');
+        await docker.createNetwork({
+          Name: netName,
+          Driver: 'bridge',
+          IPAM: {
+            Config: [{
+              Subnet: currentCidr,
+              Gateway: gateway
+            }]
+          }
+        });
+        return currentCidr;
+      } catch (err: any) {
+        if (err.statusCode === 403 || err.message?.includes('overlaps') || err.message?.includes('pool')) {
+          attempts++;
+          const secondOctet = 110 + attempts;
+          const parts = currentCidr.split('.');
+          parts[1] = secondOctet.toString();
+          currentCidr = parts.join('.');
+          console.warn(`[DockerNetworkProvider] Pool overlap detected. Retrying with shifted CIDR: ${currentCidr}`);
+        } else {
+          throw err;
+        }
+      }
+    }
+    throw new Error(`Failed to create network ${netName} after 10 attempts due to address space overlaps.`);
   }
 }

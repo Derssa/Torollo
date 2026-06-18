@@ -178,8 +178,14 @@ export default function VpcModal({
                   <input
                     type="text"
                     value={cidr}
-                    onChange={(e) => setCidr(e.target.value)}
-                    style={styles.input}
+                    disabled={true}
+                    style={{
+                      ...styles.input,
+                      backgroundColor: '#F3F4F6',
+                      color: '#6B7280',
+                      cursor: 'not-allowed',
+                      border: '1px solid #E5E7EB'
+                    }}
                     placeholder="e.g. 10.0.0.0/16"
                   />
                 </div>

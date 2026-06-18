@@ -8,6 +8,7 @@ export interface ContainerInfo {
   status: string;
   type?: 'ubuntu' | 'postgres' | 'mysql';
   port?: string;
+  ip?: string;
 }
 
 export class ContainerManager {
@@ -145,6 +146,14 @@ export class ContainerManager {
             port = matchedPort.PublicPort.toString();
           }
         }
+        let ip = '';
+        const networks = c.NetworkSettings?.Networks;
+        if (networks) {
+          const key = Object.keys(networks).find(k => k.startsWith('akal-'));
+          if (key && networks[key]) {
+            ip = networks[key].IPAddress;
+          }
+        }
         return {
           id: c.Id,
           name: c.Names[0].replace(/^\//, '').replace(`${this.LAB_PREFIX}${projectId}-`, ''),
@@ -152,7 +161,8 @@ export class ContainerManager {
           state: c.State,
           status: c.Status,
           type: (c.Labels['akal.node.type'] || 'ubuntu') as 'ubuntu' | 'postgres' | 'mysql',
-          port
+          port,
+          ip
         };
       });
   }
@@ -174,6 +184,12 @@ export class ContainerManager {
     
     console.log(`Creating ${type} container...`);
     const safeName = `${this.LAB_PREFIX}${projectId}-${nodeName.replace(/[^a-zA-Z0-9-_]/g, '')}`;
+
+    try {
+      const existingConflict = docker.getContainer(safeName);
+      await existingConflict.remove({ force: true });
+      console.log(`[ContainerManager] Force-removed conflicting container with name: ${safeName}`);
+    } catch (err) {}
 
     const createOpts: any = {
       Image: image,
@@ -222,12 +238,21 @@ export class ContainerManager {
     await container.start();
 
     let port = '';
+    const inspectData = await container.inspect();
     if (isPostgres || isMysql) {
-      const inspectData = await container.inspect();
       const ports = inspectData.NetworkSettings.Ports;
       const targetPortKey = isPostgres ? '5432/tcp' : '3306/tcp';
       if (ports && ports[targetPortKey] && ports[targetPortKey][0]) {
         port = ports[targetPortKey][0].HostPort;
+      }
+    }
+
+    let ip = '';
+    const networks = inspectData.NetworkSettings.Networks;
+    if (networks) {
+      const key = Object.keys(networks).find(k => k.startsWith('akal-'));
+      if (key && networks[key]) {
+        ip = networks[key].IPAddress;
       }
     }
 
@@ -240,7 +265,8 @@ export class ContainerManager {
       state: 'running',
       status: 'Up less than a second',
       type: type as 'ubuntu' | 'postgres' | 'mysql',
-      port
+      port,
+      ip
     };
   }
 
