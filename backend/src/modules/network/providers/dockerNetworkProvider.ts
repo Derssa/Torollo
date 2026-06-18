@@ -36,6 +36,29 @@ export class DockerNetworkProvider implements NetworkProvider {
 
   public async applyPlan(projectId: string, endpoints: VirtualEndpoint[], intents: NetworkIntent[], config: any): Promise<void> {
     console.log(`[DockerNetworkProvider] Applying network plan for project: ${projectId}`);
+
+    // Ensure Docker host-level forwarding and NAT bypass are applied dynamically to prevent Docker resets from wiping them
+    try {
+      const temp = await docker.createContainer({
+        Image: 'derssa/backend-lab-ubuntu:v1',
+        HostConfig: {
+          Privileged: true,
+          NetworkMode: 'host',
+          AutoRemove: true
+        },
+        Cmd: [
+          'sh',
+          '-c',
+          'iptables -C FORWARD -j ACCEPT 2>/dev/null || iptables -I FORWARD -j ACCEPT && ' +
+          'iptables -t nat -C POSTROUTING -s 10.0.0.0/8 -d 10.0.0.0/8 -j ACCEPT 2>/dev/null || iptables -t nat -I POSTROUTING -s 10.0.0.0/8 -d 10.0.0.0/8 -j ACCEPT && ' +
+          'iptables -t nat -C POSTROUTING -s 172.16.0.0/12 -d 172.16.0.0/12 -j ACCEPT 2>/dev/null || iptables -t nat -I POSTROUTING -s 172.16.0.0/12 -d 172.16.0.0/12 -j ACCEPT && ' +
+          'iptables -t nat -C POSTROUTING -s 192.168.0.0/16 -d 192.168.0.0/16 -j ACCEPT 2>/dev/null || iptables -t nat -I POSTROUTING -s 192.168.0.0/16 -d 192.168.0.0/16 -j ACCEPT'
+        ]
+      });
+      await temp.start();
+    } catch (err) {
+      console.warn('[DockerNetworkProvider] Failed to apply host iptables forwarding/NAT bypass:', err);
+    }
     
     const dockerContainers = await docker.listContainers({ all: true });
     const ipMap: Record<string, string> = {};
