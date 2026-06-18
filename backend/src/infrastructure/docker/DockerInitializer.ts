@@ -25,6 +25,25 @@ export class DockerInitializer {
   private static async ensureSharedNetwork(): Promise<void> {
     try {
       const networks = await docker.listNetworks();
+
+      // Clean up stale subnet networks on startup
+      for (const net of networks) {
+        if (net.Name.startsWith('akal-subnet-')) {
+          console.log(`[DockerInitializer] Cleaning up stale subnet network on startup: ${net.Name}`);
+          try {
+            const network = docker.getNetwork(net.Id);
+            const netInspect = await network.inspect();
+            const connectedContainers = Object.keys(netInspect.Containers || {});
+            for (const cId of connectedContainers) {
+              await network.disconnect({ Container: cId, Force: true });
+            }
+            await network.remove();
+          } catch (err) {
+            console.error(`Failed to clean up stale network ${net.Name}:`, err);
+          }
+        }
+      }
+
       const hasNetwork = networks.some(n => n.Name === 'akal-lab-network');
       if (!hasNetwork) {
         console.log('Creating global shared network: akal-lab-network...');

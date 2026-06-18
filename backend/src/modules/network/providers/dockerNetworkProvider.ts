@@ -66,27 +66,15 @@ export class DockerNetworkProvider implements NetworkProvider {
     }
 
     // 2. Ensure networks for active subnets exist
+    const resolvedCidrs: Record<string, string> = {};
     for (const subnet of config.subnets || []) {
       const cidr = subnet.cidr || `10.0.${config.subnets.indexOf(subnet) + 1}.0/24`;
       const netName = `akal-subnet-${projectId}-${subnet.id}`;
-      const exists = allNetworks.some(n => n.Name === netName);
-      if (!exists) {
-        console.log(`[DockerNetworkProvider] Creating subnet network: ${netName} with CIDR ${cidr}`);
-        try {
-          const gateway = cidr.replace(/\.0\/\d+$/, '.1');
-          await docker.createNetwork({
-            Name: netName,
-            Driver: 'bridge',
-            IPAM: {
-              Config: [{
-                Subnet: cidr,
-                Gateway: gateway
-              }]
-            }
-          });
-        } catch (err) {
-          console.error(`Failed to create network ${netName}:`, err);
-        }
+      try {
+        const activeCidr = await this.ensureNetwork(netName, cidr, allNetworks);
+        resolvedCidrs[subnet.id] = activeCidr;
+      } catch (err) {
+        console.error(`Failed to ensure network ${netName}:`, err);
       }
     }
 
@@ -107,12 +95,26 @@ export class DockerNetworkProvider implements NetworkProvider {
       if (subnetId) {
         const subnet = config.subnets.find((s: any) => s.id === subnetId);
         if (subnet) {
-          const cidr = subnet.cidr || `10.0.${config.subnets.indexOf(subnet) + 1}.0/24`;
-          const subnetEndpoints = endpoints.filter(e => config.nodeSubnetMap[e.nodeId] === subnetId)
-            .sort((a, b) => a.containerName.localeCompare(b.containerName));
-          const idx = subnetEndpoints.findIndex(e => e.nodeId === ep.nodeId);
+          const cidr = resolvedCidrs[subnetId] || subnet.cidr || `10.0.${config.subnets.indexOf(subnet) + 1}.0/24`;
           const prefixMatch = cidr.match(/^(\d+\.\d+\.\d+)\./);
-          const targetIp = prefixMatch ? `${prefixMatch[1]}.${2 + idx}` : '';
+          const prefix = prefixMatch ? prefixMatch[1] + '.' : '';
+
+          let targetIp = '';
+          if (prefix) {
+            const configIp = config.nodeIpMap?.[ep.nodeId];
+            if (configIp && configIp.startsWith(prefix)) {
+              targetIp = configIp;
+            } else if (configIp) {
+              const suffixMatch = configIp.match(/\.(\d+)$/);
+              const suffix = suffixMatch ? suffixMatch[1] : '2';
+              targetIp = `${prefix}${suffix}`;
+            } else {
+              const subnetEndpoints = endpoints.filter(e => config.nodeSubnetMap[e.nodeId] === subnetId)
+                .sort((a, b) => a.containerName.localeCompare(b.containerName));
+              const idx = subnetEndpoints.findIndex(e => e.nodeId === ep.nodeId);
+              targetIp = `${prefix}${2 + idx}`;
+            }
+          }
 
           const targetNetwork = `akal-subnet-${projectId}-${subnetId}`;
 
@@ -333,5 +335,74 @@ export class DockerNetworkProvider implements NetworkProvider {
         }
       }
     }
+
+    // Clean up all dynamic subnet networks created for this project
+    console.log(`[DockerNetworkProvider] Cleaning up subnet networks for project: ${projectId}`);
+    try {
+      const allNetworks = await docker.listNetworks();
+      for (const net of allNetworks) {
+        if (net.Name.startsWith(`akal-subnet-${projectId}-`)) {
+          console.log(`[DockerNetworkProvider] Deleting network ${net.Name}...`);
+          try {
+            const network = docker.getNetwork(net.Id);
+            const netInspect = await network.inspect();
+            const connectedContainers = Object.keys(netInspect.Containers || {});
+            for (const cId of connectedContainers) {
+              await network.disconnect({ Container: cId, Force: true });
+            }
+            await network.remove();
+          } catch (err) {
+            console.error(`Failed to delete network ${net.Name}:`, err);
+          }
+        }
+      }
+    } catch (err) {
+      console.error(`Failed to list/clean networks:`, err);
+    }
+  }
+
+  private async ensureNetwork(netName: string, cidr: string, allNetworks: any[]): Promise<string> {
+    const exists = allNetworks.some(n => n.Name === netName);
+    if (exists) {
+      try {
+        const net = docker.getNetwork(netName);
+        const inspect = await net.inspect();
+        const subnet = inspect.IPAM?.Config?.[0]?.Subnet;
+        if (subnet) return subnet;
+      } catch (e) {}
+      return cidr;
+    }
+
+    let currentCidr = cidr;
+    let attempts = 0;
+    while (attempts < 10) {
+      try {
+        console.log(`[DockerNetworkProvider] Creating network ${netName} with CIDR ${currentCidr}...`);
+        const gateway = currentCidr.replace(/\.0\/\d+$/, '.1');
+        await docker.createNetwork({
+          Name: netName,
+          Driver: 'bridge',
+          IPAM: {
+            Config: [{
+              Subnet: currentCidr,
+              Gateway: gateway
+            }]
+          }
+        });
+        return currentCidr;
+      } catch (err: any) {
+        if (err.statusCode === 403 || err.message?.includes('overlaps') || err.message?.includes('pool')) {
+          attempts++;
+          const secondOctet = 110 + attempts;
+          const parts = currentCidr.split('.');
+          parts[1] = secondOctet.toString();
+          currentCidr = parts.join('.');
+          console.warn(`[DockerNetworkProvider] Pool overlap detected. Retrying with shifted CIDR: ${currentCidr}`);
+        } else {
+          throw err;
+        }
+      }
+    }
+    throw new Error(`Failed to create network ${netName} after 10 attempts due to address space overlaps.`);
   }
 }
