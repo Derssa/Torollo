@@ -185,6 +185,12 @@ export class ContainerManager {
     console.log(`Creating ${type} container...`);
     const safeName = `${this.LAB_PREFIX}${projectId}-${nodeName.replace(/[^a-zA-Z0-9-_]/g, '')}`;
 
+    try {
+      const existingConflict = docker.getContainer(safeName);
+      await existingConflict.remove({ force: true });
+      console.log(`[ContainerManager] Force-removed conflicting container with name: ${safeName}`);
+    } catch (err) {}
+
     const createOpts: any = {
       Image: image,
       name: safeName,
