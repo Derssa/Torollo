@@ -219,7 +219,8 @@ export class DockerNetworkProvider implements NetworkProvider {
       // This is placed before loopback rules to ensure local Docker DNS queries (sent to loopback resolver 127.0.0.11) are blocked.
       const isDnsEnabled = config.vpcConfig?.dnsEnabled !== false;
       if (!isDnsEnabled) {
-        console.log(`[DockerNetworkProvider] DNS is disabled. Blocking Port 53 outbound inside container ${containerId.slice(0, 12)}...`);
+        console.log(`[DockerNetworkProvider] DNS is disabled. Blocking Port 53 and local resolver 127.0.0.11 outbound inside container ${containerId.slice(0, 12)}...`);
+        await this.runExec(containerId, ['iptables', '-A', 'AKAL-OUTPUT', '-d', '127.0.0.11', '-j', 'REJECT']);
         await this.runExec(containerId, ['iptables', '-A', 'AKAL-OUTPUT', '-p', 'udp', '--dport', '53', '-j', 'REJECT']);
         await this.runExec(containerId, ['iptables', '-A', 'AKAL-OUTPUT', '-p', 'tcp', '--dport', '53', '-j', 'REJECT']);
       }
