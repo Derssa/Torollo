@@ -1326,7 +1326,9 @@ export default function CanvasPage({ projectId, projectName, onBackToProjects, o
               ? "Create PostgreSQL Node"
               : dropState?.type === 'mysql'
                 ? "Create MySQL Node"
-                : "Create Ubuntu Node"
+                : dropState?.type === 'nat'
+                  ? "Create NAT Gateway Node"
+                  : "Create Ubuntu Node"
           }
           label="Give your new container a descriptive name."
           placeholder={
@@ -1334,12 +1336,21 @@ export default function CanvasPage({ projectId, projectName, onBackToProjects, o
               ? "e.g. pg-db, main-store"
               : dropState?.type === 'mysql'
                 ? "e.g. mysql-db, orders"
-                : "e.g. web-server, api-gateway"
+                : dropState?.type === 'nat'
+                  ? "e.g. nat-gateway, internet-exit"
+                  : "e.g. web-server, api-gateway"
           }
           defaultValue={
             (() => {
               const type = dropState?.type || 'ubuntu';
-              const prefix = type === 'postgres' ? 'postgres-' : type === 'mysql' ? 'mysql-' : 'node-';
+              const prefix =
+                type === 'postgres'
+                  ? 'postgres-'
+                  : type === 'mysql'
+                    ? 'mysql-'
+                    : type === 'nat'
+                      ? 'NAT-'
+                      : 'server-';
               let suffix = 1;
               while (containers.some(c => c.name === `${prefix}${suffix}`)) {
                 suffix++;
