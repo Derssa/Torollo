@@ -356,12 +356,12 @@ const styles = {
   title: {
     fontSize: '15px',
     fontWeight: 700,
-    color: '#F9FAFB',
+    color: 'var(--color-text-primary, #F9FAFB)',
   },
   closeBtn: {
     background: 'none',
     border: 'none',
-    color: '#9CA3AF',
+    color: 'var(--color-text-muted, #9CA3AF)',
     cursor: 'pointer',
     padding: '6px',
     borderRadius: '50%',
