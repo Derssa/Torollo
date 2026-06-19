@@ -10,6 +10,8 @@ import PostgresNode from '../../features/nodes/PostgresNode/PostgresNode';
 import PostgresModal from '../../features/nodes/PostgresNode/PostgresModal';
 import MysqlNode from '../../features/nodes/MysqlNode/MysqlNode';
 import MysqlModal from '../../features/nodes/MysqlNode/MysqlModal';
+import LoadBalancerNode from '../../features/nodes/LoadBalancerNode/LoadBalancerNode';
+import LoadBalancerModal from '../../features/nodes/LoadBalancerNode/LoadBalancerModal';
 import NodeLibrary from './components/NodeLibrary';
 import { useContainers } from '../../shared/hooks/useContainers';
 import { useToast, ToastNotification } from '../../shared/components/Toast';
@@ -57,6 +59,8 @@ interface NetworkConfig {
   nodeSubnetMap: Record<string, string>; // nodeId -> subnetId or vpcId
   nodeSecurityGroups: Record<string, SecurityGroupRule[]>; // nodeId -> SecurityGroupRule[]
   nodeIpMap: Record<string, string>; // nodeId -> ipAddress
+  loadBalancerAlgorithms?: Record<string, 'round_robin' | 'least_conn'>;
+  loadBalancerTargets?: Record<string, string[]>;
 }
 
 function autoGrowContainers(
@@ -100,6 +104,7 @@ export default function CanvasPage({ projectId, projectName, onBackToProjects, o
   const [inspectingPostgres, setInspectingPostgres] = useState<{ id: string; name: string } | null>(null);
   const [inspectingMysql, setInspectingMysql] = useState<{ id: string; name: string } | null>(null);
   const [inspectingNat, setInspectingNat] = useState<{ id: string; name: string } | null>(null);
+  const [inspectingLoadBalancer, setInspectingLoadBalancer] = useState<{ id: string; name: string } | null>(null);
 
   // Phase 3 Modal states
   const [inspectingSubnet, setInspectingSubnet] = useState<{ id: string; name: string } | null>(null);
@@ -148,7 +153,8 @@ export default function CanvasPage({ projectId, projectName, onBackToProjects, o
     mysql: MysqlNode,
     nat: NatNode,
     vpc: VpcNode,
-    subnet: SubnetNode
+    subnet: SubnetNode,
+    loadbalancer: LoadBalancerNode
   }), []);
 
   const edgeTypes = useMemo(() => ({
@@ -666,7 +672,11 @@ export default function CanvasPage({ projectId, projectName, onBackToProjects, o
         }
 
         const nodeType = c.type || 'ubuntu';
-
+        const nodeConfig = nodeType === 'loadbalancer' ? {
+          loadBalancerAlgorithm: networkConfig.loadBalancerAlgorithms?.[c.id],
+          loadBalancerTargets: networkConfig.loadBalancerTargets?.[c.id],
+        } : undefined;
+ 
         return {
           ...existing,
           id: c.id,
@@ -680,10 +690,11 @@ export default function CanvasPage({ projectId, projectName, onBackToProjects, o
             status: c.status,
             port: c.port,
             ip: networkConfig.nodeIpMap?.[c.id] || 'pending',
+            config: nodeConfig,
             onStart: startContainer,
             onStop: stopContainer,
             onDelete: (id: string) => setDeleteTarget(id),
-            onTerminalOpen: onTerminalOpen,
+            onTerminalOpen: nodeType === 'loadbalancer' ? () => {} : onTerminalOpen,
             onInspect: (id: string, name: string) => {
               if (nodeType === 'mysql') {
                 setInspectingMysql({ id, name });
@@ -691,6 +702,8 @@ export default function CanvasPage({ projectId, projectName, onBackToProjects, o
                 setInspectingPostgres({ id, name });
               } else if (nodeType === 'nat') {
                 setInspectingNat({ id, name });
+              } else if (nodeType === 'loadbalancer') {
+                setInspectingLoadBalancer({ id, name });
               }
             },
             onSecurityGroupOpen: (id: string, name: string) => {
@@ -1338,7 +1351,9 @@ export default function CanvasPage({ projectId, projectName, onBackToProjects, o
                 ? "Create MySQL Node"
                 : dropState?.type === 'nat'
                   ? "Create NAT Gateway Node"
-                  : "Create Ubuntu Node"
+                  : dropState?.type === 'loadbalancer'
+                    ? "Create Load Balancer Node"
+                    : "Create Ubuntu Node"
           }
           label="Give your new container a descriptive name."
           placeholder={
@@ -1348,7 +1363,9 @@ export default function CanvasPage({ projectId, projectName, onBackToProjects, o
                 ? "e.g. mysql-db, orders"
                 : dropState?.type === 'nat'
                   ? "e.g. nat-gateway, internet-exit"
-                  : "e.g. web-server, api-gateway"
+                  : dropState?.type === 'loadbalancer'
+                    ? "e.g. alb, web-lb"
+                    : "e.g. web-server, api-gateway"
           }
           defaultValue={
             (() => {
@@ -1360,7 +1377,9 @@ export default function CanvasPage({ projectId, projectName, onBackToProjects, o
                     ? 'mysql-'
                     : type === 'nat'
                       ? 'NAT-'
-                      : 'server-';
+                      : type === 'loadbalancer'
+                        ? 'alb-'
+                        : 'server-';
               let suffix = 1;
               while (containers.some(c => c.name === `${prefix}${suffix}`)) {
                 suffix++;
@@ -1409,6 +1428,40 @@ export default function CanvasPage({ projectId, projectName, onBackToProjects, o
           ipAddress={networkConfig.nodeIpMap?.[inspectingNat.id]}
           state={containers.find(c => c.id === inspectingNat.id)?.state || 'stopped'}
           onClose={() => setInspectingNat(null)}
+        />
+      )}
+
+      {inspectingLoadBalancer && (
+        <LoadBalancerModal
+          containerId={inspectingLoadBalancer.id}
+          nodeName={inspectingLoadBalancer.name}
+          ipAddress={networkConfig.nodeIpMap?.[inspectingLoadBalancer.id]}
+          port={containers.find(c => c.id === inspectingLoadBalancer.id)?.port}
+          state={containers.find(c => c.id === inspectingLoadBalancer.id)?.state || 'stopped'}
+          config={{
+            loadBalancerAlgorithm: networkConfig.loadBalancerAlgorithms?.[inspectingLoadBalancer.id],
+            loadBalancerTargets: networkConfig.loadBalancerTargets?.[inspectingLoadBalancer.id]
+          }}
+          allNodes={containers}
+          onClose={() => setInspectingLoadBalancer(null)}
+          onSaveConfig={async (algorithm, targets) => {
+            const updatedAlgorithms = {
+              ...(networkConfig.loadBalancerAlgorithms || {}),
+              [inspectingLoadBalancer.id]: algorithm
+            };
+            const updatedTargets = {
+              ...(networkConfig.loadBalancerTargets || {}),
+              [inspectingLoadBalancer.id]: targets
+            };
+            const newConfig = {
+              ...networkConfig,
+              loadBalancerAlgorithms: updatedAlgorithms,
+              loadBalancerTargets: updatedTargets
+            };
+            await saveNetworkConfig(newConfig);
+            showToast("Load Balancer configuration applied");
+            triggerArchitectureAudit(newConfig);
+          }}
         />
       )}
 
