@@ -1,0 +1,25 @@
+FROM nginx:alpine
+
+RUN apk add --no-cache iptables iproute2 curl iputils
+
+# Create a valid default nginx.conf with fallback upstream so it starts cleanly
+RUN mkdir -p /etc/nginx && echo 'events { worker_connections 1024; } \
+http { \
+  upstream myapp { \
+    server 127.0.0.1:81 down; \
+  } \
+  server { \
+    listen 80; \
+    location / { \
+      proxy_pass http://myapp; \
+      proxy_set_header Host $host; \
+      proxy_set_header X-Real-IP $remote_addr; \
+      proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for; \
+      proxy_set_header X-Forwarded-Proto $scheme; \
+    } \
+  } \
+}' > /etc/nginx/nginx.conf
+
+EXPOSE 80
+
+CMD ["nginx", "-g", "daemon off;"]

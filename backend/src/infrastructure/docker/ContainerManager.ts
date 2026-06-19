@@ -272,8 +272,6 @@ export class ContainerManager {
         '3306/tcp': [{ HostPort: '' }]
       };
     } else if (isLoadBalancer) {
-      createOpts.Entrypoint = ['sh', '-c'];
-      createOpts.Cmd = ['mkdir -p /etc/nginx && echo "events { worker_connections 1024; } http { upstream myapp { server 127.0.0.1:81 down; } server { listen 80; location / { proxy_pass http://myapp; } } }" > /etc/nginx/nginx.conf && exec nginx -g "daemon off;"'];
       createOpts.HostConfig.PortBindings = {
         '80/tcp': [{ HostPort: '' }]
       };
