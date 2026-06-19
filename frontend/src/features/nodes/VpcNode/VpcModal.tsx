@@ -36,7 +36,7 @@ export default function VpcModal({
   
   // VPC Config State Form
   const [name, setName] = useState(vpcConfig.name);
-  const [cidr, setCidr] = useState(vpcConfig.cidr);
+  const [cidr] = useState(vpcConfig.cidr);
   const [dnsEnabled, setDnsEnabled] = useState(vpcConfig.dnsEnabled);
   const [igwEnabled, setIgwEnabled] = useState(vpcConfig.igwEnabled);
   const [description, setDescription] = useState(vpcConfig.description);

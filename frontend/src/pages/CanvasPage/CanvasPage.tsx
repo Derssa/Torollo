@@ -143,6 +143,7 @@ export default function CanvasPage({ projectId, projectName, onBackToProjects, o
     ubuntu: UbuntuNode,
     postgres: PostgresNode,
     mysql: MysqlNode,
+    nat: UbuntuNode,
     vpc: VpcNode,
     subnet: SubnetNode
   }), []);
@@ -494,7 +495,8 @@ export default function CanvasPage({ projectId, projectName, onBackToProjects, o
               vpcConfig: defaultVpcConfig,
               subnets: [],
               nodeSubnetMap: {},
-              nodeSecurityGroups: {}
+              nodeSecurityGroups: {},
+              nodeIpMap: {}
             });
           }
         }

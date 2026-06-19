@@ -1,5 +1,5 @@
 import { Handle, Position } from '@xyflow/react';
-import { Play, Square, Trash2, Terminal as TermIcon, HardDrive, Shield } from 'lucide-react';
+import { Play, Square, Trash2, Terminal as TermIcon, HardDrive, Shield, Globe } from 'lucide-react';
 import styles from '../ServiceNode.module.css';
 
 interface UbuntuNodeProps {
@@ -8,6 +8,7 @@ interface UbuntuNodeProps {
 
 export default function UbuntuNode({ data }: UbuntuNodeProps) {
   const isRunning = data.state === 'running';
+  const isNat = data.type === 'nat';
 
   return (
     <div className={styles.card}>
@@ -15,7 +16,11 @@ export default function UbuntuNode({ data }: UbuntuNodeProps) {
 
       <div className={styles.header}>
         <div className={styles.titleContainer}>
-          <HardDrive size={18} color={isRunning ? '#10B981' : '#6B7280'} />
+          {isNat ? (
+            <Globe size={18} color={isRunning ? '#8B5CF6' : '#6B7280'} />
+          ) : (
+            <HardDrive size={18} color={isRunning ? '#3B82F6' : '#6B7280'} />
+          )}
           <span className={styles.title}>{data.name}</span>
           <button
             onClick={(e) => {
@@ -52,8 +57,8 @@ export default function UbuntuNode({ data }: UbuntuNodeProps) {
       </div>
 
       <div className={styles.details}>
-        <span className={styles.label}>OS:</span>
-        <span className={styles.value}>Ubuntu latest</span>
+        <span className={styles.label}>{isNat ? 'Role:' : 'OS:'}</span>
+        <span className={styles.value}>{isNat ? 'NAT Gateway' : 'Ubuntu latest'}</span>
       </div>
       {data.ip && (
         <div className={styles.details}>
