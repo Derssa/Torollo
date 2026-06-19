@@ -375,6 +375,39 @@ export class DockerNetworkProvider implements NetworkProvider {
         }
       }
 
+      if (nodeType === 'loadbalancer') {
+        console.log(`[DockerNetworkProvider] Node ${ep.containerName} is a Load Balancer. Configuring Nginx dynamic proxy...`);
+        const targets = config.loadBalancerTargets?.[ep.nodeId] || [];
+        const targetIps = targets.map((tId: string) => ipMap[tId]).filter(Boolean);
+        
+        let upstreamServers = '';
+        if (targetIps.length > 0) {
+          upstreamServers = targetIps.map((ip: string) => `    server ${ip};`).join('\n');
+        } else {
+          upstreamServers = '    # No upstream servers configured;';
+        }
+
+        const nginxConfig = `events { worker_connections 1024; }
+http {
+  upstream myapp {
+${upstreamServers}
+  }
+  server {
+    listen 80;
+    location / {
+      proxy_pass http://myapp;
+      proxy_set_header Host $host;
+      proxy_set_header X-Real-IP $remote_addr;
+      proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+      proxy_set_header X-Forwarded-Proto $scheme;
+    }
+  }
+}`;
+        // Write configuration into container and reload Nginx
+        await this.runExec(containerId, ['sh', '-c', `cat << 'EOF' > /etc/nginx/nginx.conf\n${nginxConfig}\nEOF`]);
+        await this.runExec(containerId, ['nginx', '-s', 'reload']);
+      }
+
       // 1. Initialize custom chains and flush rules
       await this.runExec(containerId, ['sh', '-c', 'iptables -N AKAL-INPUT 2>/dev/null || true']);
       await this.runExec(containerId, ['sh', '-c', 'iptables -N AKAL-OUTPUT 2>/dev/null || true']);
@@ -553,6 +586,40 @@ export class DockerNetworkProvider implements NetworkProvider {
         // If internet is blocked, but the traffic falls through routing/SG checks (so it is local VPC traffic), ACCEPT it.
         await this.runExec(containerId, ['iptables', '-A', 'AKAL-OUTPUT', '-d', vpcCidr, '-j', 'ACCEPT']);
         await this.runExec(containerId, ['iptables', '-A', 'AKAL-OUTPUT', '-j', 'REJECT']);
+      }
+
+      // 5. Allow host-to-container connections via bridge gateway if security group allows inbound from 0.0.0.0/0
+      const nodeSgs = config.nodeSecurityGroups?.[ep.nodeId] || [];
+      for (const sg of nodeSgs) {
+        if (sg.type === 'inbound' && sg.source === '0.0.0.0/0') {
+          const rawProto = sg.protocol || 'all';
+          const rawPort = sg.port || 'ALL';
+          const port = (typeof rawPort === 'string' && rawPort.toUpperCase() === 'ALL') ? 'ALL' : rawPort;
+          const action = sg.action || 'ALLOW';
+          const iptablesAction = action === 'ALLOW' ? 'ACCEPT' : 'REJECT';
+
+          const cidr = resolvedCidrs[subnetId] || subnet?.cidr || `10.0.${config.subnets.indexOf(subnet) + 1}.0/24`;
+          const prefixMatch = cidr.match(/^(\d+\.\d+\.\d+)\./);
+          const prefix = prefixMatch ? prefixMatch[1] + '.' : '';
+          const dockerGatewayIp = prefix ? `${prefix}1` : '';
+
+          if (dockerGatewayIp) {
+            if (rawProto === 'all' && port === 'ALL') {
+              await this.runExec(containerId, ['iptables', '-A', 'AKAL-INPUT', '-s', dockerGatewayIp, '-j', iptablesAction]);
+            } else if (rawProto === 'icmp') {
+              await this.runExec(containerId, ['iptables', '-A', 'AKAL-INPUT', '-s', dockerGatewayIp, '-p', 'icmp', '-j', iptablesAction]);
+            } else if (rawProto === 'all') {
+              await this.runExec(containerId, ['iptables', '-A', 'AKAL-INPUT', '-s', dockerGatewayIp, '-p', 'tcp', '--dport', port, '-j', iptablesAction]);
+              await this.runExec(containerId, ['iptables', '-A', 'AKAL-INPUT', '-s', dockerGatewayIp, '-p', 'udp', '--dport', port, '-j', iptablesAction]);
+            } else {
+              if (port === 'ALL') {
+                await this.runExec(containerId, ['iptables', '-A', 'AKAL-INPUT', '-s', dockerGatewayIp, '-p', rawProto, '-j', iptablesAction]);
+              } else {
+                await this.runExec(containerId, ['iptables', '-A', 'AKAL-INPUT', '-s', dockerGatewayIp, '-p', rawProto, '--dport', port, '-j', iptablesAction]);
+              }
+            }
+          }
+        }
       }
 
       // 6. Default Inbound: REJECT ALL (Zero-trust secure baseline)

@@ -6,7 +6,7 @@ export interface ContainerInfo {
   image: string;
   state: string;
   status: string;
-  type?: 'ubuntu' | 'postgres' | 'mysql' | 'nat';
+  type?: 'ubuntu' | 'postgres' | 'mysql' | 'nat' | 'loadbalancer';
   port?: string;
   ip?: string;
 }
@@ -16,6 +16,7 @@ export class ContainerManager {
   private static readonly UBUNTU_IMAGE_TAG = 'derssa/backend-lab-ubuntu:v1';
   private static readonly POSTGRES_IMAGE_TAG = 'derssa/backend-lab-postgres:v1';
   private static readonly MYSQL_IMAGE_TAG = 'derssa/backend-lab-mysql:v1';
+  private static readonly NGINX_IMAGE_TAG = 'derssa/backend-lab-nginx:v1';
 
   /**
    * Ensures that the custom prebuilt Ubuntu image exists locally.
@@ -132,6 +133,40 @@ export class ContainerManager {
     }
   }
 
+  /**
+   * Ensures that the Nginx Load Balancer image exists locally.
+   */
+  private static async ensureNginxImage(): Promise<void> {
+    const images = await docker.listImages();
+    const hasImage = images.some(img =>
+      img.RepoTags && img.RepoTags.includes(this.NGINX_IMAGE_TAG)
+    );
+
+    if (!hasImage) {
+      console.log('Pulling Nginx Load Balancer image (first time only)...');
+      await new Promise<void>((resolve, reject) => {
+        docker.pull(this.NGINX_IMAGE_TAG, {}, (err, stream) => {
+          if (err) return reject(err);
+          if (!stream) return reject(new Error('Pull stream is undefined'));
+
+          docker.modem.followProgress(
+            stream,
+            (errFinished) => {
+              if (errFinished) return reject(errFinished);
+              resolve();
+            },
+            (event) => {
+              if (event.status) {
+                const progress = event.progress ? ` ${event.progress}` : '';
+                console.log(`[Docker Hub Pull - Nginx] ${event.status}${progress}`);
+              }
+            }
+          );
+        });
+      });
+    }
+  }
+
   public static async listContainersByProject(projectId: string): Promise<ContainerInfo[]> {
     const containers = await docker.listContainers({ all: true });
     return containers
@@ -141,7 +176,8 @@ export class ContainerManager {
         if (c.Ports && c.Ports.length > 0) {
           const matchedPostgres = c.Ports.find(p => p.PrivatePort === 5432);
           const matchedMysql = c.Ports.find(p => p.PrivatePort === 3306);
-          const matchedPort = matchedPostgres || matchedMysql;
+          const matchedNginx = c.Ports.find(p => p.PrivatePort === 80);
+          const matchedPort = matchedPostgres || matchedMysql || matchedNginx;
           if (matchedPort && matchedPort.PublicPort) {
             port = matchedPort.PublicPort.toString();
           }
@@ -160,7 +196,7 @@ export class ContainerManager {
           image: c.Image,
           state: c.State,
           status: c.Status,
-          type: (c.Labels['akal.node.type'] || 'ubuntu') as 'ubuntu' | 'postgres' | 'mysql' | 'nat',
+          type: (c.Labels['akal.node.type'] || 'ubuntu') as 'ubuntu' | 'postgres' | 'mysql' | 'nat' | 'loadbalancer',
           port,
           ip
         };
@@ -170,14 +206,18 @@ export class ContainerManager {
   public static async createContainer(projectId: string, nodeName: string, type: string = 'ubuntu'): Promise<ContainerInfo> {
     const isPostgres = type === 'postgres';
     const isMysql = type === 'mysql';
+    const isLoadBalancer = type === 'loadbalancer';
     let image = this.UBUNTU_IMAGE_TAG;
     if (isPostgres) image = this.POSTGRES_IMAGE_TAG;
     else if (isMysql) image = this.MYSQL_IMAGE_TAG;
+    else if (isLoadBalancer) image = this.NGINX_IMAGE_TAG;
 
     if (isPostgres) {
       await this.ensurePostgresImage();
     } else if (isMysql) {
       await this.ensureMysqlImage();
+    } else if (isLoadBalancer) {
+      await this.ensureNginxImage();
     } else {
       await this.ensureUbuntuImage();
     }
@@ -231,6 +271,10 @@ export class ContainerManager {
       createOpts.HostConfig.PortBindings = {
         '3306/tcp': [{ HostPort: '' }]
       };
+    } else if (isLoadBalancer) {
+      createOpts.HostConfig.PortBindings = {
+        '80/tcp': [{ HostPort: '' }]
+      };
     } else {
       createOpts.Cmd = ['/bin/bash'];
       createOpts.Tty = true;
@@ -245,9 +289,9 @@ export class ContainerManager {
 
     let port = '';
     const inspectData = await container.inspect();
-    if (isPostgres || isMysql) {
+    if (isPostgres || isMysql || isLoadBalancer) {
       const ports = inspectData.NetworkSettings.Ports;
-      const targetPortKey = isPostgres ? '5432/tcp' : '3306/tcp';
+      const targetPortKey = isPostgres ? '5432/tcp' : (isMysql ? '3306/tcp' : '80/tcp');
       if (ports && ports[targetPortKey] && ports[targetPortKey][0]) {
         port = ports[targetPortKey][0].HostPort;
       }
@@ -270,7 +314,7 @@ export class ContainerManager {
       image,
       state: 'running',
       status: 'Up less than a second',
-      type: type as 'ubuntu' | 'postgres' | 'mysql',
+      type: type as 'ubuntu' | 'postgres' | 'mysql' | 'nat' | 'loadbalancer',
       port,
       ip
     };
