@@ -162,7 +162,7 @@ export default function CanvasPage({ projectId, projectName, onBackToProjects, o
     localStorage.setItem(`akal-lab-network-config-${projectId}`, JSON.stringify(grownConfig));
 
     // Sync to backend to trigger runtime enforcement
-    fetch(`${API_BASE}/api/projects/${projectId}/network-config`, {
+    return fetch(`${API_BASE}/api/projects/${projectId}/network-config`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json'
@@ -170,6 +170,7 @@ export default function CanvasPage({ projectId, projectName, onBackToProjects, o
       body: JSON.stringify({ networkConfig: grownConfig })
     }).catch(err => {
       console.error('Failed to sync network configuration to backend:', err);
+      throw err;
     });
   }, [projectId, containers]);
 
@@ -1419,23 +1420,14 @@ export default function CanvasPage({ projectId, projectName, onBackToProjects, o
           routes={networkConfig.subnets.find(s => s.id === inspectingSubnet.id)?.routes || []}
           natGateways={containers.filter(c => c.type === 'nat').map(c => c.name)}
           onClose={() => setInspectingSubnet(null)}
-          onAddRoute={(route) => {
+          onSave={async (updatedRoutes) => {
             const updatedSubnets = networkConfig.subnets.map(s => {
               if (s.id === inspectingSubnet.id) {
-                return { ...s, routes: [...s.routes, route] };
+                return { ...s, routes: updatedRoutes };
               }
               return s;
             });
-            saveNetworkConfig({ ...networkConfig, subnets: updatedSubnets });
-          }}
-          onDeleteRoute={(idx) => {
-            const updatedSubnets = networkConfig.subnets.map(s => {
-              if (s.id === inspectingSubnet.id) {
-                return { ...s, routes: s.routes.filter((_, i) => i !== idx) };
-              }
-              return s;
-            });
-            saveNetworkConfig({ ...networkConfig, subnets: updatedSubnets });
+            await saveNetworkConfig({ ...networkConfig, subnets: updatedSubnets });
           }}
         />
       )}
