@@ -165,9 +165,24 @@ export class DockerNetworkProvider implements NetworkProvider {
           }
 
           const targetNetwork = `akal-subnet-${projectId}-${subnetId}`;
+          const nodeType = containerInfo.Labels?.['akal.node.type'] || 'ubuntu';
 
           for (const netName of currentNetworks) {
             if (netName !== targetNetwork && (netName.startsWith('akal-subnet-') || netName === 'akal-lab-network')) {
+              if (nodeType === 'nat') {
+                const matchedSubnet = (config.subnets || []).find((s: any) => `akal-subnet-${projectId}-${s.id}` === netName);
+                if (matchedSubnet) {
+                  const natRoute = this.findNatRoute(matchedSubnet, endpoints, config, dockerContainers, projectId);
+                  if (natRoute) {
+                    const natEp = this.findNatEndpoint(natRoute, endpoints, config, projectId);
+                    if (natEp && natEp.nodeId === ep.nodeId) {
+                      // Do NOT disconnect NAT Gateway from the private subnet networks it is routing traffic for
+                      continue;
+                    }
+                  }
+                }
+              }
+
               console.log(`[DockerNetworkProvider] Disconnecting container ${ep.containerName} from ${netName}...`);
               try {
                 await docker.getNetwork(netName).disconnect({ Container: containerInfo.Id, Force: true });
@@ -434,6 +449,23 @@ export class DockerNetworkProvider implements NetworkProvider {
         if (dockerGatewayIp) {
           await this.runExec(containerId, ['ip', 'route', 'replace', 'default', 'via', dockerGatewayIp]);
         }
+      }
+
+      // Ensure local VPC CIDR is routed via the local Docker bridge gateway (dockerGatewayIp)
+      // to bypass the NAT default route and preserve source IPs for Security Groups.
+      // Skip this for NAT Gateways to prevent routing conflicts when attaching private subnet interfaces.
+      const cidr = resolvedCidrs[subnetId] || subnet?.cidr || `10.0.${config.subnets.indexOf(subnet) + 1}.0/24`;
+      const prefixMatch = cidr.match(/^(\d+\.\d+\.\d+)\./);
+      const prefix = prefixMatch ? prefixMatch[1] + '.' : '';
+      const dockerGatewayIp = prefix ? `${prefix}1` : '';
+      if (nodeType !== 'nat') {
+        if (dockerGatewayIp) {
+          console.log(`[DockerNetworkProvider] Setting local VPC route for container ${ep.containerName} to ${vpcCidr} via ${dockerGatewayIp}...`);
+          await this.runExec(containerId, ['ip', 'route', 'replace', vpcCidr, 'via', dockerGatewayIp]);
+        }
+      } else {
+        // Clean up any existing VPC route in the NAT Gateway container to avoid interface attaching conflicts
+        await this.runExec(containerId, ['ip', 'route', 'del', vpcCidr]);
       }
 
       if (!hasLocalRoute) {
