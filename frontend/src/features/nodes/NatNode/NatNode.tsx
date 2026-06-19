@@ -1,22 +1,28 @@
 import { Handle, Position } from '@xyflow/react';
-import { Play, Square, Trash2, Terminal as TermIcon, HardDrive, Shield } from 'lucide-react';
+import { Play, Square, Trash2, Terminal as TermIcon, Shield, Globe } from 'lucide-react';
 import styles from '../ServiceNode.module.css';
 
-interface UbuntuNodeProps {
-  data: any; // Use any to support onSecurityGroupOpen prop dynamically
+interface NatNodeProps {
+  data: any;
 }
 
-export default function UbuntuNode({ data }: UbuntuNodeProps) {
+export default function NatNode({ data }: NatNodeProps) {
   const isRunning = data.state === 'running';
 
   return (
-    <div className={styles.card}>
-      <Handle type="target" position={Position.Left} className={styles.handle} />
+    <div 
+      className={styles.card} 
+      style={{
+        border: '2px solid #8B5CF6',
+        boxShadow: isRunning ? '0 10px 15px -3px rgba(139, 92, 246, 0.15)' : undefined
+      }}
+    >
+      <Handle type="target" position={Position.Left} className={styles.handle} style={{ backgroundColor: '#8B5CF6' }} />
 
       <div className={styles.header}>
         <div className={styles.titleContainer}>
-          <HardDrive size={18} color={isRunning ? '#3B82F6' : '#6B7280'} />
-          <span className={styles.title}>{data.name}</span>
+          <Globe size={18} color={isRunning ? '#8B5CF6' : '#6B7280'} />
+          <span className={styles.title} style={{ color: '#6D28D9' }}>{data.name}</span>
           <button
             onClick={(e) => {
               e.stopPropagation();
@@ -37,7 +43,7 @@ export default function UbuntuNode({ data }: UbuntuNodeProps) {
           </button>
         </div>
 
-        <div className={styles.statusRow}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
           <div
             className={styles.indicator}
             style={{
@@ -51,12 +57,13 @@ export default function UbuntuNode({ data }: UbuntuNodeProps) {
         </div>
       </div>
 
-      <div className={styles.details}>
-        <span className={styles.label}>OS:</span>
-        <span className={styles.value}>Ubuntu latest</span>
+      <div className={styles.details} style={{ backgroundColor: 'rgba(139, 92, 246, 0.05)' }}>
+        <span className={styles.label} style={{ color: '#8B5CF6' }}>Role:</span>
+        <span className={styles.value} style={{ color: '#4B5563' }}>NAT Gateway</span>
       </div>
+      
       {data.ip && (
-        <div className={styles.details}>
+        <div className={styles.details} style={{ marginTop: '-8px' }}>
           <span className={styles.label}>IP:</span>
           <span className={styles.value} style={{ fontWeight: 'bold', color: '#10B981' }}>{data.ip}</span>
         </div>
@@ -68,6 +75,7 @@ export default function UbuntuNode({ data }: UbuntuNodeProps) {
             <button
               onClick={() => data.onTerminalOpen(data.id, data.name)}
               className={`${styles.btn} ${styles.btnPrimary}`}
+              style={{ backgroundColor: '#8B5CF6' }}
               title="Open Terminal"
             >
               <TermIcon size={14} style={{ marginRight: 4 }} />
@@ -100,8 +108,6 @@ export default function UbuntuNode({ data }: UbuntuNodeProps) {
           <Trash2 size={14} />
         </button>
       </div>
-
-      <Handle type="source" position={Position.Right} className={styles.handle} />
     </div>
   );
 }

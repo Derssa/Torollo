@@ -4,6 +4,7 @@ import type { Node, Edge } from '@xyflow/react';
 import '@xyflow/react/dist/style.css';
 
 import UbuntuNode from '../../features/nodes/UbuntuNode/UbuntuNode';
+import NatNode from '../../features/nodes/NatNode/NatNode';
 import PostgresNode from '../../features/nodes/PostgresNode/PostgresNode';
 import PostgresModal from '../../features/nodes/PostgresNode/PostgresModal';
 import MysqlNode from '../../features/nodes/MysqlNode/MysqlNode';
@@ -143,7 +144,7 @@ export default function CanvasPage({ projectId, projectName, onBackToProjects, o
     ubuntu: UbuntuNode,
     postgres: PostgresNode,
     mysql: MysqlNode,
-    nat: UbuntuNode,
+    nat: NatNode,
     vpc: VpcNode,
     subnet: SubnetNode
   }), []);
