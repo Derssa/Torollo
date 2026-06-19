@@ -18,15 +18,24 @@ export class ContainerController {
   public static async create(req: Request, res: Response): Promise<void> {
     try {
       const { projectId } = req.params;
-      const { name, type } = req.body;
+      const { name, type, subnetId } = req.body;
       if (!name) {
         res.status(400).json({ error: 'Name is required' });
         return;
       }
-      const container = await ContainerService.createContainer(projectId as string, name, type || 'ubuntu');
+
+      let isPublic = false;
+      const config = await ProjectService.getNetworkConfig(projectId as string);
+      if (config && subnetId) {
+        const subnet = config.subnets?.find((s: any) => s.id === subnetId);
+        if (subnet && subnet.type === 'public') {
+          isPublic = true;
+        }
+      }
+
+      const container = await ContainerService.createContainer(projectId as string, name, type || 'ubuntu', isPublic);
       
       // Auto-reapply policies after creating container so it gets added to mapped endpoints
-      const config = await ProjectService.getNetworkConfig(projectId as string);
       if (config) {
         NetworkService.clearPolicyHash(projectId as string);
         NetworkService.applyPolicy(projectId as string, config).catch(err => {

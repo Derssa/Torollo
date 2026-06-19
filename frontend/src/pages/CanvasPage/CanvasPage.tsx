@@ -1108,13 +1108,15 @@ export default function CanvasPage({ projectId, projectName, onBackToProjects, o
       dropPositionsRef.current[name] = position;
     }
 
+    let targetSubnetId: string | undefined = undefined;
     if (pendingSubnetIdRef.current) {
       dropSubnetsRef.current[name] = pendingSubnetIdRef.current;
+      targetSubnetId = pendingSubnetIdRef.current;
       pendingSubnetIdRef.current = null;
     }
 
     setDropState(null);
-    await createContainer(name, type);
+    await createContainer(name, type, targetSubnetId);
   };
 
   const handleCancelCreate = () => {

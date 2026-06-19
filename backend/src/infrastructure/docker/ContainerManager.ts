@@ -206,7 +206,7 @@ export class ContainerManager {
       });
   }
 
-  public static async createContainer(projectId: string, nodeName: string, type: string = 'ubuntu'): Promise<ContainerInfo> {
+  public static async createContainer(projectId: string, nodeName: string, type: string = 'ubuntu', isPublic: boolean = false): Promise<ContainerInfo> {
     const isPostgres = type === 'postgres';
     const isMysql = type === 'mysql';
     const isLoadBalancer = type === 'loadbalancer';
@@ -265,15 +265,9 @@ export class ContainerManager {
       createOpts.Env = ['POSTGRES_PASSWORD=postgres'];
       createOpts.Entrypoint = ['docker-entrypoint.sh'];
       createOpts.Cmd = ['postgres', '-c', 'fsync=off', '-c', 'synchronous_commit=off', '-c', 'full_page_writes=off'];
-      createOpts.HostConfig.PortBindings = {
-        '5432/tcp': [{ HostPort: '' }]
-      };
     } else if (isMysql) {
       createOpts.Env = ['MYSQL_ROOT_PASSWORD=mysql'];
       createOpts.Cmd = ['mysqld', '--innodb-flush-log-at-trx-commit=2', '--innodb-doublewrite=0', '--skip-innodb-doublewrite'];
-      createOpts.HostConfig.PortBindings = {
-        '3306/tcp': [{ HostPort: '' }]
-      };
     } else if (isLoadBalancer) {
       createOpts.HostConfig.PortBindings = {
         '80/tcp': [{ HostPort: '' }]
@@ -283,9 +277,11 @@ export class ContainerManager {
       createOpts.Tty = true;
       createOpts.OpenStdin = true;
       createOpts.StdinOnce = false;
-      createOpts.HostConfig.PortBindings = {
-        '80/tcp': [{ HostPort: '' }]
-      };
+      if (isPublic) {
+        createOpts.HostConfig.PortBindings = {
+          '80/tcp': [{ HostPort: '' }]
+        };
+      }
     }
 
     const container = await docker.createContainer(createOpts);
@@ -296,9 +292,9 @@ export class ContainerManager {
     let port = '';
     const inspectData = await container.inspect();
     const isUbuntu = type === 'ubuntu';
-    if (isPostgres || isMysql || isLoadBalancer || isUbuntu) {
+    if (isLoadBalancer || (isUbuntu && isPublic)) {
       const ports = inspectData.NetworkSettings.Ports;
-      const targetPortKey = isPostgres ? '5432/tcp' : (isMysql ? '3306/tcp' : '80/tcp');
+      const targetPortKey = '80/tcp';
       if (ports && ports[targetPortKey] && ports[targetPortKey][0]) {
         port = ports[targetPortKey][0].HostPort;
       }
