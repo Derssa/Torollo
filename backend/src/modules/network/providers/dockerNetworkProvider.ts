@@ -354,7 +354,10 @@ export class DockerNetworkProvider implements NetworkProvider {
       );
       if (containerInfo && containerInfo.State === 'running') {
         const networks = containerInfo.NetworkSettings?.Networks || {};
-        const key = Object.keys(networks).find(k => k.startsWith('akal-'));
+        let key = Object.keys(networks).find(k => k.startsWith('akal-subnet-'));
+        if (!key) {
+          key = Object.keys(networks).find(k => k.startsWith('akal-'));
+        }
         if (key && networks[key] && networks[key].IPAddress) {
           ipMap[ep.nodeId] = networks[key].IPAddress;
           idMap[ep.nodeId] = containerInfo.Id;
