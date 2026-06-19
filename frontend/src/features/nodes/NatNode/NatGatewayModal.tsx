@@ -88,7 +88,7 @@ export default function NatGatewayModal({
               </div>
               <div style={styles.infoBox}>
                 <p style={styles.infoText}>
-                  ℹ️ **Cloud Standard:** In real clouds (AWS, GCP, Azure), NAT Gateways are fully managed services. Users cannot SSH or launch a terminal session on them. They operate purely as serverless routing assets.
+                  ℹ️ <strong>Cloud Standard:</strong> In real clouds (AWS, GCP, Azure), NAT Gateways are fully managed services. Users cannot SSH or launch a terminal session on them. They operate purely as serverless routing assets.
                 </p>
               </div>
             </div>
@@ -99,7 +99,7 @@ export default function NatGatewayModal({
             <div style={styles.content}>
               <h4 style={styles.sectionTitle}>What is a NAT Gateway?</h4>
               <p style={styles.para}>
-                A **NAT (Network Address Translation) Gateway** allows instances in a **private subnet** to connect to services outside your VPC (like the public internet or external APIs), but prevents external services from initiating unsolicited inbound connections with those private instances.
+                A <strong>NAT (Network Address Translation) Gateway</strong> allows instances in a <strong>private subnet</strong> to connect to services outside your VPC (like the public internet or external APIs), but prevents external services from initiating unsolicited inbound connections with those private instances.
               </p>
               <h5 style={styles.subSectionTitle}>Key Characteristics</h5>
               <ul style={styles.list}>
