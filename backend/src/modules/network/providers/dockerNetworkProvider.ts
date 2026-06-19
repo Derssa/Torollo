@@ -222,13 +222,26 @@ export class DockerNetworkProvider implements NetworkProvider {
             const container = docker.getContainer(natContainerInfo.Id);
             const inspect = await container.inspect();
             const currentNets = Object.keys(inspect.NetworkSettings.Networks || {});
-            if (!currentNets.includes(privateNetName)) {
-              console.log(`[DockerNetworkProvider] Connecting NAT Gateway ${natEp.containerName} to private subnet network ${privateNetName}...`);
+            
+            const cidr = resolvedCidrs[subnet.id] || subnet.cidr || `10.0.${config.subnets.indexOf(subnet) + 1}.0/24`;
+            const prefixMatch = cidr.match(/^(\d+\.\d+\.\d+)\./);
+            const prefix = prefixMatch ? prefixMatch[1] + '.' : '';
+            const targetIp = prefix ? `${prefix}254` : '';
+            
+            const isConnected = currentNets.includes(privateNetName);
+            const currentIp = inspect.NetworkSettings.Networks[privateNetName]?.IPAddress;
+
+            if (!isConnected || currentIp !== targetIp) {
+              if (isConnected) {
+                console.log(`[DockerNetworkProvider] Reconnecting NAT Gateway ${natEp.containerName} to private subnet network ${privateNetName} due to IP mismatch...`);
+                try {
+                  await docker.getNetwork(privateNetName).disconnect({ Container: natContainerInfo.Id, Force: true });
+                } catch {
+                  // Ignore disconnect error
+                }
+              }
+              console.log(`[DockerNetworkProvider] Connecting NAT Gateway ${natEp.containerName} to private subnet network ${privateNetName} with IP ${targetIp}...`);
               try {
-                const cidr = resolvedCidrs[subnet.id] || subnet.cidr || `10.0.${config.subnets.indexOf(subnet) + 1}.0/24`;
-                const prefixMatch = cidr.match(/^(\d+\.\d+\.\d+)\./);
-                const prefix = prefixMatch ? prefixMatch[1] + '.' : '';
-                const targetIp = prefix ? `${prefix}254` : '';
                 await docker.getNetwork(privateNetName).connect({
                   Container: natContainerInfo.Id,
                   EndpointConfig: {
@@ -237,8 +250,8 @@ export class DockerNetworkProvider implements NetworkProvider {
                     }
                   }
                 });
-              } catch {
-                // Ignore disconnect/reconnect issues
+              } catch (err) {
+                console.error(`Failed to connect NAT Gateway to network ${privateNetName}:`, err);
               }
             }
           }
