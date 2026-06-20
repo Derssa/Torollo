@@ -53,6 +53,7 @@ export default function AsgModal({
   const [isAutoSimulating, setIsAutoSimulating] = useState(false);
   const [simulatedCpu, setSimulatedCpu] = useState(45);
   const [simulatedTraffic, setSimulatedTraffic] = useState(120);
+  const [simulationMode, setSimulationMode] = useState<'normal' | 'spike' | 'idle'>('normal');
 
   // Get available template servers (Only general purpose Ubuntu nodes that are NOT ASG instances themselves)
   const availableTemplates = containers.filter(
@@ -73,22 +74,35 @@ export default function AsgModal({
     return () => clearInterval(interval);
   }, [activeTab, onRefreshContainers]);
 
-  // Automated Load & Traffic Simulator Effect
+  // Automated Load & Traffic Simulator Effect (Runs every 1 second for fast response)
   useEffect(() => {
     if (!isAutoSimulating) return;
 
     const interval = setInterval(async () => {
-      // Randomly drift CPU and traffic load
-      const cpuDelta = Math.floor(Math.random() * 21) - 10; // -10 to +10
-      const newCpu = Math.max(10, Math.min(99, simulatedCpu + cpuDelta));
-      setSimulatedCpu(newCpu);
-      
-      const trafficDelta = Math.floor(Math.random() * 41) - 20; // -20 to +20
-      const newTraffic = Math.max(10, Math.min(500, simulatedTraffic + trafficDelta));
-      setSimulatedTraffic(newTraffic);
+      let nextCpu = simulatedCpu;
+      let nextTraffic = simulatedTraffic;
+
+      if (simulationMode === 'spike') {
+        // Increase load rapidly (+25% per second)
+        nextCpu = Math.min(99, simulatedCpu + 25);
+        nextTraffic = Math.min(500, simulatedTraffic + 80);
+      } else if (simulationMode === 'idle') {
+        // Decrease load rapidly (-25% per second)
+        nextCpu = Math.max(10, simulatedCpu - 25);
+        nextTraffic = Math.max(10, simulatedTraffic - 80);
+      } else {
+        // Normal drift
+        const cpuDelta = Math.floor(Math.random() * 15) - 7;
+        nextCpu = Math.max(35, Math.min(65, simulatedCpu + cpuDelta));
+        const trafficDelta = Math.floor(Math.random() * 31) - 15;
+        nextTraffic = Math.max(80, Math.min(220, simulatedTraffic + trafficDelta));
+      }
+
+      setSimulatedCpu(nextCpu);
+      setSimulatedTraffic(nextTraffic);
 
       // Trigger automatic scaling based on thresholds (Scale Up at > 75%, Scale Down at < 35%)
-      if (newCpu > 75 && desiredCapacity < maxCapacity) {
+      if (nextCpu > 75 && desiredCapacity < maxCapacity) {
         const next = desiredCapacity + 1;
         setDesiredCapacity(next);
         await fetch(`${API_BASE}/api/projects/${projectId}/containers/asg/${asgId}/scale`, {
@@ -97,7 +111,7 @@ export default function AsgModal({
           body: JSON.stringify({ desiredCapacity: next, subnetIds: selectedSubnets })
         });
         await onRefreshContainers();
-      } else if (newCpu < 35 && desiredCapacity > minCapacity) {
+      } else if (nextCpu < 35 && desiredCapacity > minCapacity) {
         const next = desiredCapacity - 1;
         setDesiredCapacity(next);
         await fetch(`${API_BASE}/api/projects/${projectId}/containers/asg/${asgId}/scale`, {
@@ -107,10 +121,10 @@ export default function AsgModal({
         });
         await onRefreshContainers();
       }
-    }, 4000);
+    }, 1000);
 
     return () => clearInterval(interval);
-  }, [isAutoSimulating, simulatedCpu, simulatedTraffic, desiredCapacity, minCapacity, maxCapacity, asgId, projectId, selectedSubnets, onRefreshContainers]);
+  }, [isAutoSimulating, simulatedCpu, simulatedTraffic, simulationMode, desiredCapacity, minCapacity, maxCapacity, asgId, projectId, selectedSubnets, onRefreshContainers]);
 
   const handleToggleSubnet = (subnetId: string) => {
     setSelectedSubnets(prev =>
@@ -369,20 +383,72 @@ export default function AsgModal({
                   </button>
                 </div>
                 {isAutoSimulating && (
-                  <div style={{ display: 'flex', gap: '24px', marginTop: '12px', borderTop: '1px solid rgba(0,0,0,0.05)', paddingTop: '10px' }}>
-                    <div>
-                      <span style={{ fontSize: '11px', color: '#6B7280' }}>Simulated CPU Load:</span>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginTop: '2px' }}>
-                        <div style={{ width: '80px', height: '8px', backgroundColor: '#E5E7EB', borderRadius: '4px', overflow: 'hidden' }}>
-                          <div style={{ width: `${simulatedCpu}%`, height: '100%', backgroundColor: simulatedCpu > 75 ? '#EF4444' : simulatedCpu < 35 ? '#3B82F6' : '#10B981' }} />
-                        </div>
-                        <strong style={{ fontSize: '12px', color: '#1F2937' }}>{simulatedCpu}%</strong>
-                      </div>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', marginTop: '12px', borderTop: '1px solid rgba(0,0,0,0.05)', paddingTop: '10px' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                      <span style={{ fontSize: '11px', fontWeight: 'bold', color: '#4B5563' }}>Simulation Control:</span>
+                      <button
+                        onClick={() => setSimulationMode('normal')}
+                        style={{
+                          padding: '4px 8px',
+                          fontSize: '10px',
+                          fontWeight: 'bold',
+                          borderRadius: '3px',
+                          border: '1px solid #D1D5DB',
+                          cursor: 'pointer',
+                          backgroundColor: simulationMode === 'normal' ? '#3B82F6' : '#FFF',
+                          color: simulationMode === 'normal' ? '#FFF' : '#374151'
+                        }}
+                      >
+                        Normal Load
+                      </button>
+                      <button
+                        onClick={() => setSimulationMode('spike')}
+                        style={{
+                          padding: '4px 8px',
+                          fontSize: '10px',
+                          fontWeight: 'bold',
+                          borderRadius: '3px',
+                          border: '1px solid #EF4444',
+                          cursor: 'pointer',
+                          backgroundColor: simulationMode === 'spike' ? '#EF4444' : '#FFF',
+                          color: simulationMode === 'spike' ? '#FFF' : '#EF4444'
+                        }}
+                        title="Spike CPU load up fast"
+                      >
+                        Spike Traffic (Scale Out)
+                      </button>
+                      <button
+                        onClick={() => setSimulationMode('idle')}
+                        style={{
+                          padding: '4px 8px',
+                          fontSize: '10px',
+                          fontWeight: 'bold',
+                          borderRadius: '3px',
+                          border: '1px solid #3B82F6',
+                          cursor: 'pointer',
+                          backgroundColor: simulationMode === 'idle' ? '#3B82F6' : '#FFF',
+                          color: simulationMode === 'idle' ? '#FFF' : '#3B82F6'
+                        }}
+                        title="Drop CPU load down fast"
+                      >
+                        Drop Traffic (Scale In)
+                      </button>
                     </div>
-                    <div>
-                      <span style={{ fontSize: '11px', color: '#6B7280' }}>Simulated Incoming Traffic:</span>
-                      <div style={{ fontSize: '12px', fontWeight: 'bold', color: '#1F2937', marginTop: '2px' }}>
-                        {simulatedTraffic} req/sec
+                    <div style={{ display: 'flex', gap: '24px' }}>
+                      <div>
+                        <span style={{ fontSize: '11px', color: '#6B7280' }}>Simulated CPU Load:</span>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginTop: '2px' }}>
+                          <div style={{ width: '80px', height: '8px', backgroundColor: '#E5E7EB', borderRadius: '4px', overflow: 'hidden' }}>
+                            <div style={{ width: `${simulatedCpu}%`, height: '100%', backgroundColor: simulatedCpu > 75 ? '#EF4444' : simulatedCpu < 35 ? '#3B82F6' : '#10B981' }} />
+                          </div>
+                          <strong style={{ fontSize: '12px', color: '#1F2937' }}>{simulatedCpu}%</strong>
+                        </div>
+                      </div>
+                      <div>
+                        <span style={{ fontSize: '11px', color: '#6B7280' }}>Simulated Incoming Traffic:</span>
+                        <div style={{ fontSize: '12px', fontWeight: 'bold', color: '#1F2937', marginTop: '2px' }}>
+                          {simulatedTraffic} req/sec
+                        </div>
                       </div>
                     </div>
                   </div>
