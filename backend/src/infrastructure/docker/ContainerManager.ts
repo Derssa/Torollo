@@ -9,6 +9,8 @@ export interface ContainerInfo {
   type?: 'ubuntu' | 'postgres' | 'mysql' | 'nat' | 'loadbalancer';
   port?: string;
   ip?: string;
+  asgId?: string;
+  isAsgInstance?: boolean;
 }
 
 export class ContainerManager {
@@ -193,6 +195,8 @@ export class ContainerManager {
             ip = networks[key].IPAddress;
           }
         }
+        const asgId = c.Labels['akal.asg.id'];
+        const isAsgInstance = c.Labels['akal.asg.instance'] === 'true';
         return {
           id: c.Id,
           name: c.Names[0].replace(/^\//, '').replace(`${this.LAB_PREFIX}${projectId}-`, ''),
@@ -201,21 +205,33 @@ export class ContainerManager {
           status: c.Status,
           type: (c.Labels['akal.node.type'] || 'ubuntu') as 'ubuntu' | 'postgres' | 'mysql' | 'nat' | 'loadbalancer',
           port,
-          ip
+          ip,
+          asgId,
+          isAsgInstance
         };
       });
   }
 
-  public static async createContainer(projectId: string, nodeName: string, type: string = 'ubuntu', isPublic: boolean = false): Promise<ContainerInfo> {
+  public static async createContainer(
+    projectId: string,
+    nodeName: string,
+    type: string = 'ubuntu',
+    isPublic: boolean = false,
+    customImage?: string,
+    extraLabels?: Record<string, string>
+  ): Promise<ContainerInfo> {
     const isPostgres = type === 'postgres';
     const isMysql = type === 'mysql';
     const isLoadBalancer = type === 'loadbalancer';
     let image = this.UBUNTU_IMAGE_TAG;
-    if (isPostgres) image = this.POSTGRES_IMAGE_TAG;
+    if (customImage) image = customImage;
+    else if (isPostgres) image = this.POSTGRES_IMAGE_TAG;
     else if (isMysql) image = this.MYSQL_IMAGE_TAG;
     else if (isLoadBalancer) image = this.NGINX_IMAGE_TAG;
 
-    if (isPostgres) {
+    if (customImage) {
+      console.log(`[ContainerManager] Using custom image: ${customImage}`);
+    } else if (isPostgres) {
       await this.ensurePostgresImage();
     } else if (isMysql) {
       await this.ensureMysqlImage();
@@ -241,7 +257,8 @@ export class ContainerManager {
       name: safeName,
       Labels: {
         'akal.project.id': projectId,
-        'akal.node.type': type
+        'akal.node.type': type,
+        ...(extraLabels || {})
       },
       HostConfig: {
         AutoRemove: false,
@@ -403,6 +420,21 @@ export class ContainerManager {
         reject(err);
       });
     });
+  }
+
+  public static async commitContainer(id: string, repoName: string, tag: string = 'latest'): Promise<string> {
+    try {
+      const container = docker.getContainer(id);
+      const result: any = await container.commit({
+        repo: repoName,
+        tag: tag
+      });
+      console.log(`[ContainerManager] Committed container ${id.slice(0, 12)} as image ${repoName}:${tag}`);
+      return result.Id || '';
+    } catch (err) {
+      console.error(`[ContainerManager] Failed to commit container ${id}:`, err);
+      throw err;
+    }
   }
 
   public static async startContainer(id: string): Promise<void> {
