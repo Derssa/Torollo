@@ -60,7 +60,13 @@ export class NetworkService {
 
     // Get all running nodes inside project subnets
     for (const srcNodeId of nodeIds) {
-      const nodeSgRules = sgs[srcNodeId] || [];
+      let nodeSgRules = sgs[srcNodeId] || [];
+
+      // Inherit rules from the template/parent node if this is an ASG node
+      const asgConfig = config.asgs?.[srcNodeId];
+      if (asgConfig && asgConfig.parentId) {
+        nodeSgRules = sgs[asgConfig.parentId] || [];
+      }
 
       // Process outbound rules for source node
       for (const sgRule of nodeSgRules) {

@@ -1,5 +1,4 @@
-import { Handle, Position } from '@xyflow/react';
-import { Play, Square, Trash2, Cpu, Settings, Shield } from 'lucide-react';
+import { Play, Square, Trash2, Cpu, Settings } from 'lucide-react';
 import styles from '../ServiceNode.module.css';
 
 interface AsgNodeProps {
@@ -43,30 +42,10 @@ export default function AsgNode({ data }: AsgNodeProps) {
         boxShadow: isRunning ? '0 10px 15px -3px rgba(236, 72, 153, 0.15)' : undefined
       }}
     >
-      <Handle type="target" position={Position.Left} id="target" className={styles.handle} />
-
       <div className={styles.header}>
         <div className={styles.titleContainer}>
           <Cpu size={18} color={isRunning ? '#EC4899' : '#6B7280'} />
           <span className={styles.title} style={{ color: '#DB2777' }}>{data.name}</span>
-          <button
-            onClick={(e) => {
-              e.stopPropagation();
-              data.onSecurityGroupOpen?.(data.id, data.name);
-            }}
-            style={{
-              background: 'none',
-              border: 'none',
-              cursor: 'pointer',
-              padding: '2px',
-              display: 'flex',
-              alignItems: 'center',
-              marginLeft: '4px',
-            }}
-            title="Configure Security Group (Firewall)"
-          >
-            <Shield size={13} color="#EF4444" fill="rgba(239, 68, 68, 0.1)" />
-          </button>
         </div>
 
         <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
@@ -76,7 +55,7 @@ export default function AsgNode({ data }: AsgNodeProps) {
               backgroundColor: isRunning ? '#10B981' : '#EF4444',
               boxShadow: isRunning
                 ? '0 0 8px rgba(16, 185, 129, 0.6)'
-                : '0 0 8px rgba(239, 68, 68, 0.6)'
+                 : '0 0 8px rgba(239, 68, 68, 0.6)'
             }}
           />
           <span style={{ fontSize: '11px', color: 'var(--color-text-secondary)' }}>{isRunning ? 'Active' : 'Disabled'}</span>
@@ -148,8 +127,6 @@ export default function AsgNode({ data }: AsgNodeProps) {
           <Trash2 size={14} />
         </button>
       </div>
-
-      <Handle type="source" position={Position.Right} id="source" className={styles.handle} />
     </div>
   );
 }
