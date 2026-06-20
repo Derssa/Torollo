@@ -27,6 +27,7 @@ interface LoadBalancerModalProps {
     name?: string;
     ip?: string;
     state?: string;
+    isAsgInstance?: boolean;
   }>;
   onClose: () => void;
   onSaveConfig: (
@@ -57,9 +58,9 @@ export default function LoadBalancerModal({
   const [routingRules, setRoutingRules] = useState<Array<{ path: string; targetId: string }>>(config?.loadBalancerRoutingRules || []);
   const [saving, setSaving] = useState(false);
 
-  // Filter nodes to show Ubuntu servers and Auto Scaling Groups (excluding load balancers, database, nat)
+  // Filter nodes to show Ubuntu servers and Auto Scaling Groups (excluding load balancers, database, nat, and active ASG dynamic replicas)
   const targetNodes: TargetNode[] = allNodes
-    .filter(n => n.id !== containerId && (n.type === 'ubuntu' || n.type === 'autoscalinggroup'))
+    .filter(n => n.id !== containerId && (n.type === 'ubuntu' || n.type === 'autoscalinggroup') && !n.isAsgInstance)
     .map(n => ({
       id: n.id,
       name: n.name || '',
