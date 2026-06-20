@@ -420,32 +420,96 @@ export class DockerNetworkProvider implements NetworkProvider {
 
       if (nodeType === 'loadbalancer') {
         console.log(`[DockerNetworkProvider] Node ${ep.containerName} is a Load Balancer. Configuring Nginx dynamic proxy...`);
+        
+        // 1. Gather all active ASG instance IPs dynamically from running Docker containers
+        const asgIps: Record<string, string[]> = {};
+        for (const c of updatedDockerContainers) {
+          const asgId = c.Labels?.['akal.asg.id'];
+          if (asgId && c.State === 'running') {
+            const networks = c.NetworkSettings?.Networks || {};
+            const netKey = Object.keys(networks).find(k => k.startsWith('akal-subnet-'));
+            if (netKey && networks[netKey]?.IPAddress) {
+              if (!asgIps[asgId]) asgIps[asgId] = [];
+              asgIps[asgId].push(networks[netKey].IPAddress);
+            }
+          }
+        }
+
         const targets = config.loadBalancerTargets?.[ep.nodeId] || [];
-        const targetIps = targets.map((tId: string) => ipMap[tId]).filter(Boolean);
+        const targetIps: string[] = [];
+        for (const tId of targets) {
+          if (asgIps[tId]) {
+            targetIps.push(...asgIps[tId]);
+          } else if (ipMap[tId]) {
+            targetIps.push(ipMap[tId]);
+          }
+        }
         
         const targetPort = config.loadBalancerTargetPorts?.[ep.nodeId] || 80;
-        let upstreamServers: string;
-        if (targetIps.length > 0) {
-          upstreamServers = targetIps.map((ip: string) => `    server ${ip}:${targetPort};`).join('\n');
+        const rules = config.loadBalancerRoutingRules?.[ep.nodeId] || [];
+        
+        let upstreamsConfig = '';
+        let locationsConfig = '';
+
+        if (rules.length > 0) {
+          rules.forEach((rule: any, idx: number) => {
+            const ruleUpstreamName = `upstream_rule_${idx}`;
+            const ruleTargetId = rule.targetId;
+            const ruleTargetIps: string[] = [];
+            
+            if (asgIps[ruleTargetId]) {
+              ruleTargetIps.push(...asgIps[ruleTargetId]);
+            } else if (ipMap[ruleTargetId]) {
+              ruleTargetIps.push(ipMap[ruleTargetId]);
+            }
+
+            let serversStr = '';
+            if (ruleTargetIps.length > 0) {
+              serversStr = ruleTargetIps.map(ip => `    server ${ip}:${targetPort};`).join('\n');
+            } else {
+              serversStr = '    server 127.0.0.1:81 down;';
+            }
+
+            upstreamsConfig += `  upstream ${ruleUpstreamName} {\n${serversStr}\n  }\n`;
+            
+            locationsConfig += `    location ${rule.path} {\n` +
+                               `      proxy_pass http://${ruleUpstreamName};\n` +
+                               `      proxy_set_header Host $host;\n` +
+                               `      proxy_set_header X-Real-IP $remote_addr;\n` +
+                               `      proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;\n` +
+                               `      proxy_set_header X-Forwarded-Proto $scheme;\n` +
+                               `    }\n`;
+          });
+
+          // Add default fallback / location routing
+          locationsConfig += `    location / {\n` +
+                             `      return 404 "Akal Lab Load Balancer: No route matched this path.";\n` +
+                             `    }\n`;
         } else {
-          upstreamServers = '    server 127.0.0.1:81 down; # Fallback when no targets are configured';
+          // Fallback to legacy single-target upstream
+          let serversStr = '';
+          if (targetIps.length > 0) {
+            serversStr = targetIps.map(ip => `    server ${ip}:${targetPort};`).join('\n');
+          } else {
+            serversStr = '    server 127.0.0.1:81 down;';
+          }
+          upstreamsConfig = `  upstream myapp {\n${serversStr}\n  }\n`;
+          locationsConfig = `    location / {\n` +
+                            `      proxy_pass http://myapp;\n` +
+                            `      proxy_set_header Host $host;\n` +
+                            `      proxy_set_header X-Real-IP $remote_addr;\n` +
+                            `      proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;\n` +
+                            `      proxy_set_header X-Forwarded-Proto $scheme;\n` +
+                            `    }\n`;
         }
 
         const nginxConfig = `worker_shutdown_timeout 1s;
 events { worker_connections 1024; }
 http {
-  upstream myapp {
-${upstreamServers}
-  }
+${upstreamsConfig}
   server {
     listen 80;
-    location / {
-      proxy_pass http://myapp;
-      proxy_set_header Host $host;
-      proxy_set_header X-Real-IP $remote_addr;
-      proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
-      proxy_set_header X-Forwarded-Proto $scheme;
-    }
+${locationsConfig}
   }
 }`;
         // Write configuration into container and reload Nginx
