@@ -277,7 +277,7 @@ export class ContainerManager {
       createOpts.Tty = true;
       createOpts.OpenStdin = true;
       createOpts.StdinOnce = false;
-      if (isPublic) {
+      if (isPublic && type !== 'nat') {
         createOpts.HostConfig.PortBindings = {
           '80/tcp': [{ HostPort: '' }]
         };
