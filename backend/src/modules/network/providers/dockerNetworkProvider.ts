@@ -501,7 +501,7 @@ export class DockerNetworkProvider implements NetworkProvider {
             upstreamsConfig += `  upstream ${ruleUpstreamName} {\n${serversStr}\n  }\n`;
             
             locationsConfig += `    location ${rule.path} {\n` +
-                               `      proxy_pass http://${ruleUpstreamName};\n` +
+                               `      proxy_pass http://${ruleUpstreamName}/;\n` +
                                `      proxy_set_header Host $host;\n` +
                                `      proxy_set_header X-Real-IP $remote_addr;\n` +
                                `      proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;\n` +
