@@ -506,7 +506,7 @@ export class DockerNetworkProvider implements NetworkProvider {
               ruleTargetIps.push(ipMap[ruleTargetId]);
             }
 
-            let serversStr = '';
+            let serversStr: string;
             if (ruleTargetIps.length > 0) {
               serversStr = ruleTargetIps.map(ip => `    server ${ip}:${targetPort};`).join('\n');
             } else {
@@ -530,7 +530,7 @@ export class DockerNetworkProvider implements NetworkProvider {
                              `    }\n`;
         } else {
           // Fallback to legacy single-target upstream
-          let serversStr = '';
+          let serversStr: string;
           if (targetIps.length > 0) {
             serversStr = targetIps.map(ip => `    server ${ip}:${targetPort};`).join('\n');
           } else {

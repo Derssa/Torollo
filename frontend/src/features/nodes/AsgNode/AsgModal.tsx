@@ -155,7 +155,7 @@ export default function AsgModal({
     if (!isAutoSimulating) return;
 
     const interval = setInterval(async () => {
-      let nextTraffic = simulatedTraffic;
+      let nextTraffic: number;
 
       if (simulationMode === 'spike') {
         // Increase traffic load rapidly (+80 req/sec)
