@@ -6,7 +6,7 @@ export interface ContainerInfo {
   image: string;
   state: string;
   status: string;
-  type?: 'ubuntu' | 'postgres' | 'mysql' | 'nat';
+  type?: 'ubuntu' | 'postgres' | 'mysql' | 'nat' | 'loadbalancer';
   port?: string;
   ip?: string;
 }
@@ -16,6 +16,7 @@ export class ContainerManager {
   private static readonly UBUNTU_IMAGE_TAG = 'derssa/backend-lab-ubuntu:v1';
   private static readonly POSTGRES_IMAGE_TAG = 'derssa/backend-lab-postgres:v1';
   private static readonly MYSQL_IMAGE_TAG = 'derssa/backend-lab-mysql:v1';
+  private static readonly NGINX_IMAGE_TAG = 'derssa/backend-lab-nginx:v1';
 
   /**
    * Ensures that the custom prebuilt Ubuntu image exists locally.
@@ -132,6 +133,40 @@ export class ContainerManager {
     }
   }
 
+  /**
+   * Ensures that the Nginx Load Balancer image exists locally.
+   */
+  private static async ensureNginxImage(): Promise<void> {
+    const images = await docker.listImages();
+    const hasImage = images.some(img =>
+      img.RepoTags && img.RepoTags.includes(this.NGINX_IMAGE_TAG)
+    );
+
+    if (!hasImage) {
+      console.log('Pulling Nginx Load Balancer image (first time only)...');
+      await new Promise<void>((resolve, reject) => {
+        docker.pull(this.NGINX_IMAGE_TAG, {}, (err, stream) => {
+          if (err) return reject(err);
+          if (!stream) return reject(new Error('Pull stream is undefined'));
+
+          docker.modem.followProgress(
+            stream,
+            (errFinished) => {
+              if (errFinished) return reject(errFinished);
+              resolve();
+            },
+            (event) => {
+              if (event.status) {
+                const progress = event.progress ? ` ${event.progress}` : '';
+                console.log(`[Docker Hub Pull - Nginx] ${event.status}${progress}`);
+              }
+            }
+          );
+        });
+      });
+    }
+  }
+
   public static async listContainersByProject(projectId: string): Promise<ContainerInfo[]> {
     const containers = await docker.listContainers({ all: true });
     return containers
@@ -141,7 +176,8 @@ export class ContainerManager {
         if (c.Ports && c.Ports.length > 0) {
           const matchedPostgres = c.Ports.find(p => p.PrivatePort === 5432);
           const matchedMysql = c.Ports.find(p => p.PrivatePort === 3306);
-          const matchedPort = matchedPostgres || matchedMysql;
+          const matchedNginx = c.Ports.find(p => p.PrivatePort === 80);
+          const matchedPort = matchedPostgres || matchedMysql || matchedNginx;
           if (matchedPort && matchedPort.PublicPort) {
             port = matchedPort.PublicPort.toString();
           }
@@ -149,7 +185,10 @@ export class ContainerManager {
         let ip = '';
         const networks = c.NetworkSettings?.Networks;
         if (networks) {
-          const key = Object.keys(networks).find(k => k.startsWith('akal-'));
+          let key = Object.keys(networks).find(k => k.startsWith('akal-subnet-'));
+          if (!key) {
+            key = Object.keys(networks).find(k => k.startsWith('akal-'));
+          }
           if (key && networks[key]) {
             ip = networks[key].IPAddress;
           }
@@ -160,28 +199,32 @@ export class ContainerManager {
           image: c.Image,
           state: c.State,
           status: c.Status,
-          type: (c.Labels['akal.node.type'] || 'ubuntu') as 'ubuntu' | 'postgres' | 'mysql' | 'nat',
+          type: (c.Labels['akal.node.type'] || 'ubuntu') as 'ubuntu' | 'postgres' | 'mysql' | 'nat' | 'loadbalancer',
           port,
           ip
         };
       });
   }
 
-  public static async createContainer(projectId: string, nodeName: string, type: string = 'ubuntu'): Promise<ContainerInfo> {
+  public static async createContainer(projectId: string, nodeName: string, type: string = 'ubuntu', isPublic: boolean = false): Promise<ContainerInfo> {
     const isPostgres = type === 'postgres';
     const isMysql = type === 'mysql';
+    const isLoadBalancer = type === 'loadbalancer';
     let image = this.UBUNTU_IMAGE_TAG;
     if (isPostgres) image = this.POSTGRES_IMAGE_TAG;
     else if (isMysql) image = this.MYSQL_IMAGE_TAG;
+    else if (isLoadBalancer) image = this.NGINX_IMAGE_TAG;
 
     if (isPostgres) {
       await this.ensurePostgresImage();
     } else if (isMysql) {
       await this.ensureMysqlImage();
+    } else if (isLoadBalancer) {
+      await this.ensureNginxImage();
     } else {
       await this.ensureUbuntuImage();
     }
-    
+
     console.log(`Creating ${type} container...`);
     const safeName = `${this.LAB_PREFIX}${projectId}-${nodeName.replace(/[^a-zA-Z0-9-_]/g, '')}`;
 
@@ -222,20 +265,23 @@ export class ContainerManager {
       createOpts.Env = ['POSTGRES_PASSWORD=postgres'];
       createOpts.Entrypoint = ['docker-entrypoint.sh'];
       createOpts.Cmd = ['postgres', '-c', 'fsync=off', '-c', 'synchronous_commit=off', '-c', 'full_page_writes=off'];
-      createOpts.HostConfig.PortBindings = {
-        '5432/tcp': [{ HostPort: '' }]
-      };
     } else if (isMysql) {
       createOpts.Env = ['MYSQL_ROOT_PASSWORD=mysql'];
       createOpts.Cmd = ['mysqld', '--innodb-flush-log-at-trx-commit=2', '--innodb-doublewrite=0', '--skip-innodb-doublewrite'];
+    } else if (isLoadBalancer) {
       createOpts.HostConfig.PortBindings = {
-        '3306/tcp': [{ HostPort: '' }]
+        '80/tcp': [{ HostPort: '' }]
       };
     } else {
       createOpts.Cmd = ['/bin/bash'];
       createOpts.Tty = true;
       createOpts.OpenStdin = true;
       createOpts.StdinOnce = false;
+      if (isPublic && type !== 'nat') {
+        createOpts.HostConfig.PortBindings = {
+          '80/tcp': [{ HostPort: '' }]
+        };
+      }
     }
 
     const container = await docker.createContainer(createOpts);
@@ -245,9 +291,10 @@ export class ContainerManager {
 
     let port = '';
     const inspectData = await container.inspect();
-    if (isPostgres || isMysql) {
+    const isUbuntu = type === 'ubuntu';
+    if (isLoadBalancer || (isUbuntu && isPublic)) {
       const ports = inspectData.NetworkSettings.Ports;
-      const targetPortKey = isPostgres ? '5432/tcp' : '3306/tcp';
+      const targetPortKey = '80/tcp';
       if (ports && ports[targetPortKey] && ports[targetPortKey][0]) {
         port = ports[targetPortKey][0].HostPort;
       }
@@ -270,7 +317,7 @@ export class ContainerManager {
       image,
       state: 'running',
       status: 'Up less than a second',
-      type: type as 'ubuntu' | 'postgres' | 'mysql',
+      type: type as 'ubuntu' | 'postgres' | 'mysql' | 'nat' | 'loadbalancer',
       port,
       ip
     };
@@ -278,7 +325,7 @@ export class ContainerManager {
 
   public static async executePsqlCommand(containerId: string, database: string, sqlQuery: string, extraArgs: string[] = []): Promise<string> {
     const container = docker.getContainer(containerId);
-    
+
     const exec = await container.exec({
       Cmd: ['psql', '-U', 'postgres', '-d', database, ...extraArgs, '-c', sqlQuery],
       AttachStdout: true,
@@ -286,10 +333,10 @@ export class ContainerManager {
     });
 
     const stream = await exec.start({});
-    
+
     return new Promise<string>((resolve, reject) => {
       let output = '';
-      
+
       container.modem.demuxStream(stream, {
         write: (chunk: Buffer) => {
           output += chunk.toString();
@@ -316,7 +363,7 @@ export class ContainerManager {
 
   public static async executeMysqlCommand(containerId: string, database: string, sqlQuery: string, extraArgs: string[] = []): Promise<string> {
     const container = docker.getContainer(containerId);
-    
+
     const exec = await container.exec({
       Cmd: ['mysql', '-u', 'root', '-pmysql', '-D', database, ...extraArgs, '-e', sqlQuery],
       AttachStdout: true,
@@ -324,10 +371,10 @@ export class ContainerManager {
     });
 
     const stream = await exec.start({});
-    
+
     return new Promise<string>((resolve, reject) => {
       let output = '';
-      
+
       container.modem.demuxStream(stream, {
         write: (chunk: Buffer) => {
           output += chunk.toString();
@@ -341,9 +388,9 @@ export class ContainerManager {
       stream.on('end', () => {
         const warningText = 'mysql: [Warning] Using a password on the command line interface can be insecure.';
         let cleanOutput = output.replace(warningText, '').trim();
-        
+
         if (
-          cleanOutput.includes("Can't connect to local MySQL server through socket") || 
+          cleanOutput.includes("Can't connect to local MySQL server through socket") ||
           cleanOutput.includes("ERROR 2002 (HY000)") ||
           cleanOutput.includes("ERROR 1045 (28000)")
         ) {

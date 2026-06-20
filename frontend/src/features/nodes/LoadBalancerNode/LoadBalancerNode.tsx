@@ -1,13 +1,18 @@
 import { Handle, Position } from '@xyflow/react';
-import { Play, Square, Trash2, Database, Search, Shield } from 'lucide-react';
-import styles from '../ServiceNode.module.css'; // Reuse core card styles for visual parity!
+import { Play, Square, Trash2, GitFork, Settings, Shield } from 'lucide-react';
+import styles from '../ServiceNode.module.css';
 
-interface PostgresNodeProps {
+interface LoadBalancerNodeProps {
   data: {
     id: string;
     name: string;
     state?: string;
     ip?: string;
+    port?: string | number;
+    config?: {
+      loadBalancerAlgorithm?: 'round_robin' | 'least_conn';
+      loadBalancerTargets?: string[];
+    };
     onSecurityGroupOpen?: (id: string, name: string) => void;
     onInspect: (id: string, name: string) => void;
     onStop: (id: string) => void;
@@ -16,17 +21,26 @@ interface PostgresNodeProps {
   };
 }
 
-export default function PostgresNode({ data }: PostgresNodeProps) {
+export default function LoadBalancerNode({ data }: LoadBalancerNodeProps) {
   const isRunning = data.state === 'running';
+  const config = data.config || {};
+  const algorithm = config.loadBalancerAlgorithm === 'least_conn' ? 'Least Connections' : 'Round Robin';
+  const targetsCount = config.loadBalancerTargets?.length || 0;
 
   return (
-    <div className={styles.card}>
-      <Handle type="target" position={Position.Left} className={styles.handle} />
+    <div 
+      className={styles.card} 
+      style={{
+        border: '2px solid #EF4444',
+        boxShadow: isRunning ? '0 10px 15px -3px rgba(239, 68, 68, 0.15)' : undefined
+      }}
+    >
+      <Handle type="target" position={Position.Left} id="target" className={styles.handle} />
 
       <div className={styles.header}>
         <div className={styles.titleContainer}>
-          <Database size={18} color={isRunning ? '#10B981' : '#6B7280'} />
-          <span className={styles.title}>{data.name}</span>
+          <GitFork size={18} color={isRunning ? '#EF4444' : '#6B7280'} />
+          <span className={styles.title} style={{ color: '#DC2626' }}>{data.name}</span>
           <button
             onClick={(e) => {
               e.stopPropagation();
@@ -47,7 +61,7 @@ export default function PostgresNode({ data }: PostgresNodeProps) {
           </button>
         </div>
 
-        <div className={styles.statusRow}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
           <div
             className={styles.indicator}
             style={{
@@ -61,16 +75,34 @@ export default function PostgresNode({ data }: PostgresNodeProps) {
         </div>
       </div>
 
-      <div className={styles.details}>
-        <span className={styles.label}>Port:</span>
-        <span className={styles.value}>5432</span>
+      <div className={styles.details} style={{ backgroundColor: 'rgba(239, 68, 68, 0.05)' }}>
+        <span className={styles.label} style={{ color: '#EF4444' }}>Type:</span>
+        <span className={styles.value} style={{ color: '#4B5563' }}>Nginx ALB</span>
       </div>
+      
       {data.ip && (
-        <div className={styles.details}>
-          <span className={styles.label}>IP:</span>
+        <div className={styles.details} style={{ marginTop: '-8px' }}>
+          <span className={styles.label}>Private IP:</span>
           <span className={styles.value} style={{ fontWeight: 'bold', color: '#10B981' }}>{data.ip}</span>
         </div>
       )}
+
+      {data.port && isRunning && (
+        <div className={styles.details} style={{ marginTop: '-8px' }}>
+          <span className={styles.label}>Host Port:</span>
+          <span className={styles.value} style={{ fontWeight: 'bold', color: '#3B82F6' }}>{data.port}</span>
+        </div>
+      )}
+
+      <div className={styles.details} style={{ marginTop: '-8px' }}>
+        <span className={styles.label}>Method:</span>
+        <span className={styles.value} style={{ color: '#4B5563' }}>{algorithm}</span>
+      </div>
+
+      <div className={styles.details} style={{ marginTop: '-8px' }}>
+        <span className={styles.label}>Targets:</span>
+        <span className={styles.value} style={{ color: '#4B5563' }}>{targetsCount} Node(s)</span>
+      </div>
 
       <div className={styles.actions}>
         {isRunning ? (
@@ -78,11 +110,11 @@ export default function PostgresNode({ data }: PostgresNodeProps) {
             <button
               onClick={() => data.onInspect(data.id, data.name)}
               className={`${styles.btn} ${styles.btnPrimary}`}
-              style={{ backgroundColor: '#10B981' }} // Postgres Green
-              title="Inspect Database Explorer / Shell"
+              style={{ backgroundColor: '#EF4444' }}
+              title="Configure Load Balancer rules & targets"
             >
-              <Search size={14} style={{ marginRight: 4 }} />
-              Inspect
+              <Settings size={14} style={{ marginRight: 4 }} />
+              Configure
             </button>
             <button
               onClick={() => data.onStop(data.id)}
@@ -112,7 +144,7 @@ export default function PostgresNode({ data }: PostgresNodeProps) {
         </button>
       </div>
 
-      <Handle type="source" position={Position.Right} className={styles.handle} />
+      <Handle type="source" position={Position.Right} id="source" className={styles.handle} />
     </div>
   );
 }
