@@ -48,6 +48,11 @@ export default function AsgModal({
   const [saving, setSaving] = useState(false);
   const [deploying, setDeploying] = useState(false);
   const [terminatingId, setTerminatingId] = useState<string | null>(null);
+  
+  // Auto Simulation States
+  const [isAutoSimulating, setIsAutoSimulating] = useState(false);
+  const [simulatedCpu, setSimulatedCpu] = useState(45);
+  const [simulatedTraffic, setSimulatedTraffic] = useState(120);
 
   // Get available template servers (Only general purpose Ubuntu nodes that are NOT ASG instances themselves)
   const availableTemplates = containers.filter(
@@ -67,6 +72,45 @@ export default function AsgModal({
     }, 2000);
     return () => clearInterval(interval);
   }, [activeTab, onRefreshContainers]);
+
+  // Automated Load & Traffic Simulator Effect
+  useEffect(() => {
+    if (!isAutoSimulating) return;
+
+    const interval = setInterval(async () => {
+      // Randomly drift CPU and traffic load
+      const cpuDelta = Math.floor(Math.random() * 21) - 10; // -10 to +10
+      const newCpu = Math.max(10, Math.min(99, simulatedCpu + cpuDelta));
+      setSimulatedCpu(newCpu);
+      
+      const trafficDelta = Math.floor(Math.random() * 41) - 20; // -20 to +20
+      const newTraffic = Math.max(10, Math.min(500, simulatedTraffic + trafficDelta));
+      setSimulatedTraffic(newTraffic);
+
+      // Trigger automatic scaling based on thresholds (Scale Up at > 75%, Scale Down at < 35%)
+      if (newCpu > 75 && desiredCapacity < maxCapacity) {
+        const next = desiredCapacity + 1;
+        setDesiredCapacity(next);
+        await fetch(`${API_BASE}/api/projects/${projectId}/containers/asg/${asgId}/scale`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ desiredCapacity: next, subnetIds: selectedSubnets })
+        });
+        await onRefreshContainers();
+      } else if (newCpu < 35 && desiredCapacity > minCapacity) {
+        const next = desiredCapacity - 1;
+        setDesiredCapacity(next);
+        await fetch(`${API_BASE}/api/projects/${projectId}/containers/asg/${asgId}/scale`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ desiredCapacity: next, subnetIds: selectedSubnets })
+        });
+        await onRefreshContainers();
+      }
+    }, 4000);
+
+    return () => clearInterval(interval);
+  }, [isAutoSimulating, simulatedCpu, simulatedTraffic, desiredCapacity, minCapacity, maxCapacity, asgId, projectId, selectedSubnets, onRefreshContainers]);
 
   const handleToggleSubnet = (subnetId: string) => {
     setSelectedSubnets(prev =>
@@ -302,6 +346,49 @@ export default function AsgModal({
                 </span>
               </div>
 
+              {/* Automated Load & Traffic Simulator */}
+              <div style={{ ...styles.section, backgroundColor: isAutoSimulating ? 'rgba(236, 72, 153, 0.05)' : 'rgba(0,0,0,0.02)' }}>
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '12px' }}>
+                  <div style={{ display: 'flex', flexDirection: 'column' }}>
+                    <span style={{ fontSize: '13px', fontWeight: 'bold', color: '#111827' }}>
+                      Automated Load & Traffic Simulator
+                    </span>
+                    <span style={{ fontSize: '11px', color: '#6B7280', marginTop: '2px' }}>
+                      Simulate real-world client requests. ASG automatically scales out at &gt;75% CPU and scales in at &lt;35% CPU.
+                    </span>
+                  </div>
+                  <button
+                    onClick={() => setIsAutoSimulating(!isAutoSimulating)}
+                    style={{
+                      ...styles.actionBtn,
+                      backgroundColor: isAutoSimulating ? '#EF4444' : '#10B981',
+                      padding: '6px 12px',
+                    }}
+                  >
+                    {isAutoSimulating ? 'Stop Auto-Simulation' : 'Start Auto-Simulation'}
+                  </button>
+                </div>
+                {isAutoSimulating && (
+                  <div style={{ display: 'flex', gap: '24px', marginTop: '12px', borderTop: '1px solid rgba(0,0,0,0.05)', paddingTop: '10px' }}>
+                    <div>
+                      <span style={{ fontSize: '11px', color: '#6B7280' }}>Simulated CPU Load:</span>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginTop: '2px' }}>
+                        <div style={{ width: '80px', height: '8px', backgroundColor: '#E5E7EB', borderRadius: '4px', overflow: 'hidden' }}>
+                          <div style={{ width: `${simulatedCpu}%`, height: '100%', backgroundColor: simulatedCpu > 75 ? '#EF4444' : simulatedCpu < 35 ? '#3B82F6' : '#10B981' }} />
+                        </div>
+                        <strong style={{ fontSize: '12px', color: '#1F2937' }}>{simulatedCpu}%</strong>
+                      </div>
+                    </div>
+                    <div>
+                      <span style={{ fontSize: '11px', color: '#6B7280' }}>Simulated Incoming Traffic:</span>
+                      <div style={{ fontSize: '12px', fontWeight: 'bold', color: '#1F2937', marginTop: '2px' }}>
+                        {simulatedTraffic} req/sec
+                      </div>
+                    </div>
+                  </div>
+                )}
+              </div>
+
               {/* Manual Scaling Simulation Panel */}
               <div style={styles.section}>
                 <h3 style={styles.sectionTitle}>Manual Scaling Simulation</h3>
@@ -375,8 +462,19 @@ export default function AsgModal({
                       <div key={instance.id} style={styles.instanceCard}>
                         <div style={styles.instanceHeader}>
                           <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                            <Server size={18} color={isRunning ? '#10B981' : '#EF4444'} />
-                            <span style={{ fontWeight: 'bold', fontSize: '12px', color: '#1F2937' }}>
+                            <Server size={16} color={isRunning ? '#10B981' : '#EF4444'} />
+                            <span 
+                              style={{ 
+                                fontWeight: 'bold', 
+                                fontSize: '11px', 
+                                color: '#1F2937',
+                                textOverflow: 'ellipsis',
+                                overflow: 'hidden',
+                                whiteSpace: 'nowrap',
+                                maxWidth: '80px'
+                              }}
+                              title={instance.name}
+                            >
                               {instance.name}
                             </span>
                           </div>
@@ -392,9 +490,16 @@ export default function AsgModal({
                           </span>
                         </div>
                         
-                        <div style={{ fontSize: '11px', color: '#6B7280', margin: '8px 0' }}>
-                          <div><strong>IP:</strong> {instance.ip || 'Resolving...'}</div>
-                          <div><strong>Image:</strong> {instance.image ? instance.image.split('/').pop() : 'ubuntu:latest'}</div>
+                        <div style={{ fontSize: '11px', color: '#6B7280', margin: '6px 0' }}>
+                          <div style={{ textOverflow: 'ellipsis', overflow: 'hidden', whiteSpace: 'nowrap' }}><strong>IP:</strong> {instance.ip || 'Resolving...'}</div>
+                          {isAutoSimulating && isRunning && (
+                            <div style={{ marginTop: '2px' }}>
+                              <strong>CPU:</strong>{' '}
+                              <span style={{ color: simulatedCpu > 75 ? '#EF4444' : simulatedCpu < 35 ? '#3B82F6' : '#10B981', fontWeight: 'bold' }}>
+                                {Math.max(10, Math.min(99, simulatedCpu + (instance.name.charCodeAt(instance.name.length - 1) % 7) - 3))}%
+                              </span>
+                            </div>
+                          )}
                         </div>
 
                         {isRunning ? (
