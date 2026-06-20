@@ -14,23 +14,29 @@ export class DockerNetworkProvider implements NetworkProvider {
         User: 'root'
       });
       const stream = await exec.start({});
-      return new Promise<string>((resolve, reject) => {
-        let output = '';
+      const output = await new Promise<string>((resolve, reject) => {
+        let data = '';
         container.modem.demuxStream(
           stream,
           {
-            write: (chunk: Buffer) => { output += chunk.toString(); }
+            write: (chunk: Buffer) => { data += chunk.toString(); }
           },
           {
-            write: (chunk: Buffer) => { output += chunk.toString(); }
+            write: (chunk: Buffer) => { data += chunk.toString(); }
           }
         );
-        stream.on('end', () => resolve(output.trim()));
+        stream.on('end', () => resolve(data.trim()));
         stream.on('error', (err) => reject(err));
       });
+
+      const status = await exec.inspect();
+      if (status.ExitCode !== 0) {
+        throw new Error(`Command failed inside container with exit code ${status.ExitCode}. Output: ${output}`);
+      }
+      return output;
     } catch (err) {
       console.error(`Exec failed for cmd [${cmd.join(' ')}]:`, err);
-      return '';
+      throw err;
     }
   }
 
@@ -91,6 +97,17 @@ export class DockerNetworkProvider implements NetworkProvider {
 
     // 1. Obsolete Docker Subnet Network Cleanup
     const allNetworks = await docker.listNetworks();
+    const sharedNet = allNetworks.find(n => n.Name === 'akal-lab-network');
+    let sharedNetGateway = '';
+    if (sharedNet) {
+      try {
+        const netInspect = await docker.getNetwork(sharedNet.Id).inspect();
+        sharedNetGateway = netInspect.IPAM?.Config?.[0]?.Gateway || '';
+        console.log(`[DockerNetworkProvider] Found akal-lab-network gateway: ${sharedNetGateway}`);
+      } catch (err) {
+        console.error('[DockerNetworkProvider] Failed to inspect akal-lab-network:', err);
+      }
+    }
     const activeSubnetIds = (config.subnets || []).map((s: any) => s.id);
     
     for (const net of allNetworks) {
@@ -169,6 +186,14 @@ export class DockerNetworkProvider implements NetworkProvider {
 
           for (const netName of currentNetworks) {
             if (netName !== targetNetwork && (netName.startsWith('akal-subnet-') || netName === 'akal-lab-network')) {
+              if (netName === 'akal-lab-network') {
+                const isLoadBalancer = nodeType === 'loadbalancer';
+                const isPublicUbuntu = nodeType === 'ubuntu' && subnet.type === 'public';
+                if (isLoadBalancer || isPublicUbuntu) {
+                  continue; // Keep connected to default bridge network for port mappings
+                }
+              }
+
               if (nodeType === 'nat') {
                 const matchedSubnet = (config.subnets || []).find((s: any) => `akal-subnet-${projectId}-${s.id}` === netName);
                 if (matchedSubnet) {
@@ -218,6 +243,18 @@ export class DockerNetworkProvider implements NetworkProvider {
               });
             } catch (err) {
               console.error(`Failed to connect container ${ep.containerName} to network ${targetNetwork} with IP ${targetIp}:`, err);
+            }
+          }
+
+          // Reconnect to default akal-lab-network if node is public (loadbalancer or public ubuntu) and disconnected
+          const isLoadBalancer = nodeType === 'loadbalancer';
+          const isPublicUbuntu = nodeType === 'ubuntu' && subnet.type === 'public';
+          if ((isLoadBalancer || isPublicUbuntu) && !currentNetworks.includes('akal-lab-network')) {
+            console.log(`[DockerNetworkProvider] Reconnecting public container ${ep.containerName} to default network akal-lab-network...`);
+            try {
+              await docker.getNetwork('akal-lab-network').connect({ Container: containerInfo.Id });
+            } catch (err) {
+              console.error(`Failed to reconnect public container ${ep.containerName} to default network:`, err);
             }
           }
         }
@@ -334,7 +371,10 @@ export class DockerNetworkProvider implements NetworkProvider {
       );
       if (containerInfo && containerInfo.State === 'running') {
         const networks = containerInfo.NetworkSettings?.Networks || {};
-        const key = Object.keys(networks).find(k => k.startsWith('akal-'));
+        let key = Object.keys(networks).find(k => k.startsWith('akal-subnet-'));
+        if (!key) {
+          key = Object.keys(networks).find(k => k.startsWith('akal-'));
+        }
         if (key && networks[key] && networks[key].IPAddress) {
           ipMap[ep.nodeId] = networks[key].IPAddress;
           idMap[ep.nodeId] = containerInfo.Id;
@@ -353,7 +393,7 @@ export class DockerNetworkProvider implements NetworkProvider {
       if (!containerInfo) continue;
 
       // Check if iptables is available inside this container
-      const hasIptables = await this.runExec(containerId, ['sh', '-c', 'command -v iptables']);
+      const hasIptables = await this.runExec(containerId, ['sh', '-c', 'command -v iptables || true']);
       if (!hasIptables || hasIptables.includes('not found') || hasIptables.trim() === '') {
         console.warn(`[DockerNetworkProvider] Skipping firewall configuration for container ${containerId.slice(0, 12)} (${ep.containerName}): 'iptables' is not installed.`);
         continue;
@@ -369,10 +409,48 @@ export class DockerNetworkProvider implements NetworkProvider {
         await this.runExec(containerId, ['sh', '-c', 'iptables -t nat -A POSTROUTING -j MASQUERADE']);
         await this.runExec(containerId, ['sh', '-c', 'iptables -F FORWARD 2>/dev/null || true']);
         if (isIgwEnabled) {
-          await this.runExec(containerId, ['sh', '-c', 'iptables -A FORWARD -j ACCEPT']);
+          const vpcCidr = config.vpcConfig?.cidr || '10.0.0.0/16';
+          await this.runExec(containerId, ['sh', '-c', 'iptables -A FORWARD -m conntrack --ctstate RELATED,ESTABLISHED -j ACCEPT']);
+          await this.runExec(containerId, ['sh', '-c', `iptables -A FORWARD -s ${vpcCidr} -j ACCEPT`]);
+          await this.runExec(containerId, ['sh', '-c', 'iptables -A FORWARD -j REJECT']);
         } else {
           await this.runExec(containerId, ['sh', '-c', 'iptables -A FORWARD -j REJECT']);
         }
+      }
+
+      if (nodeType === 'loadbalancer') {
+        console.log(`[DockerNetworkProvider] Node ${ep.containerName} is a Load Balancer. Configuring Nginx dynamic proxy...`);
+        const targets = config.loadBalancerTargets?.[ep.nodeId] || [];
+        const targetIps = targets.map((tId: string) => ipMap[tId]).filter(Boolean);
+        
+        const targetPort = config.loadBalancerTargetPorts?.[ep.nodeId] || 80;
+        let upstreamServers: string;
+        if (targetIps.length > 0) {
+          upstreamServers = targetIps.map((ip: string) => `    server ${ip}:${targetPort};`).join('\n');
+        } else {
+          upstreamServers = '    server 127.0.0.1:81 down; # Fallback when no targets are configured';
+        }
+
+        const nginxConfig = `worker_shutdown_timeout 1s;
+events { worker_connections 1024; }
+http {
+  upstream myapp {
+${upstreamServers}
+  }
+  server {
+    listen 80;
+    location / {
+      proxy_pass http://myapp;
+      proxy_set_header Host $host;
+      proxy_set_header X-Real-IP $remote_addr;
+      proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+      proxy_set_header X-Forwarded-Proto $scheme;
+    }
+  }
+}`;
+        // Write configuration into container and reload Nginx
+        await this.runExec(containerId, ['sh', '-c', `cat << 'EOF' > /etc/nginx/nginx.conf\n${nginxConfig}\nEOF`]);
+        await this.runExec(containerId, ['nginx', '-s', 'reload']);
       }
 
       // 1. Initialize custom chains and flush rules
@@ -468,7 +546,7 @@ export class DockerNetworkProvider implements NetworkProvider {
         }
       } else {
         // Clean up any existing VPC route in the NAT Gateway container to avoid interface attaching conflicts
-        await this.runExec(containerId, ['ip', 'route', 'del', vpcCidr]);
+        await this.runExec(containerId, ['ip', 'route', 'del', vpcCidr]).catch(() => {});
       }
 
       if (!hasLocalRoute) {
@@ -555,7 +633,96 @@ export class DockerNetworkProvider implements NetworkProvider {
         await this.runExec(containerId, ['iptables', '-A', 'AKAL-OUTPUT', '-j', 'REJECT']);
       }
 
+      // 5. Allow host-to-container connections via bridge gateway if security group allows inbound from 0.0.0.0/0
+      const nodeSgs = config.nodeSecurityGroups?.[ep.nodeId] || [];
+      for (const sg of nodeSgs) {
+        if (sg.type === 'inbound' && sg.source === '0.0.0.0/0') {
+          const rawProto = (sg.protocol || 'all').toLowerCase();
+          const rawPort = sg.port || 'ALL';
+          const port = (typeof rawPort === 'string' && rawPort.toUpperCase() === 'ALL') ? 'ALL' : rawPort;
+          const action = sg.action || 'ALLOW';
+          const iptablesAction = action === 'ALLOW' ? 'ACCEPT' : 'REJECT';
+
+          const cidr = resolvedCidrs[subnetId] || subnet?.cidr || `10.0.${config.subnets.indexOf(subnet) + 1}.0/24`;
+          const prefixMatch = cidr.match(/^(\d+\.\d+\.\d+)\./);
+          const prefix = prefixMatch ? prefixMatch[1] + '.' : '';
+          const dockerGatewayIp = prefix ? `${prefix}1` : '';
+
+          if (dockerGatewayIp) {
+            if (rawProto === 'all' && port === 'ALL') {
+              if (iptablesAction === 'REJECT') {
+                await this.runExec(containerId, ['iptables', '-A', 'AKAL-INPUT', '-s', dockerGatewayIp, '-p', 'tcp', '-j', 'REJECT', '--reject-with', 'tcp-reset']);
+                await this.runExec(containerId, ['iptables', '-A', 'AKAL-INPUT', '-s', dockerGatewayIp, '-j', 'REJECT']);
+              } else {
+                await this.runExec(containerId, ['iptables', '-A', 'AKAL-INPUT', '-s', dockerGatewayIp, '-j', iptablesAction]);
+              }
+            } else if (rawProto === 'icmp') {
+              await this.runExec(containerId, ['iptables', '-A', 'AKAL-INPUT', '-s', dockerGatewayIp, '-p', 'icmp', '-j', iptablesAction]);
+            } else if (rawProto === 'all') {
+              if (iptablesAction === 'REJECT') {
+                await this.runExec(containerId, ['iptables', '-A', 'AKAL-INPUT', '-s', dockerGatewayIp, '-p', 'tcp', '--dport', port, '-j', 'REJECT', '--reject-with', 'tcp-reset']);
+                await this.runExec(containerId, ['iptables', '-A', 'AKAL-INPUT', '-s', dockerGatewayIp, '-p', 'udp', '--dport', port, '-j', 'REJECT']);
+              } else {
+                await this.runExec(containerId, ['iptables', '-A', 'AKAL-INPUT', '-s', dockerGatewayIp, '-p', 'tcp', '--dport', port, '-j', iptablesAction]);
+                await this.runExec(containerId, ['iptables', '-A', 'AKAL-INPUT', '-s', dockerGatewayIp, '-p', 'udp', '--dport', port, '-j', iptablesAction]);
+              }
+            } else {
+              if (port === 'ALL') {
+                if (iptablesAction === 'REJECT' && rawProto === 'tcp') {
+                  await this.runExec(containerId, ['iptables', '-A', 'AKAL-INPUT', '-s', dockerGatewayIp, '-p', rawProto, '-j', 'REJECT', '--reject-with', 'tcp-reset']);
+                } else {
+                  await this.runExec(containerId, ['iptables', '-A', 'AKAL-INPUT', '-s', dockerGatewayIp, '-p', rawProto, '-j', iptablesAction]);
+                }
+              } else {
+                if (iptablesAction === 'REJECT' && rawProto === 'tcp') {
+                  await this.runExec(containerId, ['iptables', '-A', 'AKAL-INPUT', '-s', dockerGatewayIp, '-p', rawProto, '--dport', port, '-j', 'REJECT', '--reject-with', 'tcp-reset']);
+                } else {
+                  await this.runExec(containerId, ['iptables', '-A', 'AKAL-INPUT', '-s', dockerGatewayIp, '-p', rawProto, '--dport', port, '-j', iptablesAction]);
+                }
+              }
+            }
+          }
+
+          const hasSharedNet = containerInfo.NetworkSettings?.Networks?.['akal-lab-network'];
+          if (hasSharedNet && sharedNetGateway) {
+            if (rawProto === 'all' && port === 'ALL') {
+              if (iptablesAction === 'REJECT') {
+                await this.runExec(containerId, ['iptables', '-A', 'AKAL-INPUT', '-s', sharedNetGateway, '-p', 'tcp', '-j', 'REJECT', '--reject-with', 'tcp-reset']);
+                await this.runExec(containerId, ['iptables', '-A', 'AKAL-INPUT', '-s', sharedNetGateway, '-j', 'REJECT']);
+              } else {
+                await this.runExec(containerId, ['iptables', '-A', 'AKAL-INPUT', '-s', sharedNetGateway, '-j', iptablesAction]);
+              }
+            } else if (rawProto === 'icmp') {
+              await this.runExec(containerId, ['iptables', '-A', 'AKAL-INPUT', '-s', sharedNetGateway, '-p', 'icmp', '-j', iptablesAction]);
+            } else if (rawProto === 'all') {
+              if (iptablesAction === 'REJECT') {
+                await this.runExec(containerId, ['iptables', '-A', 'AKAL-INPUT', '-s', sharedNetGateway, '-p', 'tcp', '--dport', port, '-j', 'REJECT', '--reject-with', 'tcp-reset']);
+                await this.runExec(containerId, ['iptables', '-A', 'AKAL-INPUT', '-s', sharedNetGateway, '-p', 'udp', '--dport', port, '-j', 'REJECT']);
+              } else {
+                await this.runExec(containerId, ['iptables', '-A', 'AKAL-INPUT', '-s', sharedNetGateway, '-p', 'tcp', '--dport', port, '-j', iptablesAction]);
+                await this.runExec(containerId, ['iptables', '-A', 'AKAL-INPUT', '-s', sharedNetGateway, '-p', 'udp', '--dport', port, '-j', iptablesAction]);
+              }
+            } else {
+              if (port === 'ALL') {
+                if (iptablesAction === 'REJECT' && rawProto === 'tcp') {
+                  await this.runExec(containerId, ['iptables', '-A', 'AKAL-INPUT', '-s', sharedNetGateway, '-p', rawProto, '-j', 'REJECT', '--reject-with', 'tcp-reset']);
+                } else {
+                  await this.runExec(containerId, ['iptables', '-A', 'AKAL-INPUT', '-s', sharedNetGateway, '-p', rawProto, '-j', iptablesAction]);
+                }
+              } else {
+                if (iptablesAction === 'REJECT' && rawProto === 'tcp') {
+                  await this.runExec(containerId, ['iptables', '-A', 'AKAL-INPUT', '-s', sharedNetGateway, '-p', rawProto, '--dport', port, '-j', 'REJECT', '--reject-with', 'tcp-reset']);
+                } else {
+                  await this.runExec(containerId, ['iptables', '-A', 'AKAL-INPUT', '-s', sharedNetGateway, '-p', rawProto, '--dport', port, '-j', iptablesAction]);
+                }
+              }
+            }
+          }
+        }
+      }
+
       // 6. Default Inbound: REJECT ALL (Zero-trust secure baseline)
+      await this.runExec(containerId, ['iptables', '-A', 'AKAL-INPUT', '-p', 'tcp', '-j', 'REJECT', '--reject-with', 'tcp-reset']);
       await this.runExec(containerId, ['iptables', '-A', 'AKAL-INPUT', '-j', 'REJECT']);
 
       // 6. Verification
@@ -586,7 +753,7 @@ export class DockerNetworkProvider implements NetworkProvider {
       );
       if (containerInfo && containerInfo.State === 'running') {
         const containerId = containerInfo.Id;
-        const hasIptables = await this.runExec(containerId, ['sh', '-c', 'command -v iptables']);
+        const hasIptables = await this.runExec(containerId, ['sh', '-c', 'command -v iptables || true']);
         if (hasIptables && !hasIptables.includes('not found') && hasIptables.trim() !== '') {
           // Flush custom chains
           await this.runExec(containerId, ['iptables', '-F', 'AKAL-INPUT']);

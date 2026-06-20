@@ -61,7 +61,7 @@ describe('ContainerController', () => {
 
       expect(res.status).toBe(201);
       expect(res.body).toEqual(mockContainer);
-      expect(ContainerService.createContainer).toHaveBeenCalledWith('test-project', 'ubuntu-1', 'ubuntu');
+      expect(ContainerService.createContainer).toHaveBeenCalledWith('test-project', 'ubuntu-1', 'ubuntu', false);
       expect(ProjectService.getNetworkConfig).toHaveBeenCalledWith('test-project');
       expect(NetworkService.clearPolicyHash).toHaveBeenCalledWith('test-project');
       expect(NetworkService.applyPolicy).toHaveBeenCalledWith('test-project', { some: 'config' });
