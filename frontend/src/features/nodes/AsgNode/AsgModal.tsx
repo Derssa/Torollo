@@ -67,7 +67,7 @@ export default function AsgModal({
 
   const prevInstancesCountRef = useRef(asgInstances.length);
 
-  // Monitor replica scale count to auto-reset load back to normal once replicas scale out/in
+  // Monitor replica scale count to auto-reset load mode back to normal once replicas scale out/in
   useEffect(() => {
     if (!isAutoSimulating) {
       prevInstancesCountRef.current = asgInstances.length;
@@ -75,15 +75,11 @@ export default function AsgModal({
     }
 
     if (simulationMode === 'spike' && asgInstances.length > prevInstancesCountRef.current) {
-      // Scale out successfully handled load! Reset back to normal load
+      // Scale out occurred! Switch mode back to normal load so traffic stabilizes at the high level
       setSimulationMode('normal');
-      setSimulatedCpu(45);
-      setSimulatedTraffic(120);
     } else if (simulationMode === 'idle' && asgInstances.length < prevInstancesCountRef.current) {
-      // Scale in successfully stabilized! Reset back to normal load
+      // Scale in occurred! Switch mode back to normal load so traffic stabilizes at the low level
       setSimulationMode('normal');
-      setSimulatedCpu(45);
-      setSimulatedTraffic(120);
     }
 
     prevInstancesCountRef.current = asgInstances.length;
@@ -93,8 +89,8 @@ export default function AsgModal({
     const nextAuto = !isAutoSimulating;
     setIsAutoSimulating(nextAuto);
     if (!nextAuto) {
-      // Stopping simulation: kill added instances by resetting desiredCapacity to minCapacity
-      setDesiredCapacity(minCapacity);
+      // Stopping simulation: kill all replicas by resetting desiredCapacity to 0
+      setDesiredCapacity(0);
       setSimulationMode('normal');
       setSimulatedCpu(45);
       setSimulatedTraffic(120);
@@ -102,7 +98,7 @@ export default function AsgModal({
         await fetch(`${API_BASE}/api/projects/${projectId}/containers/asg/${asgId}/scale`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ desiredCapacity: minCapacity, subnetIds: selectedSubnets })
+          body: JSON.stringify({ desiredCapacity: 0, subnetIds: selectedSubnets })
         });
         await onRefreshContainers();
       } catch (err) {
@@ -125,24 +121,25 @@ export default function AsgModal({
     if (!isAutoSimulating) return;
 
     const interval = setInterval(async () => {
-      let nextCpu = simulatedCpu;
       let nextTraffic = simulatedTraffic;
 
       if (simulationMode === 'spike') {
-        // Increase load rapidly (+25% per second)
-        nextCpu = Math.min(99, simulatedCpu + 25);
+        // Increase traffic load rapidly (+80 req/sec)
         nextTraffic = Math.min(500, simulatedTraffic + 80);
       } else if (simulationMode === 'idle') {
-        // Decrease load rapidly (-25% per second)
-        nextCpu = Math.max(10, simulatedCpu - 25);
+        // Decrease traffic load rapidly (-80 req/sec)
         nextTraffic = Math.max(10, simulatedTraffic - 80);
       } else {
-        // Normal drift
-        const cpuDelta = Math.floor(Math.random() * 15) - 7;
-        nextCpu = Math.max(35, Math.min(65, simulatedCpu + cpuDelta));
+        // Normal traffic drift
         const trafficDelta = Math.floor(Math.random() * 31) - 15;
-        nextTraffic = Math.max(80, Math.min(220, simulatedTraffic + trafficDelta));
+        nextTraffic = Math.max(10, Math.min(500, simulatedTraffic + trafficDelta));
       }
+
+      // Calculate CPU load dynamically: CPU = Traffic / (Active Instances * Instance Capacity Factor)
+      // Each instance handles ~200 req/sec at full capacity
+      const activeInstancesCount = Math.max(1, asgInstances.length);
+      const calculatedCpu = Math.round(nextTraffic / (activeInstancesCount * 2));
+      const nextCpu = Math.max(10, Math.min(99, calculatedCpu));
 
       setSimulatedCpu(nextCpu);
       setSimulatedTraffic(nextTraffic);
@@ -170,7 +167,7 @@ export default function AsgModal({
     }, 1000);
 
     return () => clearInterval(interval);
-  }, [isAutoSimulating, simulatedCpu, simulatedTraffic, simulationMode, desiredCapacity, minCapacity, maxCapacity, asgId, projectId, selectedSubnets, onRefreshContainers]);
+  }, [isAutoSimulating, simulatedCpu, simulatedTraffic, simulationMode, desiredCapacity, minCapacity, maxCapacity, asgId, projectId, selectedSubnets, onRefreshContainers, asgInstances.length]);
 
   const handleToggleSubnet = (subnetId: string) => {
     setSelectedSubnets(prev =>
