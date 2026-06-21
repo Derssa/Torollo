@@ -43,6 +43,26 @@ export class ContainerService {
 
     for (const db of databases) {
       try {
+        // Check if database is empty, seed with initial tables and values if so
+        const tablesCheck = await ContainerManager.executePsqlCommand(
+          containerId,
+          db,
+          "SELECT count(*) FROM pg_tables WHERE schemaname = 'public' AND tablename = 'users';",
+          ['-t', '-A']
+        );
+        
+        if (tablesCheck.trim() === '0') {
+          const seedSql = `
+            CREATE TABLE IF NOT EXISTS users (id SERIAL PRIMARY KEY, name VARCHAR(100), email VARCHAR(100) UNIQUE, role VARCHAR(50));
+            CREATE TABLE IF NOT EXISTS products (id SERIAL PRIMARY KEY, name VARCHAR(100), price DECIMAL(10,2));
+            CREATE TABLE IF NOT EXISTS orders (id SERIAL PRIMARY KEY, user_id INT, amount DECIMAL(10,2), status VARCHAR(50));
+            INSERT INTO users (name, email, role) VALUES ('Alice Smith', 'alice@akal-lab.io', 'admin'), ('Bob Jones', 'bob@akal-lab.io', 'developer'), ('Charlie Davis', 'charlie@akal-lab.io', 'analyst') ON CONFLICT DO NOTHING;
+            INSERT INTO products (name, price) VALUES ('Micro VM vCPU', 4.50), ('Standard DB Storage 10GB', 12.00), ('NAT Routing Unit', 15.00);
+            INSERT INTO orders (user_id, amount, status) VALUES (1, 16.50, 'completed'), (2, 12.00, 'pending');
+          `;
+          await ContainerManager.executePsqlCommand(containerId, db, seedSql);
+        }
+
         // Get public tables in this database
         const tablesRaw = await ContainerManager.executePsqlCommand(
           containerId,
@@ -130,6 +150,36 @@ export class ContainerService {
           collections = JSON.parse(collsJson);
         } catch {
           // ignore
+        }
+
+        if (collections.length === 0 || !collections.includes('users')) {
+          const seedScript = `
+            db.getSiblingDB('${dbName}').users.insertMany([
+              { name: "Alice Smith", email: "alice@akal-lab.io", role: "admin", status: "active" },
+              { name: "Bob Jones", email: "bob@akal-lab.io", role: "developer", status: "active" },
+              { name: "Charlie Davis", email: "charlie@akal-lab.io", role: "analyst", status: "pending" }
+            ]);
+            db.getSiblingDB('${dbName}').products.insertMany([
+              { name: "Micro VM vCPU", price: 4.50, instock: true },
+              { name: "Standard DB Storage 10GB", price: 12.00, instock: true },
+              { name: "NAT Routing Unit", price: 15.00, instock: false }
+            ]);
+            db.getSiblingDB('${dbName}').orders.insertMany([
+              { user: "Alice Smith", amount: 16.50, status: "completed" },
+              { user: "Bob Jones", amount: 12.00, status: "pending" }
+            ]);
+          `;
+          await ContainerManager.executeMongoCommand(containerId, seedScript);
+          
+          const refetchJson = await ContainerManager.executeMongoCommand(
+            containerId,
+            `JSON.stringify(db.getSiblingDB('${dbName}').getCollectionNames())`
+          );
+          try {
+            collections = JSON.parse(refetchJson);
+          } catch {
+            // ignore
+          }
         }
 
         const tableNodes: any[] = [];
