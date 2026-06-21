@@ -355,7 +355,7 @@ export default function NoSqlModal({ containerId, nodeName, projectId, onClose }
       const throughputIncreased = (cpuIncreased || memIncreased) && !cpuDecreased && !memDecreased;
       const throughputDecreased = (cpuDecreased || memDecreased) && !cpuIncreased && !memIncreased;
       
-      let customMsg = "";
+      let customMsg: string;
       if (throughputIncreased && storageIncreased) {
         customMsg = "now the database can handle more concurrent requests/transactions and store more data (expanded persistent disk).";
       } else if (throughputDecreased && storageDecreased) {

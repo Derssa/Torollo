@@ -290,7 +290,7 @@ export default function PostgresModal({ containerId, nodeName, projectId, onClos
       const throughputIncreased = (cpuIncreased || memIncreased) && !cpuDecreased && !memDecreased;
       const throughputDecreased = (cpuDecreased || memDecreased) && !cpuIncreased && !memIncreased;
       
-      let customMsg = "";
+      let customMsg: string;
       if (throughputIncreased && storageIncreased) {
         customMsg = "now the database can handle more concurrent requests/transactions and store more data (expanded persistent disk).";
       } else if (throughputDecreased && storageDecreased) {
@@ -920,7 +920,7 @@ export default function PostgresModal({ containerId, nodeName, projectId, onClos
 
                   {/* Flowing Query Particles */}
                   {particles.map(p => {
-                    let animationName = '';
+                    let animationName: string;
                     if (p.isReplicationCopy) {
                       animationName = `replicationToReplica${p.index ?? 0}`;
                     } else if (p.isWrite) {
