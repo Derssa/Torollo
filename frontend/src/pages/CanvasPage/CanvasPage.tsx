@@ -8,6 +8,7 @@ import NatNode from '../../features/nodes/NatNode/NatNode';
 import NatGatewayModal from '../../features/nodes/NatNode/NatGatewayModal';
 import PostgresNode from '../../features/nodes/PostgresNode/PostgresNode';
 import PostgresModal from '../../features/nodes/PostgresNode/PostgresModal';
+import NoSqlNode from '../../features/nodes/NoSqlNode/NoSqlNode';
 
 import LoadBalancerNode from '../../features/nodes/LoadBalancerNode/LoadBalancerNode';
 import LoadBalancerModal from '../../features/nodes/LoadBalancerNode/LoadBalancerModal';
@@ -166,6 +167,7 @@ export default function CanvasPage({ projectId, projectName, onBackToProjects, o
   const nodeTypes = useMemo(() => ({
     ubuntu: UbuntuNode,
     postgres: PostgresNode,
+    nosql: NoSqlNode,
     nat: NatNode,
     vpc: VpcNode,
     subnet: SubnetNode,
