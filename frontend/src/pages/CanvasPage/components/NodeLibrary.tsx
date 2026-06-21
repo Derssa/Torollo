@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { ChevronLeft, ChevronRight, Server, Database, Library, Network, Search, Globe, GitFork, Cpu } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Server, Library, Network, Search, GitFork, Table2, Braces, Layers, ArrowRightLeft } from 'lucide-react';
 
 interface NodeLibraryProps {
   onCollapseChange?: (collapsed: boolean) => void;
@@ -42,8 +42,8 @@ export default function NodeLibrary({ onCollapseChange }: NodeLibraryProps) {
           type: 'nat',
           name: 'NAT Gateway',
           desc: 'Outbound internet routing',
-          icon: <Globe size={18} color="#8B5CF6" />,
-          collapsedIcon: <Globe size={20} color="#8B5CF6" />
+          icon: <ArrowRightLeft size={18} color="#8B5CF6" />,
+          collapsedIcon: <ArrowRightLeft size={20} color="#8B5CF6" />
         },
         {
           type: 'loadbalancer',
@@ -68,8 +68,8 @@ export default function NodeLibrary({ onCollapseChange }: NodeLibraryProps) {
           type: 'autoscalinggroup',
           name: 'Auto Scaling Group',
           desc: 'Dynamic instance pool',
-          icon: <Cpu size={18} color="#EC4899" />,
-          collapsedIcon: <Cpu size={20} color="#EC4899" />
+          icon: <Layers size={18} color="#EC4899" />,
+          collapsedIcon: <Layers size={20} color="#EC4899" />
         }
       ]
     },
@@ -78,12 +78,18 @@ export default function NodeLibrary({ onCollapseChange }: NodeLibraryProps) {
       nodes: [
         {
           type: 'postgres',
-          name: 'PostgreSQL',
+          name: 'SQL Database',
           desc: 'Relational DB + Shell',
-          icon: <Database size={18} color="#10B981" />,
-          collapsedIcon: <Database size={20} color="#10B981" />
+          icon: <Table2 size={18} color="#64748B" />,
+          collapsedIcon: <Table2 size={20} color="#64748B" />
         },
-
+        {
+          type: 'nosql',
+          name: 'NoSQL Database',
+          desc: 'Document DB + Shell',
+          icon: <Braces size={18} color="#475569" />,
+          collapsedIcon: <Braces size={20} color="#475569" />
+        }
       ]
     }
   ];
