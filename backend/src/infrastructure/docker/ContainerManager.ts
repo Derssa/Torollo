@@ -36,7 +36,7 @@ export class ContainerManager {
   }
   private static readonly UBUNTU_IMAGE_TAG = 'derssa/backend-lab-ubuntu:v1';
   private static readonly POSTGRES_IMAGE_TAG = 'derssa/backend-lab-postgres:v1';
-  private static readonly MONGO_IMAGE_TAG = 'derssa/backend-lab-mongo:v1';
+  private static readonly MONGO_IMAGE_TAG = 'derssa/backend-lab-mongo:v2';
   private static readonly NGINX_IMAGE_TAG = 'derssa/backend-lab-nginx:v1';
 
   /**

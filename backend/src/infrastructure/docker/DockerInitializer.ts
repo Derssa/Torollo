@@ -3,7 +3,7 @@ import docker from './DockerClient';
 export class DockerInitializer {
   private static readonly UBUNTU_IMAGE_TAG = 'derssa/backend-lab-ubuntu:v1';
   private static readonly POSTGRES_IMAGE_TAG = 'derssa/backend-lab-postgres:v1';
-  private static readonly MONGO_IMAGE_TAG = 'derssa/backend-lab-mongo:v1';
+  private static readonly MONGO_IMAGE_TAG = 'derssa/backend-lab-mongo:v2';
   private static isInitializing = false;
 
   /**
@@ -195,7 +195,7 @@ export class DockerInitializer {
         console.log(`[DockerInitializer] Committing custom MongoDB image as ${tag}...`);
         await tempContainer.commit({
           repo: 'derssa/backend-lab-mongo',
-          tag: 'v1',
+          tag: 'v2',
           changes: [
             'ENTRYPOINT ["docker-entrypoint.sh"]',
             'CMD ["mongod"]'
