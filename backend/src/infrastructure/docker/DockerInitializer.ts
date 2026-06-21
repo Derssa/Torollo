@@ -193,7 +193,14 @@ export class DockerInitializer {
         });
 
         console.log(`[DockerInitializer] Committing custom MongoDB image as ${tag}...`);
-        await tempContainer.commit({ repo: 'derssa/backend-lab-mongo', tag: 'v1' });
+        await tempContainer.commit({
+          repo: 'derssa/backend-lab-mongo',
+          tag: 'v1',
+          changes: [
+            'ENTRYPOINT ["docker-entrypoint.sh"]',
+            'CMD ["mongod"]'
+          ]
+        });
 
         console.log(`[DockerInitializer] Cleaning up temporary build container...`);
         await tempContainer.remove({ force: true });
