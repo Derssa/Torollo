@@ -123,11 +123,11 @@ export class ContainerService {
     if (dbsJson.startsWith('ERROR')) {
       throw new Error(dbsJson);
     }
-    let databases: string[] = [];
+    let databases: string[];
     try {
       databases = JSON.parse(dbsJson);
-    } catch (e) {
-      throw new Error("Failed to parse MongoDB databases list: " + dbsJson);
+    } catch (e: any) {
+      throw new Error("Failed to parse MongoDB databases list: " + dbsJson, { cause: e });
     }
 
     const systemDbs = ['admin', 'config', 'local'];
