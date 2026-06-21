@@ -51,7 +51,20 @@ export default function NoSqlModal({ containerId, nodeName, projectId, onClose }
   const [cpuLimit, setCpuLimit] = useState(1);
   const [memoryLimit, setMemoryLimit] = useState(512);
   const [shards, setShards] = useState(2);
+  const [replicas, setReplicas] = useState(1);
   const [scalingLoading, setScalingLoading] = useState(false);
+
+  // Zoom and Pan states for interactive topology viewport
+  const [zoomScale, setZoomScale] = useState(1);
+  const [panOffset, setPanOffset] = useState({ x: 0, y: 0 });
+  const [isPanning, setIsPanning] = useState(false);
+  const [panStart, setPanStart] = useState({ x: 0, y: 0 });
+
+  // Floating query particles
+  const [particles, setParticles] = useState<Array<{ id: string; target: number; isWrite: boolean; isReplicaCopy?: boolean; replicaIndex?: number; isStale?: boolean }>>([]);
+
+  // Active highlighted target node for simulation flash
+  const [activeHighlightNode, setActiveHighlightNode] = useState<string | null>(null);
 
   // Simulation tab states
   const [trafficActive, setTrafficActive] = useState(false);
@@ -99,6 +112,26 @@ export default function NoSqlModal({ containerId, nodeName, projectId, onClose }
     fetchExplorerData();
   }, [fetchExplorerData]);
 
+  // Interactive zoom & pan helper handlers
+  const handleMouseDown = (e: React.MouseEvent) => {
+    setIsPanning(true);
+    setPanStart({ x: e.clientX - panOffset.x, y: e.clientY - panOffset.y });
+  };
+
+  const handleMouseMove = (e: React.MouseEvent) => {
+    if (!isPanning) return;
+    setPanOffset({ x: e.clientX - panStart.x, y: e.clientY - panStart.y });
+  };
+
+  const handleMouseUp = () => {
+    setIsPanning(false);
+  };
+
+  const handleWheel = (e: React.WheelEvent) => {
+    const scaleChange = e.deltaY < 0 ? 0.08 : -0.08;
+    setZoomScale(prev => Math.max(0.5, Math.min(2.0, prev + scaleChange)));
+  };
+
   // Traffic simulation (sharding hash routing + eventual consistency)
   useEffect(() => {
     if (!trafficActive || activeTab !== 'simulation') return;
@@ -108,6 +141,7 @@ export default function NoSqlModal({ containerId, nodeName, projectId, onClose }
       const timeStr = new Date().toLocaleTimeString();
       const logId = Math.random().toString(36).substr(2, 9);
       const randomDocId = Math.random().toString(36).substring(3, 11);
+      const particleId = Math.random().toString(36).substr(2, 9);
 
       // Simple hash helper
       let hash = 0;
@@ -120,31 +154,114 @@ export default function NoSqlModal({ containerId, nodeName, projectId, onClose }
         setLastHashedKey(randomDocId);
         setLastShardIndex(targetShard);
         setSimLogs(prev => [
-          { id: logId, type: 'route', msg: `WRITE: Document ID [${randomDocId}] -> md5Hash(${randomDocId}) -> Routed to Shard #${targetShard + 1} (Partition ${targetShard})`, time: timeStr },
+          { id: logId, type: 'route', msg: `WRITE: Document ID [${randomDocId}] -> md5Hash(${randomDocId}) -> Routed to Shard Primary #${targetShard + 1} (Partition ${targetShard})`, time: timeStr },
           ...prev.slice(0, 19)
         ]);
         setSimMetrics(prev => ({ ...prev, routed: prev.routed + 1 }));
+
+        // Spawn write particle to Shard Primary
+        setParticles(prev => [...prev, { id: particleId, target: targetShard, isWrite: true }]);
+        setActiveHighlightNode(`shard-primary-${targetShard}`);
+
+        // Replicating to replica members (visual secondary particles)
+        if (replicas > 0) {
+          setTimeout(() => {
+            for (let r = 0; r < replicas; r++) {
+              const repParticleId = Math.random().toString(36).substr(2, 9);
+              setParticles(prev => [...prev, { id: repParticleId, target: targetShard, isWrite: true, isReplicaCopy: true, replicaIndex: r }]);
+            }
+          }, 400);
+        }
+
+        setTimeout(() => {
+          setParticles(prev => prev.filter(p => p.id !== particleId));
+          setActiveHighlightNode(null);
+        }, 800);
       } else {
         // Read: demonstrate eventual consistency stale reads occasionally
-        const isStale = Math.random() > 0.8;
+        const isStale = replicas > 0 && Math.random() > 0.8;
         if (isStale) {
+          const targetReplica = Math.floor(Math.random() * replicas);
           setSimLogs(prev => [
-            { id: logId, type: 'warn', msg: `READ WARNING: Read request for [${randomDocId}] returned stale secondary replica state (Eventual Consistency lag).`, time: timeStr },
+            { id: logId, type: 'warn', msg: `READ WARNING: Read query for [${randomDocId}] routed to Shard #${targetShard + 1} Replica #${targetReplica + 1} returned stale secondary state (Eventual Consistency lag).`, time: timeStr },
             ...prev.slice(0, 19)
           ]);
           setSimMetrics(prev => ({ ...prev, staleReads: prev.staleReads + 1 }));
+
+          setParticles(prev => [...prev, { id: particleId, target: targetShard, isWrite: false, isStale: true, replicaIndex: targetReplica }]);
+          setActiveHighlightNode(`shard-replica-${targetShard}-${targetReplica}`);
+
+          setTimeout(() => {
+            setParticles(prev => prev.filter(p => p.id !== particleId));
+            setActiveHighlightNode(null);
+          }, 800);
         } else {
-          setSimLogs(prev => [
-            { id: logId, type: 'sys', msg: `READ: Query for ID [${randomDocId}] -> Query Router directed directly to Shard #${targetShard + 1}`, time: timeStr },
-            ...prev.slice(0, 19)
-          ]);
-          setSimMetrics(prev => ({ ...prev, routed: prev.routed + 1 }));
+          // Normal Read (can go to primary or replica if replicas > 0)
+          const useReplica = replicas > 0 && Math.random() > 0.5;
+          if (useReplica) {
+            const targetReplica = Math.floor(Math.random() * replicas);
+            setSimLogs(prev => [
+              { id: logId, type: 'sys', msg: `READ: Query for ID [${randomDocId}] -> Router directed to Shard #${targetShard + 1} Replica #${targetReplica + 1}`, time: timeStr },
+              ...prev.slice(0, 19)
+            ]);
+            setSimMetrics(prev => ({ ...prev, routed: prev.routed + 1 }));
+
+            setParticles(prev => [...prev, { id: particleId, target: targetShard, isWrite: false, replicaIndex: targetReplica }]);
+            setActiveHighlightNode(`shard-replica-${targetShard}-${targetReplica}`);
+          } else {
+            setSimLogs(prev => [
+              { id: logId, type: 'sys', msg: `READ: Query for ID [${randomDocId}] -> Router directed to Shard Primary #${targetShard + 1}`, time: timeStr },
+              ...prev.slice(0, 19)
+            ]);
+            setSimMetrics(prev => ({ ...prev, routed: prev.routed + 1 }));
+
+            setParticles(prev => [...prev, { id: particleId, target: targetShard, isWrite: false }]);
+            setActiveHighlightNode(`shard-primary-${targetShard}`);
+          }
+
+          setTimeout(() => {
+            setParticles(prev => prev.filter(p => p.id !== particleId));
+            setActiveHighlightNode(null);
+          }, 800);
         }
       }
     }, 1000);
 
     return () => clearInterval(interval);
-  }, [trafficActive, shards, activeTab]);
+  }, [trafficActive, shards, replicas, activeTab]);
+
+  const getShardsStyles = () => {
+    let styleStr = '';
+    for (let i = 0; i < shards; i++) {
+      const topPercent = shards === 1 ? 50 : 15 + (i * 70) / (shards - 1);
+      
+      // Animation from mongos (left: 10%) to shard primary (left: 45%)
+      styleStr += `
+        @keyframes flowToShardPrimary${i} {
+          0% { left: 15%; top: 50%; opacity: 1; }
+          100% { left: 45%; top: ${topPercent}%; opacity: 0.8; }
+        }
+      `;
+
+      // Animations for replica copy flow
+      for (let r = 0; r < 3; r++) {
+        const repOffset = (r - (replicas - 1) / 2) * 12;
+        const repTopPercent = topPercent + (replicas > 1 ? repOffset : 0);
+        
+        styleStr += `
+          @keyframes flowToShardReplica${i}_${r} {
+            0% { left: 15%; top: 50%; opacity: 1; }
+            100% { left: 78%; top: ${repTopPercent}%; opacity: 0.8; }
+          }
+          @keyframes replicationToShardReplica${i}_${r} {
+            0% { left: 45%; top: ${topPercent}%; opacity: 1; }
+            100% { left: 78%; top: ${repTopPercent}%; opacity: 0.8; }
+          }
+        `;
+      }
+    }
+    return styleStr;
+  };
 
   const handleUpdateLimits = async () => {
     try {
@@ -345,36 +462,60 @@ export default function NoSqlModal({ containerId, nodeName, projectId, onClose }
                 </div>
 
                 <div style={{ border: '1px solid #E2E8F0', borderRadius: '8px', padding: '16px' }}>
-                  <h4 style={{ margin: '0 0 16px 0', fontSize: '14px', color: '#334155' }}>Horizontal Scaling (Sharding)</h4>
+                  <h4 style={{ margin: '0 0 16px 0', fontSize: '14px', color: '#334155' }}>Horizontal Scaling & Replication</h4>
                   
-                  <div style={{ marginBottom: '20px' }}>
-                    <label style={{ display: 'block', fontSize: '12px', fontWeight: 600, marginBottom: '8px' }}>
-                      Shard Partitions Count
-                    </label>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-                      <button
-                        onClick={() => setShards(prev => Math.max(1, prev - 1))}
-                        style={{ width: '32px', height: '32px', borderRadius: '6px', border: '1px solid #CBD5E1', cursor: 'pointer', fontWeight: 'bold' }}
-                      >
-                        -
-                      </button>
-                      <span style={{ fontSize: '16px', fontWeight: 'bold', width: '20px', textAlign: 'center' }}>{shards}</span>
-                      <button
-                        onClick={() => setShards(prev => Math.min(5, prev + 1))}
-                        style={{ width: '32px', height: '32px', borderRadius: '6px', border: '1px solid #CBD5E1', cursor: 'pointer', fontWeight: 'bold' }}
-                      >
-                        +
-                      </button>
+                  <div style={{ marginBottom: '16px', display: 'flex', gap: '24px' }}>
+                    <div>
+                      <label style={{ display: 'block', fontSize: '12px', fontWeight: 600, marginBottom: '8px' }}>
+                        Shard Partitions
+                      </label>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                        <button
+                          onClick={() => setShards(prev => Math.max(1, prev - 1))}
+                          style={{ width: '32px', height: '32px', borderRadius: '6px', border: '1px solid #CBD5E1', cursor: 'pointer', fontWeight: 'bold' }}
+                        >
+                          -
+                        </button>
+                        <span style={{ fontSize: '16px', fontWeight: 'bold', width: '20px', textAlign: 'center' }}>{shards}</span>
+                        <button
+                          onClick={() => setShards(prev => Math.min(5, prev + 1))}
+                          style={{ width: '32px', height: '32px', borderRadius: '6px', border: '1px solid #CBD5E1', cursor: 'pointer', fontWeight: 'bold' }}
+                        >
+                          +
+                        </button>
+                      </div>
                     </div>
-                    <span style={{ fontSize: '11px', color: '#64748B', display: 'block', marginTop: '6px' }}>
-                      Partition data across {shards} shards using hash keys. Increases write throughput and distributes document storage.
-                    </span>
+
+                    <div>
+                      <label style={{ display: 'block', fontSize: '12px', fontWeight: 600, marginBottom: '8px' }}>
+                        Replica Members
+                      </label>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                        <button
+                          onClick={() => setReplicas(prev => Math.max(0, prev - 1))}
+                          style={{ width: '32px', height: '32px', borderRadius: '6px', border: '1px solid #CBD5E1', cursor: 'pointer', fontWeight: 'bold' }}
+                        >
+                          -
+                        </button>
+                        <span style={{ fontSize: '16px', fontWeight: 'bold', width: '20px', textAlign: 'center' }}>{replicas}</span>
+                        <button
+                          onClick={() => setReplicas(prev => Math.min(3, prev + 1))}
+                          style={{ width: '32px', height: '32px', borderRadius: '6px', border: '1px solid #CBD5E1', cursor: 'pointer', fontWeight: 'bold' }}
+                        >
+                          +
+                        </button>
+                      </div>
+                    </div>
                   </div>
 
+                  <span style={{ fontSize: '11px', color: '#64748B', display: 'block', marginBottom: '12px' }}>
+                    Shards partition collections horizontally using hash keys. Replicas provide high availability and read scalability for each shard partition.
+                  </span>
+
                   <div style={{ backgroundColor: '#F8FAFC', borderRadius: '6px', padding: '12px', borderLeft: '3px solid #2563EB' }}>
-                    <h5 style={{ margin: '0 0 4px 0', fontSize: '11px', textTransform: 'uppercase', color: '#475569' }}>Sharding Concept</h5>
+                    <h5 style={{ margin: '0 0 4px 0', fontSize: '11px', textTransform: 'uppercase', color: '#475569' }}>Architecture Note</h5>
                     <span style={{ fontSize: '11px', color: '#64748B' }}>
-                      NoSQL databases scale horizontally by splitting collections. A query router (mongos) computes the hash of the shard key to locate the target partition.
+                      MongoDB sharding uses mongos as the query router. Each shard can be a replica set. Replicas synchronize data asynchronously via oplog tailing.
                     </span>
                   </div>
                 </div>
@@ -421,53 +562,214 @@ export default function NoSqlModal({ containerId, nodeName, projectId, onClose }
                 </div>
               </div>
 
-              {/* Topology sharding visual map */}
-              <div style={{ flex: 1, minHeight: '180px', border: '1px solid #E2E8F0', borderRadius: '8px', backgroundColor: '#0F172A', position: 'relative', display: 'flex', justifyContent: 'center', alignItems: 'center', overflow: 'hidden' }}>
-                {/* Client / App router */}
-                <div style={{ position: 'absolute', left: '8%', display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
-                  <Server size={28} color="#94A3B8" />
-                  <span style={{ color: '#E2E8F0', fontSize: '10px', marginTop: '4px' }}>mongos Router</span>
-                </div>
+              {/* Dynamic CSS Styles for Simulation Animations */}
+              <style dangerouslySetInnerHTML={{__html: `
+                .flow-particle {
+                  position: absolute;
+                  width: 8px;
+                  height: 8px;
+                  border-radius: 50%;
+                  pointer-events: none;
+                  z-index: 20;
+                  box-shadow: 0 0 8px currentColor;
+                }
+                .ring-glow {
+                  position: absolute;
+                  border-radius: 50%;
+                  pointer-events: none;
+                  animation: ringFlash 0.8s ease-out forwards;
+                  border: 2px solid currentColor;
+                  z-index: 10;
+                }
+                @keyframes ringFlash {
+                  0% { width: 40px; height: 40px; opacity: 0.8; }
+                  100% { width: 80px; height: 80px; opacity: 0; }
+                }
+                ${getShardsStyles()}
+              `}} />
 
-                {/* Arrow */}
-                <div style={{ position: 'absolute', left: '26%', color: '#475569' }}>
-                  <span style={{ fontSize: '16px' }}>➔</span>
-                </div>
+              {/* Topology Map Wrapper (Zoom/Pan Container) */}
+              <div 
+                onMouseDown={handleMouseDown}
+                onMouseMove={handleMouseMove}
+                onMouseUp={handleMouseUp}
+                onMouseLeave={handleMouseUp}
+                onWheel={handleWheel}
+                style={{ 
+                  flex: 1, 
+                  minHeight: '260px', 
+                  border: '1px solid #E2E8F0', 
+                  borderRadius: '8px', 
+                  backgroundColor: '#0F172A', 
+                  position: 'relative', 
+                  overflow: 'hidden',
+                  cursor: isPanning ? 'grabbing' : 'grab',
+                  userSelect: 'none'
+                }}
+              >
+                {/* Reset Zoom Button */}
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setZoomScale(1);
+                    setPanOffset({ x: 0, y: 0 });
+                  }}
+                  style={{
+                    position: 'absolute',
+                    top: '10px',
+                    left: '10px',
+                    backgroundColor: 'rgba(15, 23, 42, 0.8)',
+                    border: '1px solid #334155',
+                    borderRadius: '4px',
+                    color: '#94A3B8',
+                    padding: '2px 8px',
+                    fontSize: '11px',
+                    cursor: 'pointer',
+                    zIndex: 30
+                  }}
+                >
+                  Reset View (Zoom: {Math.round(zoomScale * 100)}%)
+                </button>
 
-                {/* Hashing status display */}
+                {/* Hashing key status overlay */}
                 {lastHashedKey && (
-                  <div style={{ position: 'absolute', top: '10px', left: '30%', backgroundColor: 'rgba(59, 130, 246, 0.1)', border: '1px solid rgba(59, 130, 246, 0.2)', borderRadius: '6px', padding: '4px 10px', fontSize: '10px', color: '#93C5FD', fontFamily: 'monospace' }}>
-                    key: "{lastHashedKey}" ➔ md5_hash ➔ Shard {lastShardIndex + 1}
+                  <div style={{ 
+                    position: 'absolute', 
+                    top: '10px', 
+                    right: '10px', 
+                    backgroundColor: 'rgba(59, 130, 246, 0.15)', 
+                    border: '1px solid rgba(59, 130, 246, 0.3)', 
+                    borderRadius: '6px', 
+                    padding: '4px 10px', 
+                    fontSize: '11px', 
+                    color: '#93C5FD', 
+                    fontFamily: 'monospace',
+                    zIndex: 30
+                  }}>
+                    Key: "{lastHashedKey}" ➔ MD5 ➔ Shard {lastShardIndex + 1}
                   </div>
                 )}
 
-                {/* Shards wrapper */}
-                <div style={{ position: 'absolute', right: '10%', display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                  {Array.from({ length: shards }).map((_, i) => (
-                    <div
-                      key={i}
-                      style={{
-                        display: 'flex',
-                        alignItems: 'center',
-                        gap: '8px',
-                        border: lastShardIndex === i ? '1px solid #10B981' : '1px solid transparent',
-                        borderRadius: '6px',
-                        padding: '4px',
-                        transition: 'all 0.2s',
-                        backgroundColor: lastShardIndex === i ? 'rgba(16, 185, 129, 0.05)' : undefined
-                      }}
-                    >
-                      <span style={{ color: lastShardIndex === i ? '#10B981' : '#475569' }}>➔</span>
-                      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
-                        <Database size={24} color={lastShardIndex === i ? '#10B981' : '#475569'} />
-                        <span style={{ color: '#E2E8F0', fontSize: '9px' }}>Shard Partition #{i + 1}</span>
+                {/* Inner Viewport applying Zoom & Pan */}
+                <div style={{
+                  width: '100%',
+                  height: '100%',
+                  position: 'absolute',
+                  transform: `translate(${panOffset.x}px, ${panOffset.y}px) scale(${zoomScale})`,
+                  transformOrigin: 'center center',
+                  display: 'flex',
+                  justifyContent: 'center',
+                  alignItems: 'center'
+                }}>
+                  {/* mongos Router */}
+                  <div style={{ position: 'absolute', left: '10%', top: '50%', transform: 'translateY(-50%)', display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+                    <Server size={32} color="#94A3B8" />
+                    <span style={{ color: '#E2E8F0', fontSize: '11px', marginTop: '6px', fontWeight: 600 }}>mongos Router</span>
+                    <span style={{ color: '#64748B', fontSize: '10px' }}>10.0.2.1</span>
+                  </div>
+
+                  {/* Flowing Query Particles */}
+                  {particles.map(p => {
+                    const animName = p.isReplicaCopy 
+                      ? `replicationToShardReplica${p.target}_${p.replicaIndex ?? 0}`
+                      : (p.replicaIndex !== undefined 
+                          ? `flowToShardReplica${p.target}_${p.replicaIndex}` 
+                          : `flowToShardPrimary${p.target}`);
+                    const color = p.isWrite ? '#10B981' : (p.isStale ? '#F59E0B' : '#3B82F6');
+                    return (
+                      <div
+                        key={p.id}
+                        className="flow-particle"
+                        style={{
+                          color,
+                          backgroundColor: color,
+                          animation: `${animName} 0.8s ease-in-out forwards`
+                        }}
+                      />
+                    );
+                  })}
+
+                  {/* Shard Primaries List */}
+                  {Array.from({ length: shards }).map((_, i) => {
+                    const topPercent = shards === 1 ? 50 : 15 + (i * 70) / (shards - 1);
+                    const isNodeActive = activeHighlightNode === `shard-primary-${i}`;
+                    return (
+                      <div 
+                        key={i} 
+                        style={{ 
+                          position: 'absolute', 
+                          left: '42%', 
+                          top: `${topPercent}%`, 
+                          transform: 'translateY(-50%)', 
+                          display: 'flex', 
+                          flexDirection: 'column', 
+                          alignItems: 'center' 
+                        }}
+                      >
+                        <div style={{ position: 'relative', display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
+                          <Database size={40} color={isNodeActive ? '#10B981' : '#64748B'} />
+                          {isNodeActive && (
+                            <div className="ring-glow" style={{ color: '#10B981' }} />
+                          )}
+                        </div>
+                        <span style={{ color: '#E2E8F0', fontSize: '11px', fontWeight: 'bold', marginTop: '4px' }}>Shard Primary #{i + 1}</span>
+                        <span style={{ color: '#64748B', fontSize: '9px' }}>10.0.2.${10 + i * 10}</span>
                       </div>
-                    </div>
-                  ))}
+                    );
+                  })}
+
+                  {/* Replica Members List per Shard */}
+                  {replicas > 0 && Array.from({ length: shards }).map((_, i) => {
+                    const topPercent = shards === 1 ? 50 : 15 + (i * 70) / (shards - 1);
+                    return (
+                      <div 
+                        key={i} 
+                        style={{ 
+                          position: 'absolute', 
+                          right: '12%', 
+                          top: `${topPercent}%`, 
+                          transform: 'translateY(-50%)', 
+                          display: 'flex', 
+                          flexDirection: 'column', 
+                          gap: '8px', 
+                          justifyContent: 'center' 
+                        }}
+                      >
+                        {Array.from({ length: replicas }).map((_, r) => {
+                          const repOffset = (r - (replicas - 1) / 2) * 12;
+                          const repTopPercent = replicas > 1 ? repOffset : 0;
+                          const isNodeActive = activeHighlightNode === `shard-replica-${i}-${r}`;
+                          
+                          return (
+                            <div 
+                              key={r} 
+                              style={{ 
+                                display: 'flex', 
+                                alignItems: 'center', 
+                                gap: '8px', 
+                                transform: `translateY(${repTopPercent}px)` 
+                              }}
+                            >
+                              <span style={{ color: '#3B82F6', fontSize: '12px' }}>➔</span>
+                              <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+                                <div style={{ position: 'relative', display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
+                                  <Database size={24} color={isNodeActive ? '#3B82F6' : '#475569'} />
+                                  {isNodeActive && (
+                                    <div className="ring-glow" style={{ color: '#3B82F6' }} />
+                                  )}
+                                </div>
+                                <span style={{ color: '#E2E8F0', fontSize: '9px' }}>Replica #{r + 1}</span>
+                                <span style={{ color: '#64748B', fontSize: '8px' }}>10.0.2.${10 + i * 10 + r + 1}</span>
+                              </div>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    );
+                  })}
                 </div>
               </div>
-
-              {/* Logs output */}
+                            {/* Logs output */}
               <div style={{ height: '140px', display: 'flex', flexDirection: 'column' }}>
                 <div style={{ fontSize: '11px', fontWeight: 600, color: '#64748B', textTransform: 'uppercase', marginBottom: '6px' }}>
                   Simulated Event Log
