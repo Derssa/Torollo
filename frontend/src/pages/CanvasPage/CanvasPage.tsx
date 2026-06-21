@@ -169,6 +169,7 @@ export default function CanvasPage({ projectId, projectName, onBackToProjects, o
   const nodeTypes = useMemo(() => ({
     ubuntu: UbuntuNode,
     postgres: PostgresNode,
+    sql: PostgresNode,
     nosql: NoSqlNode,
     nat: NatNode,
     vpc: VpcNode,
@@ -748,7 +749,7 @@ export default function CanvasPage({ projectId, projectName, onBackToProjects, o
             },
             onTerminalOpen: (nodeType === 'loadbalancer' || nodeType === 'autoscalinggroup') ? () => {} : onTerminalOpen,
             onInspect: (id: string, name: string) => {
-              if (nodeType === 'postgres') {
+              if (nodeType === 'postgres' || nodeType === 'sql') {
                 setInspectingPostgres({ id, name });
               } else if (nodeType === 'nosql') {
                 setInspectingNosql({ id, name });
