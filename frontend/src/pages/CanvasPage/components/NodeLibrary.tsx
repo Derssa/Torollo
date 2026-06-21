@@ -83,13 +83,7 @@ export default function NodeLibrary({ onCollapseChange }: NodeLibraryProps) {
           icon: <Database size={18} color="#10B981" />,
           collapsedIcon: <Database size={20} color="#10B981" />
         },
-        {
-          type: 'mysql',
-          name: 'MySQL',
-          desc: 'Oracle DB + Shell',
-          icon: <Database size={18} color="#F29111" />,
-          collapsedIcon: <Database size={20} color="#F29111" />
-        }
+
       ]
     }
   ];
