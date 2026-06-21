@@ -74,6 +74,7 @@ export default function PostgresModal({ containerId, nodeName, projectId, onClos
   ]);
   const [simMetrics, setSimMetrics] = useState({ reads: 0, writes: 0, errors: 0 });
   const [trafficActive, setTrafficActive] = useState(false);
+  const [lastPartitionTarget, setLastPartitionTarget] = useState<number>(-1);
 
   const fetchExplorerDataRef = useRef<() => Promise<void>>(undefined);
 
@@ -175,13 +176,14 @@ export default function PostgresModal({ containerId, nodeName, projectId, onClos
         } else {
           const insertId = Math.floor(Math.random() * 1000);
           const targetPartition = insertId % partitions;
+          setLastPartitionTarget(targetPartition);
           setSimLogs(prev => [
             { id: logId, type: 'write', msg: `WRITE SUCCESS: INSERT INTO users VALUES(${insertId}) -> Routed to Primary (10.0.1.2) -> Partition [users_p${targetPartition}]`, time: timeStr },
             ...prev.slice(0, 19)
           ]);
           setSimMetrics(prev => ({ ...prev, writes: prev.writes + 1 }));
 
-           // Spawn successful write particle
+          // Spawn successful write particle
           setParticles(prev => [...prev, { id: particleId, target: 'primary', isWrite: true }]);
           setActiveHighlightNode('primary');
 
@@ -212,6 +214,7 @@ export default function PostgresModal({ containerId, nodeName, projectId, onClos
           const targetReplica = Math.floor(Math.random() * replicas) + 1;
           const readId = Math.floor(Math.random() * 1000);
           const sourcePartition = readId % partitions;
+          setLastPartitionTarget(sourcePartition);
           setSimLogs(prev => [
             { id: logId, type: 'read', msg: `READ SUCCESS: SELECT * FROM users_p${sourcePartition} -> Load balanced to Replica #${targetReplica} (10.0.1.${2 + targetReplica})`, time: timeStr },
             ...prev.slice(0, 19)
@@ -243,6 +246,7 @@ export default function PostgresModal({ containerId, nodeName, projectId, onClos
           } else {
             const readId = Math.floor(Math.random() * 1000);
             const sourcePartition = readId % partitions;
+            setLastPartitionTarget(sourcePartition);
             setSimLogs(prev => [
               { id: logId, type: 'read', msg: `READ SUCCESS: SELECT * FROM users_p${sourcePartition} -> Routed to Primary (10.0.1.2) [No Replicas Defined]`, time: timeStr },
               ...prev.slice(0, 19)
@@ -876,8 +880,7 @@ export default function PostgresModal({ containerId, nodeName, projectId, onClos
                   <div style={{ position: 'absolute', left: '30%', top: '50%', transform: 'translateY(-50%)', color: trafficActive ? '#10B981' : '#475569' }}>
                     <span className={trafficActive ? 'pulse' : ''} style={{ fontSize: '18px', fontWeight: 'bold' }}>➔</span>
                   </div>
-
-                  {/* Primary DB Node */}
+                   {/* Primary DB Node */}
                   <div style={{ position: 'absolute', left: '42%', top: '50%', transform: 'translateY(-50%)', display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
                     <div style={{ position: 'relative', display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
                       <Database size={44} color={isPrimaryCrashed ? '#EF4444' : '#10B981'} />
@@ -889,6 +892,34 @@ export default function PostgresModal({ containerId, nodeName, projectId, onClos
                     <span style={{ color: isPrimaryCrashed ? '#EF4444' : '#10B981', fontSize: '10px' }}>
                       {isPrimaryCrashed ? 'OFFLINE (Crashed)' : 'ONLINE (10.0.1.2)'}
                     </span>
+
+                    {/* Table Partitions Display */}
+                    {!isPrimaryCrashed && (
+                      <div style={{ display: 'flex', gap: '4px', marginTop: '10px', backgroundColor: 'rgba(30, 41, 59, 0.5)', padding: '4px 8px', borderRadius: '6px', border: '1px solid #334155' }}>
+                        {Array.from({ length: partitions }).map((_, pIdx) => {
+                          const isPartActive = activeHighlightNode === 'primary' && lastPartitionTarget === pIdx;
+                          return (
+                            <div
+                              key={pIdx}
+                              style={{
+                                fontSize: '9px',
+                                padding: '2px 5px',
+                                borderRadius: '4px',
+                                backgroundColor: isPartActive ? 'rgba(16, 185, 129, 0.25)' : 'rgba(15, 23, 42, 0.6)',
+                                border: isPartActive ? '1px solid #10B981' : '1px solid #475569',
+                                color: isPartActive ? '#10B981' : '#94A3B8',
+                                fontWeight: 'bold',
+                                fontFamily: 'monospace',
+                                transition: 'all 0.15s ease-in-out'
+                              }}
+                              title={`Partition: users_p${pIdx}`}
+                            >
+                              p{pIdx}
+                            </div>
+                          );
+                        })}
+                      </div>
+                    )}
                   </div>
 
                   {/* Replicas container */}
