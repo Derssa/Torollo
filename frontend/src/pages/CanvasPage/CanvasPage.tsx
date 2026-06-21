@@ -8,8 +8,7 @@ import NatNode from '../../features/nodes/NatNode/NatNode';
 import NatGatewayModal from '../../features/nodes/NatNode/NatGatewayModal';
 import PostgresNode from '../../features/nodes/PostgresNode/PostgresNode';
 import PostgresModal from '../../features/nodes/PostgresNode/PostgresModal';
-import MysqlNode from '../../features/nodes/MysqlNode/MysqlNode';
-import MysqlModal from '../../features/nodes/MysqlNode/MysqlModal';
+
 import LoadBalancerNode from '../../features/nodes/LoadBalancerNode/LoadBalancerNode';
 import LoadBalancerModal from '../../features/nodes/LoadBalancerNode/LoadBalancerModal';
 import AsgNode from '../../features/nodes/AsgNode/AsgNode';
@@ -118,7 +117,7 @@ export default function CanvasPage({ projectId, projectName, onBackToProjects, o
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [deleteTarget, setDeleteTarget] = useState<string | null>(null);
   const [inspectingPostgres, setInspectingPostgres] = useState<{ id: string; name: string } | null>(null);
-  const [inspectingMysql, setInspectingMysql] = useState<{ id: string; name: string } | null>(null);
+
   const [inspectingNat, setInspectingNat] = useState<{ id: string; name: string } | null>(null);
   const [inspectingLoadBalancer, setInspectingLoadBalancer] = useState<{ id: string; name: string } | null>(null);
   const [inspectingAsg, setInspectingAsg] = useState<{ id: string; name: string } | null>(null);
@@ -167,7 +166,6 @@ export default function CanvasPage({ projectId, projectName, onBackToProjects, o
   const nodeTypes = useMemo(() => ({
     ubuntu: UbuntuNode,
     postgres: PostgresNode,
-    mysql: MysqlNode,
     nat: NatNode,
     vpc: VpcNode,
     subnet: SubnetNode,
@@ -202,7 +200,7 @@ export default function CanvasPage({ projectId, projectName, onBackToProjects, o
     const result = validateArchitecture(configToValidate, containers);
 
     // Detect DB nodes count
-    const currentDbCount = containers.filter(c => ['postgres', 'mysql'].includes(c.type || '')).length;
+    const currentDbCount = containers.filter(c => ['postgres', 'sql', 'nosql'].includes(c.type || '')).length;
     if (currentDbCount > prevDbCountRef.current) {
       hasShownCacheWarningRef.current = false;
     }
@@ -396,9 +394,9 @@ export default function CanvasPage({ projectId, projectName, onBackToProjects, o
     if (!targetNode) return;
     const targetType = targetNode.type || 'ubuntu';
     
-    const isDb = ['postgres', 'mysql'].includes(targetType);
+    const isDb = ['postgres', 'sql', 'nosql', 'mysql'].includes(targetType);
     const defaultProtocol = isDb ? 'TCP' : 'ALL';
-    const defaultPort = targetType === 'postgres' ? '5432' : targetType === 'mysql' ? '3306' : 'ALL';
+    const defaultPort = (targetType === 'postgres' || targetType === 'sql') ? '5432' : (targetType === 'nosql') ? '27017' : (targetType === 'mysql') ? '3306' : 'ALL';
 
     const currentRules = networkConfig.nodeSecurityGroups[target] || [];
     const alreadyExists = currentRules.some(r => r.type === 'inbound' && r.action === 'ALLOW' && r.port === defaultPort && r.source === source);
@@ -746,9 +744,7 @@ export default function CanvasPage({ projectId, projectName, onBackToProjects, o
             },
             onTerminalOpen: (nodeType === 'loadbalancer' || nodeType === 'autoscalinggroup') ? () => {} : onTerminalOpen,
             onInspect: (id: string, name: string) => {
-              if (nodeType === 'mysql') {
-                setInspectingMysql({ id, name });
-              } else if (nodeType === 'postgres') {
+              if (nodeType === 'postgres') {
                 setInspectingPostgres({ id, name });
               } else if (nodeType === 'nat') {
                 setInspectingNat({ id, name });
@@ -1391,10 +1387,10 @@ export default function CanvasPage({ projectId, projectName, onBackToProjects, o
       {showCreateModal && (
         <InputModal
           title={
-            dropState?.type === 'postgres'
-              ? "Create PostgreSQL Node"
-              : dropState?.type === 'mysql'
-                ? "Create MySQL Node"
+            (dropState?.type === 'postgres' || dropState?.type === 'sql')
+              ? "Create SQL Database Node"
+              : dropState?.type === 'nosql'
+                ? "Create NoSQL Database Node"
                 : dropState?.type === 'nat'
                   ? "Create NAT Gateway Node"
                   : dropState?.type === 'loadbalancer'
@@ -1405,10 +1401,10 @@ export default function CanvasPage({ projectId, projectName, onBackToProjects, o
           }
           label="Give your new container a descriptive name."
           placeholder={
-            dropState?.type === 'postgres'
-              ? "e.g. pg-db, main-store"
-              : dropState?.type === 'mysql'
-                ? "e.g. mysql-db, orders"
+            (dropState?.type === 'postgres' || dropState?.type === 'sql')
+              ? "e.g. sql-db, main-store"
+              : dropState?.type === 'nosql'
+                ? "e.g. nosql-db, document-store"
                 : dropState?.type === 'nat'
                   ? "e.g. nat-gateway, internet-exit"
                   : dropState?.type === 'loadbalancer'
@@ -1421,10 +1417,10 @@ export default function CanvasPage({ projectId, projectName, onBackToProjects, o
             (() => {
               const type = dropState?.type || 'ubuntu';
               const prefix =
-                type === 'postgres'
-                  ? 'postgres-'
-                  : type === 'mysql'
-                    ? 'mysql-'
+                (type === 'postgres' || type === 'sql')
+                  ? 'sql-'
+                  : type === 'nosql'
+                    ? 'nosql-'
                     : type === 'nat'
                       ? 'NAT-'
                       : type === 'loadbalancer'
@@ -1465,14 +1461,7 @@ export default function CanvasPage({ projectId, projectName, onBackToProjects, o
         />
       )}
 
-      {inspectingMysql && (
-        <MysqlModal
-          containerId={inspectingMysql.id}
-          nodeName={inspectingMysql.name}
-          projectId={projectId}
-          onClose={() => setInspectingMysql(null)}
-        />
-      )}
+
 
       {inspectingNat && (
         <NatGatewayModal

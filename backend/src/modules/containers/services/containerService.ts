@@ -95,63 +95,82 @@ export class ContainerService {
     return ContainerManager.executePsqlCommand(containerId, database, query);
   }
 
-  public static async getMysqlExplorer(containerId: string) {
-    const dbsRaw = await ContainerManager.executeMysqlCommand(
+  public static async getNosqlExplorer(containerId: string) {
+    const dbsJson = await ContainerManager.executeMongoCommand(
       containerId,
-      'mysql',
-      'SHOW DATABASES;',
-      ['-N', '-B']
+      "JSON.stringify(db.adminCommand({ listDatabases: 1 }).databases.map(d => d.name))"
     );
-    if (dbsRaw.startsWith('ERROR') || dbsRaw.includes('Can\'t connect') || dbsRaw.includes('ERROR 2002')) {
-      throw new Error(dbsRaw);
+    if (dbsJson.startsWith('ERROR')) {
+      throw new Error(dbsJson);
     }
-    const systemDbs = ['information_schema', 'mysql', 'performance_schema', 'sys'];
-    const databases = dbsRaw
-      .split('\n')
-      .map(db => db.trim())
-      .filter(db => db && !systemDbs.includes(db));
+    let databases: string[] = [];
+    try {
+      databases = JSON.parse(dbsJson);
+    } catch (e) {
+      throw new Error("Failed to parse MongoDB databases list: " + dbsJson);
+    }
+
+    const systemDbs = ['admin', 'config', 'local'];
+    databases = databases.filter(db => !systemDbs.includes(db));
+
+    if (databases.length === 0) {
+      databases.push('test');
+    }
 
     const explorer: any[] = [];
 
-    for (const db of databases) {
+    for (const dbName of databases) {
       try {
-        const tablesRaw = await ContainerManager.executeMysqlCommand(
+        const collsJson = await ContainerManager.executeMongoCommand(
           containerId,
-          db,
-          'SHOW TABLES;',
-          ['-N', '-B']
+          `JSON.stringify(db.getSiblingDB('${dbName}').getCollectionNames())`
         );
-        const tables = tablesRaw.split('\n').map(t => t.trim()).filter(Boolean);
+        let collections: string[] = [];
+        try {
+          collections = JSON.parse(collsJson);
+        } catch {
+          // ignore
+        }
 
         const tableNodes: any[] = [];
-        for (const table of tables) {
-          const colsRaw = await ContainerManager.executeMysqlCommand(
+        for (const collName of collections) {
+          const docJson = await ContainerManager.executeMongoCommand(
             containerId,
-            db,
-            `SELECT COLUMN_NAME, DATA_TYPE FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_SCHEMA = '${db}' AND TABLE_NAME = '${table}';`,
-            ['-N', '-B']
+            `JSON.stringify(db.getSiblingDB('${dbName}').getCollection('${collName}').findOne() || {})`
           );
-          const columns = colsRaw.split('\n').map(line => {
-            const parts = line.split('\t');
+          let doc: Record<string, any> = {};
+          try {
+            doc = JSON.parse(docJson);
+          } catch {
+            // ignore
+          }
+
+          const columns = Object.entries(doc).map(([key, val]) => {
+            let typeStr = typeof val;
+            if (val && typeof val === 'object') {
+              if (val.$oid) typeStr = 'ObjectId';
+              else if (val.$date) typeStr = 'Date';
+              else typeStr = 'Object';
+            }
             return {
-              name: parts[0]?.trim(),
-              type: parts[1]?.trim()
+              name: key,
+              type: typeStr
             };
-          }).filter(c => c.name);
+          });
 
           tableNodes.push({
-            name: table,
+            name: collName,
             columns
           });
         }
 
         explorer.push({
-          database: db,
+          database: dbName,
           tables: tableNodes
         });
       } catch {
         explorer.push({
-          database: db,
+          database: dbName,
           tables: [],
           error: true
         });
@@ -161,7 +180,7 @@ export class ContainerService {
     return explorer;
   }
 
-  public static async executeMysqlQuery(containerId: string, database: string, query: string): Promise<string> {
-    return ContainerManager.executeMysqlCommand(containerId, database, query);
+  public static async executeNosqlQuery(containerId: string, query: string): Promise<string> {
+    return ContainerManager.executeMongoCommand(containerId, query);
   }
 }
