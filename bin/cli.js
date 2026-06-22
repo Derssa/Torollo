@@ -87,7 +87,7 @@ if (command === 'start') {
   (async () => {
     try {
       const frontendPort = await findAvailablePort(23232);
-      const backendPort = await findAvailablePort(23233);
+      const backendPort = await findAvailablePort(frontendPort + 1);
 
       const envContent = `window.TOROLLO_BACKEND_PORT = ${backendPort};`;
 
@@ -111,7 +111,7 @@ if (command === 'start') {
             prefixColor: 'blue' 
           },
           { 
-            command: `npx vite preview --port ${frontendPort}`, 
+            command: `npx vite preview --port ${frontendPort} --strictPort --host 127.0.0.1`, 
             name: 'frontend', 
             cwd: frontendPath,
             prefixColor: 'green' 
