@@ -1,5 +1,6 @@
 import fs from 'fs';
 import path from 'path';
+import os from 'os';
 import { ContainerManager } from '../../../infrastructure/docker/ContainerManager';
 import { NetworkService } from '../../network/services/networkService';
 
@@ -10,10 +11,14 @@ export interface Project {
   networkConfig?: any;
 }
 
-const DB_PATH = path.join(__dirname, '../../../../projects.json');
+const TOROLLO_DIR = path.join(os.homedir(), '.torollo');
+const DB_PATH = path.join(TOROLLO_DIR, 'projects.json');
 
 export class ProjectService {
   private static readDB(): Project[] {
+    if (!fs.existsSync(TOROLLO_DIR)) {
+      fs.mkdirSync(TOROLLO_DIR, { recursive: true });
+    }
     if (!fs.existsSync(DB_PATH)) {
       fs.writeFileSync(DB_PATH, JSON.stringify([]));
     }
