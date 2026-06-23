@@ -4,7 +4,7 @@ const { execSync, exec } = require('child_process');
 const path = require('path');
 const fs = require('fs');
 const net = require('net');
-const concurrently = require('concurrently');
+// concurrently removed
 
 const args = process.argv.slice(2);
 const command = args[0];
