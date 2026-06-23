@@ -1,6 +1,6 @@
 # TOROLLO — Backend Systems Lab
 
-> **A local-first educational platform for backend engineering and system design, inspired by Packet Tracer.**
+> **A local-first visual simulator and educational playground for backend engineering and system design, inspired by Packet Tracer.**
 
 TOROLLO is an interactive, visual sandbox designed to help students and developers learn backend architecture, Docker, networking, databases, and system design by actually building and running systems on their local machines.
 
