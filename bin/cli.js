@@ -109,7 +109,8 @@ if (command === 'start') {
         stdio: 'ignore'
       });
 
-      const frontendProcess = spawn(process.platform === 'win32' ? 'npx.cmd' : 'npx', ['serve', '-s', 'dist', '-l', frontendPort], {
+      const servePath = require.resolve('serve/build/main.js');
+      const frontendProcess = spawn('node', [servePath, '-s', 'dist', '-l', frontendPort], {
         cwd: frontendPath,
         stdio: 'ignore'
       });
