@@ -42,12 +42,16 @@ When a user opens TOROLLO, they are presented with an interactive visual canvas 
 
 ### Supported Infrastructure Nodes
 You can drag and drop a wide range of infrastructure components:
-*   **Operating Systems:** Ubuntu Server
-*   **Databases:** PostgreSQL, Redis
+*   **Computing:** Ubuntu Server, Auto Scaling Group (ASG)
+*   **Databases:** PostgreSQL, MongoDB (NoSQL)
+*   **Networking & Security:** VPC, Subnets, NAT Gateway, Load Balancer (Nginx), Security Groups
+
+### 🚀 Coming Very Soon
+*   **Terraform Generation:** Automatic infrastructure-as-code generation for each major cloud provider (AWS, Azure, GCP).
+*   **Databases:** Redis
 *   **Message Brokers:** RabbitMQ, Kafka
-*   **Web Servers & Proxies:** Nginx, Load Balancer
-*   **Application Services:** API Service, Microservices Host, Serverless Function
-*   **Observability:** Monitoring Components
+*   **Application Services:** API Service, Microservices Host, Serverless Functions
+*   **Observability:** Metrics & Monitoring Components
 
 ---
 
