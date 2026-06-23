@@ -2,6 +2,22 @@
   "name": "torollo",
   "version": "1.0.5",
   "description": "Interactive visual system design learning lab and container supervisor.",
+  "keywords": [
+    "system-design",
+    "docker",
+    "architecture",
+    "simulator",
+    "backend",
+    "education",
+    "microservices",
+    "visualizer"
+  ],
+  "author": "Youssef",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/Derssa/torollo.git"
+  },
   "bin": "bin/cli.js",
   "scripts": {
     "start": "node ./bin/cli.js start"
