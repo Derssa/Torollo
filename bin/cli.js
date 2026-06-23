@@ -4,7 +4,7 @@ const { execSync, exec } = require('child_process');
 const path = require('path');
 const fs = require('fs');
 const net = require('net');
-const concurrently = require('concurrently');
+// concurrently removed
 
 const args = process.argv.slice(2);
 const command = args[0];
@@ -102,27 +102,18 @@ if (command === 'start') {
         fs.writeFileSync(path.join(distPath, 'env.js'), envContent);
       }
 
-      const { result } = concurrently(
-        [
-          { 
-            command: `node ${path.join(backendPath, 'dist/server.js')}`, 
-            name: 'backend', 
-            env: { PORT: backendPort },
-            prefixColor: 'blue' 
-          },
-          { 
-            command: `npx vite preview --port ${frontendPort} --strictPort --host 127.0.0.1`, 
-            name: 'frontend', 
-            cwd: frontendPath,
-            prefixColor: 'green' 
-          }
-        ],
-        {
-          prefix: 'name',
-          killOthers: ['failure', 'success'],
-          silent: true
-        }
-      );
+      const { spawn } = require('child_process');
+
+      const backendProcess = spawn('node', [path.join(backendPath, 'dist/server.js')], {
+        env: { ...process.env, PORT: backendPort },
+        stdio: 'ignore'
+      });
+
+      const servePath = require.resolve('serve/build/main.js');
+      const frontendProcess = spawn('node', [servePath, '-s', 'dist', '-l', frontendPort], {
+        cwd: frontendPath,
+        stdio: 'ignore'
+      });
 
       console.log('================================================');
       console.log('🎉 Torollo System Lab is ready!');
@@ -134,9 +125,17 @@ if (command === 'start') {
         openUrl(`http://localhost:${frontendPort}`);
       }, 1200);
 
-      await result;
+      // Clean shutdown on Ctrl+C (avoids logs printing after Windows batch prompt)
+      process.on('SIGINT', () => {
+        try {
+          backendProcess.kill('SIGKILL');
+          frontendProcess.kill('SIGKILL');
+        } catch (e) {}
+        process.exit(0);
+      });
+
     } catch (err) {
-      console.error('Processes terminated:', err);
+      console.error('Failed to start Torollo:', err);
       process.exit(1);
     }
   })();

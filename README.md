@@ -1,95 +1,70 @@
-# AKAL — Backend Systems Lab
+# TOROLLO — Backend Systems Lab
 
 > **A local-first visual simulator and educational playground for backend engineering and system design, inspired by Packet Tracer.**
 
-AKAL allows students, developers, and system architects to visually design, run, and experiment with real backend architectures. Every component you place on the interactive canvas is backed by an actual, live-running Docker container on your local machine, allowing you to trace traffic, inspect logs, open shell terminals, and simulate failures in real time.
+TOROLLO is an interactive, visual sandbox designed to help students and developers learn backend architecture, Docker, networking, databases, and system design by actually building and running systems on their local machines.
 
 ---
 
-## 🚀 Core Architectural Pillars
+## ⚡ Quick Start
 
-### 1. Local-First & Docker-Orchestrated
-*   **Real Containers:** AKAL communicates directly with your local Docker daemon using `Dockerode`. Nodes on the canvas correspond to actual Docker containers.
-*   **Zero-Cloud Footprint:** No AWS/GCP bills, credentials, or remote connections are required. Everything compiles and executes entirely on your host machine.
-*   **Host-Level Forwarding:** Automatically configures local bridging, IPTables forwarding, and NAT translation policies on your local environment to enable isolated subnet communication.
+Run the lab instantly from your terminal without needing to clone the repo or install anything permanently:
 
-### 2. Interactive Visual Canvas
-*   **VPC & Subnet Segmentation:** Draw and organize your network topology with public and private subnets, custom CIDR blocks, and Internet Gateways.
-*   **Router Tables:** Configure routing rules within subnets to route traffic locally (`local`), outwards via Internet Gateways (`igw`), or through private NAT Gateways (`nat`).
-*   **Interactive Terminal Shell:** Stream real-time bash shells into active nodes directly from the web interface.
-
-### 3. Application Load Balancing & Routing
-*   **ALB Listener Rules:** Set up Path-Based Routing Rules (e.g. `/api/*`, `/static/*`) using dynamic Nginx proxy routing.
-*   **Load Balancing Algorithms:** Switch between `Round Robin` and `Least Connections` to see how traffic distributes across backends.
-*   **Path Prefix Stripping:** Automatically rewrites request paths before forwarding to backend targets, enabling seamless service routing to simple backend web servers.
-
-### 4. Auto Scaling & Self-Healing
-*   **Launch Templates:** Define a blueprint by choosing any configured Ubuntu node. The ASG commits its filesystem state to a local Docker image and uses it to deploy replicas.
-*   **Dynamic Scaling Policies:** Set numeric capacity bounds (`Min`, `Max`, `Desired`). Simulate traffic spikes (up to 1,000 req/sec) to watch the ASG scale out or scale in dynamically based on CPU load.
-*   **Self-Healing Health Checks:** Simulate node failures. Degraded or "crashed" replica nodes are automatically caught by the ASG's health monitor and replaced instantly without affecting system availability.
-*   **Security Group Inheritance:** Replica instances automatically inherit the security group and firewall rules of the parent template node.
-
----
-
-## 🎨 Supported Nodes
-
-*   **Operating Systems:** Ubuntu Server (General Purpose Linux node)
-*   **Databases:** PostgreSQL, MySQL (Fully active database containers)
-*   **Networking:** NAT Gateways, Internet Gateways (IGW), Subnets
-*   **Scaling & Delivery:** Application Load Balancers, Auto Scaling Groups
-
----
-
-## 🛠️ Installation & Local Setup
-
-### Prerequisites
-*   [Node.js](https://nodejs.org/) (v20+ recommended)
-*   [Docker Desktop](https://www.docker.com/products/docker-desktop/) running and active on your host system.
-
-### 📂 Repository Structure
-```text
-akal-system-lab/
-├── backend/       # Express + Socket.io Server (Docker orchestration & IPTables rules compiler)
-├── frontend/      # React + Vite Client (Visual Canvas, React Flow UI, Simulators)
-└── README.md
+```bash
+npx torollo start
 ```
-
-### 1. Setup & Start Backend
-1. Navigate to the `backend/` directory:
-   ```bash
-   cd backend
-   ```
-2. Install dependencies:
-   ```bash
-   npm install
-   ```
-3. Create a `.env` file (if needed, copying from `.env.example`).
-4. Start the server in development mode:
-   ```bash
-   npm run dev
-   ```
-   *The backend will boot up, establish a connection to your local Docker socket, and listen on port `5000`.*
-
-### 2. Setup & Start Frontend
-1. Navigate to the `frontend/` directory:
-   ```bash
-   cd ../frontend
-   ```
-2. Install dependencies:
-   ```bash
-   npm install
-   ```
-3. Start the Vite development server:
-   ```bash
-   npm run dev
-   ```
-   *Open [http://localhost:5173](http://localhost:5173) in your browser to access the AKAL visual playground.*
-
-### 3. Running Tests & Linting
-*   **Backend Tests:** Run `npm run test` inside the `/backend` directory.
-*   **Frontend & Backend Linting:** Run `npm run lint` in their respective directories.
+*(Note: Ensure Docker Desktop is running before starting, as Torollo orchestrates real local containers)*
 
 ---
 
-## 🎓 Educational Focus
-AKAL is designed as an interactive sandbox. If you crash a database container or block outbound traffic using security group firewalls, you can immediately open terminals to debug why connections are failing, inspect Nginx configuration files, and understand the foundational networking concepts (routing, gateways, NAT, firewalls) that power modern cloud architecture.
+## 🏗️ Supported Infrastructure Nodes
+
+You can drag and drop a wide range of infrastructure components onto the canvas. Everything is backed by **real Docker containers** running locally on your machine.
+
+*   **Computing**
+    *   **Ubuntu Server:** A basic Linux container. Includes a fully functional, native web-terminal integrated directly into your browser via WebSockets.
+    *   **Auto Scaling Group (ASG):** Define a template and scale replicas up or down instantly.
+*   **Databases**
+    *   **PostgreSQL:** Relational database node. Features a built-in interactive Explorer to view schemas, tables, and execute SQL queries directly from the UI.
+    *   **MongoDB (NoSQL):** Document database node. Features an interactive Explorer to view collections and run JSON queries without needing external GUI clients.
+*   **Networking & Security**
+    *   **VPC & Subnets:** Isolated network boundaries backed by custom Docker bridge networks.
+    *   **Security Groups:** Drag-and-drop visual firewall rules (Inbound/Outbound). Rules are converted and enforced using actual `iptables` injected securely into the containers.
+    *   **Load Balancer (Nginx):** Automatically generates upstream `nginx.conf` configurations based on the nodes you wire to it.
+    *   **NAT Gateway:** Provides outbound internet access for private subnets using true Linux `ip_forward=1` and `MASQUERADE` routing.
+
+---
+
+## 🚀 Coming Very Soon
+
+*   **Terraform Generation:** Automatic Infrastructure-as-Code (IaC) generation for your visual architectures, supporting every major cloud provider (AWS, Azure, GCP).
+*   **Databases:** Redis In-Memory Cache
+*   **Message Brokers:** RabbitMQ, Kafka
+*   **Application Services:** API Service, Microservices Host, Serverless Functions
+*   **Observability:** Live Metrics, Logs, & Monitoring Components
+
+---
+
+## 🎨 Core Features & Architecture
+
+### Interactive Learning by Doing
+Instead of reading passive, theory-heavy documentation, you learn by *doing*:
+- **Create Systems:** Drag and drop real components to build architectures.
+- **Run & Connect:** Wire services together and see how they interact.
+- **Simulate Traffic:** Use the built-in Network Simulator to send pings and watch mock traffic flow through the system.
+- **Web Terminals:** Instantly open a root shell into any Ubuntu or Database container straight from the browser.
+
+### Architecture Overview
+*   **Backend:** Node.js, Express, TypeScript, and Dockerode. The backend acts as the supervisor—it manipulates the local Docker daemon, compiles your visual network topology into real `iptables` rules, and manages persistent state in `~/.torollo/projects.json`.
+*   **Frontend:** React, TypeScript, Vite, and React Flow. Renders the interactive visual grid, node inspector modals, database explorers, and `xterm.js` terminals.
+
+---
+
+## 🛡️ Core Philosophy
+
+Everything runs **locally** on your machine. 
+- **No Cloud integrations** (No AWS credentials needed).
+- **No remote infrastructure** is created, billed, or managed. 
+- All nodes in the workspace correspond exactly to live Docker containers on your local system.
+
+*Note: This project is strictly educational. It is not an AWS clone or a production infrastructure management tool—it is a sandboxed simulator designed to make system design tangible, visual, and fun.*
