@@ -12,6 +12,8 @@ interface CanvasTopbarProps {
   onSimulateTraffic: () => void;
 }
 
+declare const __APP_VERSION__: string;
+
 export default function CanvasTopbar({
   projectName,
   loading,
@@ -31,7 +33,7 @@ export default function CanvasTopbar({
           <img src={logo} alt="Logo" style={{ width: '20px', height: '20px', objectFit: 'contain' }} />
         </div>
         <span style={styles.brandTitle}>{projectName}</span>
-        <span style={styles.badge}>Phase 1</span>
+        <span style={styles.badge}>v{__APP_VERSION__}</span>
       </div>
 
       <div style={styles.actions}>

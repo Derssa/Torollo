@@ -12,6 +12,8 @@ interface ProjectsPageProps {
   onSelectProject: (id: string, name: string) => void;
 }
 
+declare const __APP_VERSION__: string;
+
 export default function ProjectsPage({ onSelectProject }: ProjectsPageProps) {
   const [projects, setProjects] = useState<Project[]>([]);
   const [loading, setLoading] = useState(false);
@@ -86,7 +88,10 @@ export default function ProjectsPage({ onSelectProject }: ProjectsPageProps) {
             <img src={logo} alt="Logo" style={{ width: '28px', height: '28px', objectFit: 'contain' }} />
           </div>
           <div>
-            <h1 style={styles.title}>Project Stacks</h1>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+              <h1 style={styles.title}>Project Stacks</h1>
+              <span style={styles.badge}>v{__APP_VERSION__}</span>
+            </div>
             <p style={styles.subtitle}>Organize your infrastructure labs</p>
           </div>
         </div>
@@ -181,6 +186,16 @@ const styles: Record<string, React.CSSProperties> = {
     fontSize: '13px',
     color: 'var(--color-text-muted)',
     margin: '2px 0 0 0',
+  },
+  badge: {
+    fontSize: '11px',
+    fontWeight: 600,
+    backgroundColor: 'var(--color-accent-glow)',
+    color: 'var(--color-accent)',
+    padding: '2px 10px',
+    borderRadius: '12px',
+    border: '1px solid rgba(37, 99, 235, 0.2)',
+    marginTop: '4px',
   },
   createBtn: {
     backgroundColor: 'var(--color-accent)',
