@@ -1,6 +1,6 @@
 {
   "name": "torollo",
-  "version": "1.0.2",
+  "version": "1.0.3",
   "description": "Interactive visual system design learning lab and container supervisor.",
   "bin": "bin/cli.js",
   "scripts": {
