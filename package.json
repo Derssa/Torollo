@@ -1,10 +1,8 @@
 {
   "name": "torollo",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "Interactive visual system design learning lab and container supervisor.",
-  "bin": {
-    "torollo": "./bin/cli.js"
-  },
+  "bin": "bin/cli.js",
   "scripts": {
     "start": "node ./bin/cli.js start"
   },
