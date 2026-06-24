@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
+import { useTranslation } from 'react-i18next';
 import { X, Database, Table, Columns, Play, Copy, Check, Search, BookOpen, Terminal, RefreshCw, AlertCircle, Eye, Loader2, Settings, Activity, Server } from 'lucide-react';
 import { API_BASE } from '../../../shared/types';
 import postgresCheatSheet from './data/postgresCheatSheet.json';
@@ -29,6 +30,7 @@ interface DBNode {
 const CHEAT_SHEET_DATA = postgresCheatSheet;
 
 export default function PostgresModal({ containerId, nodeName, projectId, onClose }: PostgresModalProps) {
+  const { t } = useTranslation();
   const [activeTab, setActiveTab] = useState<'details' | 'simulation' | 'explorer' | 'shell' | 'cheatsheet'>('details');
   const [explorerData, setExplorerData] = useState<DBNode[]>([]);
   const [loadingExplorer, setLoadingExplorer] = useState(false);
@@ -524,35 +526,35 @@ export default function PostgresModal({ containerId, nodeName, projectId, onClos
               onClick={() => setActiveTab('details')}
             >
               <Settings size={15} style={{ marginRight: 6 }} />
-              Details & Config
+              {t('postgres.tabs.details')}
             </button>
             <button
               style={{ ...styles.tabBtn, ...(activeTab === 'simulation' ? styles.activeTabBtn : {}) }}
               onClick={() => setActiveTab('simulation')}
             >
               <Activity size={15} style={{ marginRight: 6 }} />
-              Simulation
+              {t('postgres.tabs.simulation')}
             </button>
             <button
               style={{ ...styles.tabBtn, ...(activeTab === 'explorer' ? styles.activeTabBtn : {}) }}
               onClick={() => setActiveTab('explorer')}
             >
               <Database size={15} style={{ marginRight: 6 }} />
-              Database Explorer
+              {t('postgres.tabs.explorer')}
             </button>
             <button
               style={{ ...styles.tabBtn, ...(activeTab === 'shell' ? styles.activeTabBtn : {}) }}
               onClick={() => setActiveTab('shell')}
             >
               <Terminal size={15} style={{ marginRight: 6 }} />
-              SQL Shell
+              {t('postgres.tabs.shell')}
             </button>
             <button
               style={{ ...styles.tabBtn, ...(activeTab === 'cheatsheet' ? styles.activeTabBtn : {}) }}
               onClick={() => setActiveTab('cheatsheet')}
             >
               <BookOpen size={15} style={{ marginRight: 6 }} />
-              SQL Cheat Sheet
+              {t('postgres.tabs.cheatsheet')}
             </button>
           </div>
           <button onClick={onClose} style={styles.closeBtn}>
@@ -565,18 +567,18 @@ export default function PostgresModal({ containerId, nodeName, projectId, onClos
           {/* TAB: Details & Config */}
           {activeTab === 'details' && (
             <div style={styles.tabContent}>
-              <h3 style={{ margin: '0 0 8px 0', fontSize: '16px', color: '#1E293B' }}>Database Scaling & Parameters</h3>
+              <h3 style={{ margin: '0 0 8px 0', fontSize: '16px', color: '#1E293B' }}>{t('postgres.details.title')}</h3>
               <p style={{ margin: '0 0 20px 0', fontSize: '13px', color: '#64748B' }}>
-                Configure vertical container limits and horizontal database replication parameters.
+                {t('postgres.details.desc')}
               </p>
 
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '24px' }}>
                 <div style={{ border: '1px solid #E2E8F0', borderRadius: '8px', padding: '16px' }}>
-                  <h4 style={{ margin: '0 0 16px 0', fontSize: '14px', color: '#334155' }}>Vertical Resource Controls</h4>
+                  <h4 style={{ margin: '0 0 16px 0', fontSize: '14px', color: '#334155' }}>{t('postgres.details.verticalTitle')}</h4>
                   
                   <div style={{ marginBottom: '16px' }}>
                     <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '6px' }}>
-                      <span style={{ fontSize: '12px', fontWeight: 600 }}>CPU Core Limit</span>
+                      <span style={{ fontSize: '12px', fontWeight: 600 }}>{t('postgres.details.cpuLabel')}</span>
                       <span style={{ fontSize: '12px', color: '#2563EB', fontWeight: 'bold' }}>{cpuLimit} vCPU</span>
                     </div>
                     <input
@@ -592,7 +594,7 @@ export default function PostgresModal({ containerId, nodeName, projectId, onClos
 
                   <div style={{ marginBottom: '20px' }}>
                     <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '6px' }}>
-                      <span style={{ fontSize: '12px', fontWeight: 600 }}>RAM Limit</span>
+                      <span style={{ fontSize: '12px', fontWeight: 600 }}>{t('postgres.details.ramLabel')}</span>
                       <span style={{ fontSize: '12px', color: '#2563EB', fontWeight: 'bold' }}>{memoryLimit} MB</span>
                     </div>
                     <input
@@ -608,7 +610,7 @@ export default function PostgresModal({ containerId, nodeName, projectId, onClos
 
                   <div style={{ marginBottom: '20px' }}>
                     <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '6px' }}>
-                      <span style={{ fontSize: '12px', fontWeight: 600 }}>Storage Capacity</span>
+                      <span style={{ fontSize: '12px', fontWeight: 600 }}>{t('postgres.details.storageLabel')}</span>
                       <span style={{ fontSize: '12px', color: '#2563EB', fontWeight: 'bold' }}>{storageLimit} GB</span>
                     </div>
                     <input
@@ -636,7 +638,7 @@ export default function PostgresModal({ containerId, nodeName, projectId, onClos
                       cursor: 'pointer'
                     }}
                   >
-                    {scalingLoading ? 'Applying Resource Changes...' : 'Apply Resource Changes'}
+                    {scalingLoading ? t('postgres.details.applyingBtn') : t('postgres.details.applyBtn')}
                   </button>
 
                   {feedbackMessage && (
@@ -650,19 +652,19 @@ export default function PostgresModal({ containerId, nodeName, projectId, onClos
                       color: '#0369A1',
                       lineHeight: '1.4'
                     }}>
-                      <div style={{ fontWeight: 600, marginBottom: '2px' }}>System Status:</div>
+                      <div style={{ fontWeight: 600, marginBottom: '2px' }}>{t('postgres.details.sysStatus')}</div>
                       {feedbackMessage}
                     </div>
                   )}
                 </div>
 
                  <div style={{ border: '1px solid #E2E8F0', borderRadius: '8px', padding: '16px' }}>
-                  <h4 style={{ margin: '0 0 16px 0', fontSize: '14px', color: '#334155' }}>Horizontal Scaling & Partitioning</h4>
+                  <h4 style={{ margin: '0 0 16px 0', fontSize: '14px', color: '#334155' }}>{t('postgres.details.horizontalTitle')}</h4>
                   
                   <div style={{ marginBottom: '16px', display: 'flex', gap: '24px' }}>
                     <div>
                       <label style={{ display: 'block', fontSize: '12px', fontWeight: 600, marginBottom: '8px' }}>
-                        Replica Pool Size
+                        {t('postgres.details.replicaLabel')}
                       </label>
                       <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
                         <button
@@ -683,7 +685,7 @@ export default function PostgresModal({ containerId, nodeName, projectId, onClos
 
                     <div>
                       <label style={{ display: 'block', fontSize: '12px', fontWeight: 600, marginBottom: '8px' }}>
-                        Table Partitions
+                        {t('postgres.details.partitionsLabel')}
                       </label>
                       <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
                         <button
@@ -704,13 +706,13 @@ export default function PostgresModal({ containerId, nodeName, projectId, onClos
                   </div>
 
                   <span style={{ fontSize: '11px', color: '#64748B', display: 'block', marginBottom: '12px' }}>
-                    Replicas scale reads. Partitions divide large datasets (e.g. users) horizontally into sub-tables (p0 to p4) for optimized search performance.
+                    {t('postgres.details.scaleDesc')}
                   </span>
 
                   <div style={{ backgroundColor: '#F8FAFC', borderRadius: '6px', padding: '12px', borderLeft: '3px solid #2563EB' }}>
-                    <h5 style={{ margin: '0 0 4px 0', fontSize: '11px', textTransform: 'uppercase', color: '#475569' }}>Topology Note</h5>
+                    <h5 style={{ margin: '0 0 4px 0', fontSize: '11px', textTransform: 'uppercase', color: '#475569' }}>{t('postgres.details.topologyTitle')}</h5>
                     <span style={{ fontSize: '11px', color: '#64748B' }}>
-                      Replication uses log-shipping. Replicas act as read-only copies. Primary failures stop writes, but read queries remain available on active replicas.
+                      {t('postgres.details.topologyDesc')}
                     </span>
                   </div>
                 </div>
@@ -723,9 +725,9 @@ export default function PostgresModal({ containerId, nodeName, projectId, onClos
             <div style={{ ...styles.tabContent, display: 'flex', flexDirection: 'column', gap: '16px' }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                 <div>
-                  <h3 style={{ margin: '0 0 4px 0', fontSize: '15px', color: '#1E293B' }}>Database Traffic & Failover Dashboard</h3>
+                  <h3 style={{ margin: '0 0 4px 0', fontSize: '15px', color: '#1E293B' }}>{t('postgres.simulation.title')}</h3>
                   <p style={{ margin: 0, fontSize: '12px', color: '#64748B' }}>
-                    Generate traffic and test database high-availability scenarios.
+                    {t('postgres.simulation.desc')}
                   </p>
                 </div>
                 <div style={{ display: 'flex', gap: '8px' }}>
@@ -742,7 +744,7 @@ export default function PostgresModal({ containerId, nodeName, projectId, onClos
                       fontSize: '12px'
                     }}
                   >
-                    {trafficActive ? 'Pause Traffic' : 'Start Simulation'}
+                    {trafficActive ? t('postgres.simulation.pauseBtn') : t('postgres.simulation.startBtn')}
                   </button>
                   <button
                     onClick={() => {
@@ -771,7 +773,7 @@ export default function PostgresModal({ containerId, nodeName, projectId, onClos
                       fontSize: '12px'
                     }}
                   >
-                    {isPrimaryCrashed ? 'Recover Primary' : 'Crash Primary'}
+                    {isPrimaryCrashed ? t('postgres.simulation.recoverBtn') : t('postgres.simulation.crashBtn')}
                   </button>
                   {isPrimaryCrashed && replicas > 0 && (
                     <button
@@ -794,7 +796,7 @@ export default function PostgresModal({ containerId, nodeName, projectId, onClos
                         fontSize: '12px'
                       }}
                     >
-                      Promote Replica
+                      {t('postgres.simulation.promoteBtn')}
                     </button>
                   )}
                 </div>
@@ -803,15 +805,15 @@ export default function PostgresModal({ containerId, nodeName, projectId, onClos
               {/* Simulation metrics */}
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '16px' }}>
                 <div style={{ border: '1px solid #E2E8F0', borderRadius: '8px', padding: '12px', textAlign: 'center', backgroundColor: '#F8FAFC' }}>
-                  <span style={{ fontSize: '11px', textTransform: 'uppercase', color: '#64748B', fontWeight: 600 }}>Reads Handled</span>
+                  <span style={{ fontSize: '11px', textTransform: 'uppercase', color: '#64748B', fontWeight: 600 }}>{t('postgres.simulation.reads')}</span>
                   <div style={{ fontSize: '20px', fontWeight: 'bold', color: '#2563EB', marginTop: '4px' }}>{simMetrics.reads}</div>
                 </div>
                 <div style={{ border: '1px solid #E2E8F0', borderRadius: '8px', padding: '12px', textAlign: 'center', backgroundColor: '#F8FAFC' }}>
-                  <span style={{ fontSize: '11px', textTransform: 'uppercase', color: '#64748B', fontWeight: 600 }}>Writes Handled</span>
+                  <span style={{ fontSize: '11px', textTransform: 'uppercase', color: '#64748B', fontWeight: 600 }}>{t('postgres.simulation.writes')}</span>
                   <div style={{ fontSize: '20px', fontWeight: 'bold', color: '#10B981', marginTop: '4px' }}>{simMetrics.writes}</div>
                 </div>
                 <div style={{ border: '1px solid #E2E8F0', borderRadius: '8px', padding: '12px', textAlign: 'center', backgroundColor: '#FEE2E2' }}>
-                  <span style={{ fontSize: '11px', textTransform: 'uppercase', color: '#991B1B', fontWeight: 600 }}>Errors / Failures</span>
+                  <span style={{ fontSize: '11px', textTransform: 'uppercase', color: '#991B1B', fontWeight: 600 }}>{t('postgres.simulation.errors')}</span>
                   <div style={{ fontSize: '20px', fontWeight: 'bold', color: '#EF4444', marginTop: '4px' }}>{simMetrics.errors}</div>
                 </div>
               </div>
@@ -1017,7 +1019,7 @@ export default function PostgresModal({ containerId, nodeName, projectId, onClos
               {/* Logs output */}
               <div style={{ height: '150px', display: 'flex', flexDirection: 'column' }}>
                 <div style={{ fontSize: '11px', fontWeight: 600, color: '#64748B', textTransform: 'uppercase', marginBottom: '6px' }}>
-                  Simulated Event Log
+                  {t('postgres.simulation.logTitle')}
                 </div>
                 <div style={{ flex: 1, backgroundColor: '#0F172A', color: '#94A3B8', borderRadius: '8px', padding: '10px', fontFamily: 'monospace', fontSize: '11px', overflowY: 'auto' }}>
                   {simLogs.map(log => (
@@ -1034,7 +1036,7 @@ export default function PostgresModal({ containerId, nodeName, projectId, onClos
           {activeTab === 'explorer' && (
             <div style={styles.tabContent}>
               <div style={styles.sectionHeader}>
-                <span style={styles.sectionTitle}>Inspect tables and schema: {nodeName}</span>
+                <span style={styles.sectionTitle}>{t('postgres.explorer.title')}{nodeName}</span>
                 <button onClick={fetchExplorerData} disabled={loadingExplorer} style={styles.iconActionBtn}>
                   <RefreshCw size={14} className={loadingExplorer ? 'spin' : ''} />
                 </button>
@@ -1045,7 +1047,7 @@ export default function PostgresModal({ containerId, nodeName, projectId, onClos
                   explorerError === 'starting_up' ? (
                     <div style={styles.errorContainer}>
                       <Loader2 size={24} className="spin" color="#3B82F6" style={{ marginBottom: 12 }} />
-                      <span style={styles.errorMessage}>Database server is initializing... This may take a few seconds.</span>
+                      <span style={styles.errorMessage}>{t('postgres.explorer.initializing')}</span>
                     </div>
                   ) : (
                     <div style={styles.errorContainer}>
@@ -1053,7 +1055,7 @@ export default function PostgresModal({ containerId, nodeName, projectId, onClos
                       <span style={styles.errorMessage}>{explorerError}</span>
                       <button onClick={fetchExplorerData} style={styles.retryBtn}>
                         <RefreshCw size={12} style={{ marginRight: 6 }} />
-                        Retry Schema Scan
+                        {t('postgres.explorer.retryBtn')}
                       </button>
                     </div>
                   )
@@ -1090,7 +1092,7 @@ export default function PostgresModal({ containerId, nodeName, projectId, onClos
                                     className="glass"
                                   >
                                     <Eye size={12} style={{ marginRight: 4 }} />
-                                    View Data
+                                    {t('postgres.explorer.viewDataBtn')}
                                   </button>
                                 </div>
 
@@ -1109,7 +1111,7 @@ export default function PostgresModal({ containerId, nodeName, projectId, onClos
                             );
                           })
                         ) : (
-                          <div style={styles.treeRowEmpty}>No public tables found.</div>
+                          <div style={styles.treeRowEmpty}>{t('postgres.explorer.noPublicTables')}</div>
                         )}
                       </div>
                     )}
@@ -1124,7 +1126,7 @@ export default function PostgresModal({ containerId, nodeName, projectId, onClos
             <div style={{ ...styles.tabContent, display: 'flex', flexDirection: 'column' }}>
               <div style={styles.shellHeader}>
                 <div style={styles.dbSelectRow}>
-                  <span style={styles.label}>Target Database:</span>
+                  <span style={styles.label}>{t('postgres.shell.targetDb')}</span>
                   <select
                     value={selectedDb}
                     onChange={(e) => setSelectedDb(e.target.value)}
@@ -1143,20 +1145,20 @@ export default function PostgresModal({ containerId, nodeName, projectId, onClos
                   style={styles.runBtn}
                 >
                   <Play size={14} style={{ marginRight: 6 }} fill="#FFF" />
-                  {executing ? 'Running...' : 'Execute Query'}
+                  {executing ? t('postgres.shell.executingBtn') : t('postgres.shell.executeBtn')}
                 </button>
               </div>
 
               <textarea
                 value={sqlQuery}
                 onChange={(e) => setSqlQuery(e.target.value)}
-                placeholder="Write your SQL statements here..."
+                placeholder={t('postgres.shell.placeholder')}
                 style={styles.sqlTextarea}
               />
 
-              <div style={styles.terminalHeader}>Output Console</div>
+              <div style={styles.terminalHeader}>{t('postgres.shell.consoleTitle')}</div>
               <pre style={styles.terminalOutput}>
-                <code>{queryOutput || 'No output. Execute a query to see result tables.'}</code>
+                <code>{queryOutput || t('postgres.shell.emptyOutput')}</code>
               </pre>
             </div>
           )}
@@ -1169,7 +1171,7 @@ export default function PostgresModal({ containerId, nodeName, projectId, onClos
                   <Search size={15} color="var(--color-text-muted)" style={styles.searchIcon} />
                   <input
                     type="text"
-                    placeholder="Search SQL commands or concepts..."
+                    placeholder={t('postgres.cheatsheet.placeholder')}
                     value={cheatQuery}
                     onChange={(e) => setCheatQuery(e.target.value)}
                     style={styles.searchInput}

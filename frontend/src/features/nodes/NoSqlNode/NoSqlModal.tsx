@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
+import { useTranslation } from 'react-i18next';
 import { X, Database, Table, Columns, Play, Copy, Check, Search, BookOpen, Terminal, RefreshCw, AlertCircle, Eye, Loader2, Settings, Activity, Server } from 'lucide-react';
 import { API_BASE } from '../../../shared/types';
 import mongoCheatSheet from './data/mongoCheatSheet.json';
@@ -29,6 +30,7 @@ interface DBNode {
 const CHEAT_SHEET_DATA = mongoCheatSheet;
 
 export default function NoSqlModal({ containerId, nodeName, projectId, onClose }: NoSqlModalProps) {
+  const { t } = useTranslation();
   const [activeTab, setActiveTab] = useState<'details' | 'simulation' | 'explorer' | 'shell' | 'cheatsheet'>('details');
   const [explorerData, setExplorerData] = useState<DBNode[]>([]);
   const [loadingExplorer, setLoadingExplorer] = useState(false);
@@ -467,35 +469,35 @@ export default function NoSqlModal({ containerId, nodeName, projectId, onClose }
               onClick={() => setActiveTab('details')}
             >
               <Settings size={15} style={{ marginRight: 6 }} />
-              Details & Config
+              {t('nosql.tabs.details')}
             </button>
             <button
               style={{ ...styles.tabBtn, ...(activeTab === 'simulation' ? styles.activeTabBtn : {}) }}
               onClick={() => setActiveTab('simulation')}
             >
               <Activity size={15} style={{ marginRight: 6 }} />
-              Simulation
+              {t('nosql.tabs.simulation')}
             </button>
             <button
               style={{ ...styles.tabBtn, ...(activeTab === 'explorer' ? styles.activeTabBtn : {}) }}
               onClick={() => setActiveTab('explorer')}
             >
               <Database size={15} style={{ marginRight: 6 }} />
-              NoSQL Explorer
+              {t('nosql.tabs.explorer')}
             </button>
             <button
               style={{ ...styles.tabBtn, ...(activeTab === 'shell' ? styles.activeTabBtn : {}) }}
               onClick={() => setActiveTab('shell')}
             >
               <Terminal size={15} style={{ marginRight: 6 }} />
-              Mongo Shell
+              {t('nosql.tabs.shell')}
             </button>
             <button
               style={{ ...styles.tabBtn, ...(activeTab === 'cheatsheet' ? styles.activeTabBtn : {}) }}
               onClick={() => setActiveTab('cheatsheet')}
             >
               <BookOpen size={15} style={{ marginRight: 6 }} />
-              Mongo Cheat Sheet
+              {t('nosql.tabs.cheatsheet')}
             </button>
           </div>
           <button onClick={onClose} style={styles.closeBtn}>
@@ -508,18 +510,18 @@ export default function NoSqlModal({ containerId, nodeName, projectId, onClose }
           {/* TAB: Details & Config */}
           {activeTab === 'details' && (
             <div style={styles.tabContent}>
-              <h3 style={{ margin: '0 0 8px 0', fontSize: '16px', color: '#1E293B' }}>NoSQL Database Configuration</h3>
+              <h3 style={{ margin: '0 0 8px 0', fontSize: '16px', color: '#1E293B' }}>{t('nosql.details.title')}</h3>
               <p style={{ margin: '0 0 20px 0', fontSize: '13px', color: '#64748B' }}>
-                Manage vertical resources and partition horizontal database shards.
+                {t('nosql.details.desc')}
               </p>
 
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '24px' }}>
                 <div style={{ border: '1px solid #E2E8F0', borderRadius: '8px', padding: '16px' }}>
-                  <h4 style={{ margin: '0 0 16px 0', fontSize: '14px', color: '#334155' }}>Vertical Limits</h4>
+                  <h4 style={{ margin: '0 0 16px 0', fontSize: '14px', color: '#334155' }}>{t('nosql.details.verticalTitle')}</h4>
                   
                   <div style={{ marginBottom: '16px' }}>
                     <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '6px' }}>
-                      <span style={{ fontSize: '12px', fontWeight: 600 }}>CPU Core Limit</span>
+                      <span style={{ fontSize: '12px', fontWeight: 600 }}>{t('nosql.details.cpuLabel')}</span>
                       <span style={{ fontSize: '12px', color: '#2563EB', fontWeight: 'bold' }}>{cpuLimit} vCPU</span>
                     </div>
                     <input
@@ -535,7 +537,7 @@ export default function NoSqlModal({ containerId, nodeName, projectId, onClose }
 
                   <div style={{ marginBottom: '20px' }}>
                     <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '6px' }}>
-                      <span style={{ fontSize: '12px', fontWeight: 600 }}>Memory Limit</span>
+                      <span style={{ fontSize: '12px', fontWeight: 600 }}>{t('nosql.details.ramLabel')}</span>
                       <span style={{ fontSize: '12px', color: '#2563EB', fontWeight: 'bold' }}>{memoryLimit} MB</span>
                     </div>
                     <input
@@ -551,7 +553,7 @@ export default function NoSqlModal({ containerId, nodeName, projectId, onClose }
 
                   <div style={{ marginBottom: '20px' }}>
                     <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '6px' }}>
-                      <span style={{ fontSize: '12px', fontWeight: 600 }}>Storage Capacity</span>
+                      <span style={{ fontSize: '12px', fontWeight: 600 }}>{t('nosql.details.storageLabel')}</span>
                       <span style={{ fontSize: '12px', color: '#2563EB', fontWeight: 'bold' }}>{storageLimit} GB</span>
                     </div>
                     <input
@@ -579,7 +581,7 @@ export default function NoSqlModal({ containerId, nodeName, projectId, onClose }
                       cursor: 'pointer'
                     }}
                   >
-                    {scalingLoading ? 'Applying Resource Changes...' : 'Apply Resource Changes'}
+                    {scalingLoading ? t('nosql.details.applyingBtn') : t('nosql.details.applyBtn')}
                   </button>
 
                   {feedbackMessage && (
@@ -593,19 +595,19 @@ export default function NoSqlModal({ containerId, nodeName, projectId, onClose }
                       color: '#0369A1',
                       lineHeight: '1.4'
                     }}>
-                      <div style={{ fontWeight: 600, marginBottom: '2px' }}>System Status:</div>
+                      <div style={{ fontWeight: 600, marginBottom: '2px' }}>{t('nosql.details.sysStatus')}</div>
                       {feedbackMessage}
                     </div>
                   )}
                 </div>
 
                 <div style={{ border: '1px solid #E2E8F0', borderRadius: '8px', padding: '16px' }}>
-                  <h4 style={{ margin: '0 0 16px 0', fontSize: '14px', color: '#334155' }}>Horizontal Scaling & Replication</h4>
+                  <h4 style={{ margin: '0 0 16px 0', fontSize: '14px', color: '#334155' }}>{t('nosql.details.horizontalTitle')}</h4>
                   
                   <div style={{ marginBottom: '16px', display: 'flex', gap: '24px' }}>
                     <div>
                       <label style={{ display: 'block', fontSize: '12px', fontWeight: 600, marginBottom: '8px' }}>
-                        Shard Partitions
+                        {t('nosql.details.shardsLabel')}
                       </label>
                       <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
                         <button
@@ -626,7 +628,7 @@ export default function NoSqlModal({ containerId, nodeName, projectId, onClose }
 
                     <div>
                       <label style={{ display: 'block', fontSize: '12px', fontWeight: 600, marginBottom: '8px' }}>
-                        Replica Members
+                        {t('nosql.details.replicaLabel')}
                       </label>
                       <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
                         <button
@@ -647,13 +649,13 @@ export default function NoSqlModal({ containerId, nodeName, projectId, onClose }
                   </div>
 
                   <span style={{ fontSize: '11px', color: '#64748B', display: 'block', marginBottom: '12px' }}>
-                    Shards partition collections horizontally using hash keys. Replicas provide high availability and read scalability for each shard partition.
+                    {t('nosql.details.scaleDesc')}
                   </span>
 
                   <div style={{ backgroundColor: '#F8FAFC', borderRadius: '6px', padding: '12px', borderLeft: '3px solid #2563EB' }}>
-                    <h5 style={{ margin: '0 0 4px 0', fontSize: '11px', textTransform: 'uppercase', color: '#475569' }}>Architecture Note</h5>
+                    <h5 style={{ margin: '0 0 4px 0', fontSize: '11px', textTransform: 'uppercase', color: '#475569' }}>{t('nosql.details.topologyTitle')}</h5>
                     <span style={{ fontSize: '11px', color: '#64748B' }}>
-                      MongoDB sharding uses mongos as the query router. Each shard can be a replica set. Replicas synchronize data asynchronously via oplog tailing.
+                      {t('nosql.details.topologyDesc')}
                     </span>
                   </div>
                 </div>
@@ -666,9 +668,9 @@ export default function NoSqlModal({ containerId, nodeName, projectId, onClose }
             <div style={{ ...styles.tabContent, display: 'flex', flexDirection: 'column', gap: '16px' }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                 <div>
-                  <h3 style={{ margin: '0 0 4px 0', fontSize: '15px', color: '#1E293B' }}>MongoDB Sharding Router Simulation</h3>
+                  <h3 style={{ margin: '0 0 4px 0', fontSize: '15px', color: '#1E293B' }}>{t('nosql.simulation.title')}</h3>
                   <p style={{ margin: 0, fontSize: '12px', color: '#64748B' }}>
-                    Observe request hashing and eventual consistency secondary replication lag.
+                    {t('nosql.simulation.desc')}
                   </p>
                 </div>
                 <div style={{ display: 'flex', gap: '8px' }}>
@@ -685,7 +687,7 @@ export default function NoSqlModal({ containerId, nodeName, projectId, onClose }
                       fontSize: '12px'
                     }}
                   >
-                    {trafficActive ? 'Pause Traffic' : 'Start Simulation'}
+                    {trafficActive ? t('nosql.simulation.pauseBtn') : t('nosql.simulation.startBtn')}
                   </button>
                   <button
                     onClick={() => {
@@ -715,7 +717,7 @@ export default function NoSqlModal({ containerId, nodeName, projectId, onClose }
                       fontSize: '12px'
                     }}
                   >
-                    {crashedShards[lastShardIndex >= 0 ? lastShardIndex : 0] ? 'Recover Shard' : 'Crash Shard'}
+                    {crashedShards[lastShardIndex >= 0 ? lastShardIndex : 0] ? t('nosql.simulation.recoverBtn') : t('nosql.simulation.crashBtn')}
                   </button>
                 </div>
               </div>
@@ -723,11 +725,11 @@ export default function NoSqlModal({ containerId, nodeName, projectId, onClose }
               {/* Simulation metrics */}
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
                 <div style={{ border: '1px solid #E2E8F0', borderRadius: '8px', padding: '12px', textAlign: 'center', backgroundColor: '#F8FAFC' }}>
-                  <span style={{ fontSize: '11px', textTransform: 'uppercase', color: '#64748B', fontWeight: 600 }}>Routed Queries</span>
+                  <span style={{ fontSize: '11px', textTransform: 'uppercase', color: '#64748B', fontWeight: 600 }}>{t('nosql.simulation.routed')}</span>
                   <div style={{ fontSize: '20px', fontWeight: 'bold', color: '#2563EB', marginTop: '4px' }}>{simMetrics.routed}</div>
                 </div>
                 <div style={{ border: '1px solid #E2E8F0', borderRadius: '8px', padding: '12px', textAlign: 'center', backgroundColor: '#FEF3C7' }}>
-                  <span style={{ fontSize: '11px', textTransform: 'uppercase', color: '#B45309', fontWeight: 600 }}>Stale Reads Logged</span>
+                  <span style={{ fontSize: '11px', textTransform: 'uppercase', color: '#B45309', fontWeight: 600 }}>{t('nosql.simulation.stale')}</span>
                   <div style={{ fontSize: '20px', fontWeight: 'bold', color: '#D97706', marginTop: '4px' }}>{simMetrics.staleReads}</div>
                 </div>
               </div>
@@ -968,7 +970,7 @@ export default function NoSqlModal({ containerId, nodeName, projectId, onClose }
                             {/* Logs output */}
               <div style={{ height: '140px', display: 'flex', flexDirection: 'column' }}>
                 <div style={{ fontSize: '11px', fontWeight: 600, color: '#64748B', textTransform: 'uppercase', marginBottom: '6px' }}>
-                  Simulated Event Log
+                  {t('nosql.simulation.logTitle')}
                 </div>
                 <div style={{ flex: 1, backgroundColor: '#0F172A', color: '#94A3B8', borderRadius: '8px', padding: '10px', fontFamily: 'monospace', fontSize: '11px', overflowY: 'auto' }}>
                   {simLogs.map(log => (
@@ -985,7 +987,7 @@ export default function NoSqlModal({ containerId, nodeName, projectId, onClose }
           {activeTab === 'explorer' && (
             <div style={styles.tabContent}>
               <div style={styles.sectionHeader}>
-                <span style={styles.sectionTitle}>Inspect collections and fields: {nodeName}</span>
+                <span style={styles.sectionTitle}>{t('nosql.explorer.title')}{nodeName}</span>
                 <button onClick={fetchExplorerData} disabled={loadingExplorer} style={styles.iconActionBtn}>
                   <RefreshCw size={14} className={loadingExplorer ? 'spin' : ''} />
                 </button>
@@ -996,7 +998,7 @@ export default function NoSqlModal({ containerId, nodeName, projectId, onClose }
                   explorerError === 'starting_up' ? (
                     <div style={styles.errorContainer}>
                       <Loader2 size={24} className="spin" color="#3B82F6" style={{ marginBottom: 12 }} />
-                      <span style={styles.errorMessage}>NoSQL database container is initializing...</span>
+                      <span style={styles.errorMessage}>{t('nosql.explorer.initializing')}</span>
                     </div>
                   ) : (
                     <div style={styles.errorContainer}>
@@ -1032,7 +1034,7 @@ export default function NoSqlModal({ containerId, nodeName, projectId, onClose }
                                     className="glass"
                                   >
                                     <Eye size={12} style={{ marginRight: 4 }} />
-                                    Find Documents
+                                    {t('nosql.explorer.viewDataBtn')}
                                   </button>
                                 </div>
 
@@ -1051,7 +1053,7 @@ export default function NoSqlModal({ containerId, nodeName, projectId, onClose }
                             );
                           })
                         ) : (
-                          <div style={styles.treeRowEmpty}>No collections found.</div>
+                          <div style={styles.treeRowEmpty}>{t('nosql.explorer.noCollections')}</div>
                         )}
                       </div>
                     )}
@@ -1072,20 +1074,20 @@ export default function NoSqlModal({ containerId, nodeName, projectId, onClose }
                   style={styles.runBtn}
                 >
                   <Play size={14} style={{ marginRight: 6 }} fill="#FFF" />
-                  {executing ? 'Evaluating...' : 'Run mongosh Expression'}
+                  {executing ? t('nosql.shell.executingBtn') : t('nosql.shell.executeBtn')}
                 </button>
               </div>
 
               <textarea
                 value={mongoQuery}
                 onChange={(e) => setMongoQuery(e.target.value)}
-                placeholder="Write your MongoDB JS commands here..."
+                placeholder={t('nosql.shell.placeholder')}
                 style={styles.sqlTextarea}
               />
 
-              <div style={styles.terminalHeader}>Result JSON Console</div>
+              <div style={styles.terminalHeader}>{t('nosql.shell.consoleTitle')}</div>
               <pre style={styles.terminalOutput}>
-                <code>{queryOutput || 'No output. Execute an expression to see results.'}</code>
+                <code>{queryOutput || t('nosql.shell.emptyOutput')}</code>
               </pre>
             </div>
           )}
@@ -1098,7 +1100,7 @@ export default function NoSqlModal({ containerId, nodeName, projectId, onClose }
                   <Search size={15} color="var(--color-text-muted)" style={styles.searchIcon} />
                   <input
                     type="text"
-                    placeholder="Search MongoDB helper commands..."
+                    placeholder={t('nosql.cheatsheet.placeholder')}
                     value={cheatQuery}
                     onChange={(e) => setCheatQuery(e.target.value)}
                     style={styles.searchInput}
