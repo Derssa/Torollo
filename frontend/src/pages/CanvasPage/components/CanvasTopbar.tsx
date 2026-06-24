@@ -1,5 +1,6 @@
 import { ArrowLeft, RefreshCw, Save, Network, Play } from 'lucide-react';
 import logo from '../../../assets/logo.png';
+import { useTranslation } from 'react-i18next';
 
 interface CanvasTopbarProps {
   projectName: string;
@@ -23,10 +24,17 @@ export default function CanvasTopbar({
   onConfigureVpc,
   onSimulateTraffic,
 }: CanvasTopbarProps) {
+  const { t, i18n } = useTranslation();
+
+  const toggleLanguage = () => {
+    const nextLang = i18n.language === 'fr' ? 'en' : 'fr';
+    i18n.changeLanguage(nextLang);
+  };
+
   return (
     <div style={styles.topbar} className="glass">
       <div style={styles.brand}>
-        <button onClick={onBack} style={styles.backBtn} title="Back to Projects">
+        <button onClick={onBack} style={styles.backBtn} title={t('topbar.backToProjects')}>
           <ArrowLeft size={16} />
         </button>
         <div style={styles.iconWrap}>
@@ -38,27 +46,35 @@ export default function CanvasTopbar({
 
       <div style={styles.actions}>
         <button
+          onClick={toggleLanguage}
+          style={{...styles.saveBtn, padding: '0 10px', minWidth: '40px'}}
+          title="Toggle Language"
+        >
+          {i18n.language.toUpperCase()}
+        </button>
+
+        <button
           onClick={onRefresh}
           style={styles.refreshBtn}
           disabled={loading}
-          title="Refresh Nodes"
+          title={t('topbar.refreshNodes')}
         >
           <RefreshCw size={16} className={loading ? 'spin' : ''} />
         </button>
 
-        <button onClick={onConfigureVpc} style={styles.saveBtn} title="Configure VPC Settings">
+        <button onClick={onConfigureVpc} style={styles.saveBtn} title={t('topbar.vpcSettings')}>
           <Network size={16} style={{ marginRight: 6 }} />
-          VPC Settings
+          {t('topbar.vpcSettings')}
         </button>
 
-        <button onClick={onSimulateTraffic} style={styles.saveBtn} title="Simulate Traffic Routing">
+        <button onClick={onSimulateTraffic} style={styles.saveBtn} title={t('topbar.trafficSimulator')}>
           <Play size={16} style={{ marginRight: 6 }} />
-          Traffic Simulator
+          {t('topbar.trafficSimulator')}
         </button>
 
-        <button onClick={onSave} style={styles.saveBtn} title="Save Layout Locally">
+        <button onClick={onSave} style={styles.saveBtn} title={t('topbar.saveGraph')}>
           <Save size={16} style={{ marginRight: 6 }} />
-          Save Graph
+          {t('topbar.saveGraph')}
         </button>
       </div>
     </div>
