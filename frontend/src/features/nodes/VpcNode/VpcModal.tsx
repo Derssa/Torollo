@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { X, Shield, Send, CheckCircle2, XCircle } from 'lucide-react';
 import type { ContainerData } from '../../../shared/types';
 import type { SecurityGroupRule } from '../SecurityGroups/SecurityGroupsModal';
@@ -38,6 +39,7 @@ export default function VpcModal({
   onSaveVpcConfig,
   initialTab = 'info'
 }: VpcModalProps) {
+  const { t } = useTranslation();
   const [activeTab] = useState<'info' | 'simulator'>(initialTab);
   
   // VPC Config State Form
@@ -184,7 +186,7 @@ export default function VpcModal({
           <div style={styles.titleRow}>
             <Shield size={18} color="var(--color-accent)" />
             <span style={styles.title}>
-              {activeTab === 'info' ? 'Project VPC Settings' : 'VPC Traffic Routing Simulator'}
+              {activeTab === 'info' ? t('vpc.titleInfo') : t('vpc.titleSimulator')}
             </span>
           </div>
           <button onClick={onClose} style={styles.closeBtn}>
@@ -197,17 +199,17 @@ export default function VpcModal({
             <div style={styles.tabContent}>
               <form onSubmit={handleSaveSettings} style={styles.formSettings}>
                 <div style={styles.formGroup}>
-                  <label style={styles.label}>VPC Name</label>
+                  <label style={styles.label}>{t('vpc.name')}</label>
                   <input
                     type="text"
                     value={name}
                     onChange={(e) => setName(e.target.value)}
                     style={styles.input}
-                    placeholder="e.g. Primary VPC"
+                    placeholder={t('vpc.namePlaceholder')}
                   />
                 </div>
                 <div style={styles.formGroup}>
-                  <label style={styles.label}>CIDR Block</label>
+                  <label style={styles.label}>{t('vpc.cidr')}</label>
                   <input
                     type="text"
                     value={cidr}
@@ -223,12 +225,12 @@ export default function VpcModal({
                   />
                 </div>
                 <div style={styles.formGroup}>
-                  <label style={styles.label}>Description</label>
+                  <label style={styles.label}>{t('vpc.description')}</label>
                   <textarea
                     value={description}
                     onChange={(e) => setDescription(e.target.value)}
                     style={styles.textarea}
-                    placeholder="Describe this VPC..."
+                    placeholder={t('vpc.descriptionPlaceholder')}
                   />
                 </div>
                 <div style={styles.checkboxGroup}>
@@ -239,7 +241,7 @@ export default function VpcModal({
                       onChange={(e) => setDnsEnabled(e.target.checked)}
                       style={styles.checkbox}
                     />
-                    <span>DNS Resolution Enabled</span>
+                    <span>{t('vpc.dns')}</span>
                   </label>
                 </div>
                 <div style={styles.checkboxGroup}>
@@ -250,14 +252,14 @@ export default function VpcModal({
                       onChange={(e) => setIgwEnabled(e.target.checked)}
                       style={styles.checkbox}
                     />
-                    <span>Internet Gateway (IGW) Attached</span>
+                    <span>{t('vpc.igw')}</span>
                   </label>
                 </div>
-                <button type="submit" style={styles.saveBtnSettings}>Save Configurations</button>
+                <button type="submit" style={styles.saveBtnSettings}>{t('vpc.save')}</button>
               </form>
 
               <div style={styles.section}>
-                <h4 style={styles.sectionTitle}>Active Subnets ({subnets.length})</h4>
+                <h4 style={styles.sectionTitle}>{t('vpc.subnets')} ({subnets.length})</h4>
                 {subnets.length > 0 ? (
                   <div style={styles.list}>
                     {subnets.map(subnet => (
@@ -274,7 +276,7 @@ export default function VpcModal({
                     ))}
                   </div>
                 ) : (
-                  <p style={styles.emptyText}>No subnets exist in the VPC. Add subnets from the Node Library sidebar.</p>
+                  <p style={styles.emptyText}>{t('vpc.noSubnets')}</p>
                 )}
               </div>
             </div>
@@ -284,19 +286,19 @@ export default function VpcModal({
             <div style={styles.tabContent}>
               <div style={styles.simulatorGrid}>
                 <div style={styles.formGroup}>
-                  <label style={styles.label}>Source Node</label>
+                  <label style={styles.label}>{t('vpc.sourceNode')}</label>
                   <select 
                     value={sourceNodeId}
                     onChange={(e) => setSourceNodeId(e.target.value)}
                     style={styles.select}
                   >
-                    <option value="">-- Select Source --</option>
+                    <option value="">{t('vpc.selectSource')}</option>
                     {nodes.map(n => {
                       const subnetId = nodeSubnetMap[n.id];
                       const subnet = subnets.find(s => s.id === subnetId);
                       const subnetInfo = subnet 
-                        ? `Subnet: ${subnet.name} [${subnet.type}]` 
-                        : 'No Subnet';
+                        ? `${t('vpc.subnetLabel')} ${subnet.name} [${subnet.type}]` 
+                        : t('vpc.noSubnetLabel');
                       return (
                         <option key={n.id} value={n.id}>
                           {n.name} ({subnetInfo})
@@ -307,19 +309,19 @@ export default function VpcModal({
                 </div>
 
                 <div style={styles.formGroup}>
-                  <label style={styles.label}>Destination Node</label>
+                  <label style={styles.label}>{t('vpc.destNode')}</label>
                   <select 
                     value={destNodeId}
                     onChange={(e) => setDestNodeId(e.target.value)}
                     style={styles.select}
                   >
-                    <option value="">-- Select Destination --</option>
+                    <option value="">{t('vpc.selectDest')}</option>
                     {nodes.map(n => {
                       const subnetId = nodeSubnetMap[n.id];
                       const subnet = subnets.find(s => s.id === subnetId);
                       const subnetInfo = subnet 
-                        ? `Subnet: ${subnet.name} [${subnet.type}]` 
-                        : 'No Subnet';
+                        ? `${t('vpc.subnetLabel')} ${subnet.name} [${subnet.type}]` 
+                        : t('vpc.noSubnetLabel');
                       return (
                         <option key={n.id} value={n.id}>
                           {n.name} ({subnetInfo})
@@ -330,7 +332,7 @@ export default function VpcModal({
                 </div>
 
                 <div style={styles.formGroupShort}>
-                  <label style={styles.label}>Dest Port</label>
+                  <label style={styles.label}>{t('vpc.destPort')}</label>
                   <input 
                     type="text" 
                     value={port}
@@ -343,7 +345,7 @@ export default function VpcModal({
 
               <button onClick={handleSimulate} style={styles.simulateBtn}>
                 <Send size={14} style={{ marginRight: 6 }} />
-                Test Packet Communication
+                {t('vpc.testComm')}
               </button>
 
               {simulationResult && (
