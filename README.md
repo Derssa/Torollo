@@ -4,7 +4,7 @@
 
 [![torollo version](https://img.shields.io/npm/v/torollo.svg?label=version&style=flat-square)](https://www.npmjs.com/package/torollo)
 [![license](https://img.shields.io/npm/l/torollo.svg?style=flat-square)](https://github.com/Derssa/torollo/blob/main/LICENSE)
-[![node-current](https://img.shields.io/node/v/torollo.svg?style=flat-square)](https://nodejs.org)
+[![node-current](https://img.shields.io/badge/node-%3E%3D18.0.0-success?style=flat-square&logo=nodedotjs)](https://nodejs.org)
 
 > **A local-first visual simulator and educational playground for backend engineering and system design, inspired by Packet Tracer.**
 
