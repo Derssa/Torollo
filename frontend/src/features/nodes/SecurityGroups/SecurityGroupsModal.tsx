@@ -1,4 +1,5 @@
 import { X, ShieldAlert, Plus, Trash, ChevronUp, ChevronDown } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 import type { ContainerData } from '../../../shared/types';
 
 export interface SecurityGroupRule {
@@ -30,6 +31,7 @@ export default function SecurityGroupsModal({
   onClose,
   onSaveRules
 }: SecurityGroupsModalProps) {
+  const { t } = useTranslation();
 
   const handleAddRule = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -83,7 +85,7 @@ export default function SecurityGroupsModal({
         <div style={styles.header}>
           <div style={styles.titleRow}>
             <ShieldAlert size={18} color="#EF4444" />
-            <span style={styles.title}>Security Group: {nodeName} ({nodeType})</span>
+            <span style={styles.title}>{t('sg.title')} {nodeName} ({nodeType})</span>
           </div>
           <button onClick={onClose} style={styles.closeBtn}>
             <X size={18} />
@@ -93,22 +95,22 @@ export default function SecurityGroupsModal({
         <div style={styles.body}>
           <div style={styles.infoBox}>
             <p style={styles.infoText}>
-              Security groups act as a virtual firewall for your container instance to control inbound and outbound traffic. By default, all traffic that is not explicitly allowed is denied.
+              {t('sg.description')}
             </p>
           </div>
 
           <div style={styles.rulesListSection}>
-            <h4 style={styles.sectionTitle}>Active Traffic Rules</h4>
+            <h4 style={styles.sectionTitle}>{t('sg.activeRules')}</h4>
             <div style={styles.tableWrapper}>
               <table style={styles.table}>
                 <thead>
                   <tr style={styles.thRow}>
-                    <th style={styles.th}>Direction</th>
-                    <th style={styles.th}>Action</th>
-                    <th style={styles.th}>Protocol</th>
-                    <th style={styles.th}>Port</th>
-                    <th style={styles.th}>Source / Dest</th>
-                    <th style={styles.thAction}>Action</th>
+                    <th style={styles.th}>{t('sg.direction')}</th>
+                    <th style={styles.th}>{t('sg.action')}</th>
+                    <th style={styles.th}>{t('sg.protocol')}</th>
+                    <th style={styles.th}>{t('sg.port')}</th>
+                    <th style={styles.th}>{t('sg.sourceDest')}</th>
+                    <th style={styles.thAction}>{t('sg.action')}</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -117,10 +119,10 @@ export default function SecurityGroupsModal({
                       // Resolve source name
                       let resolvedSource = rule.source;
                       const matchedNode = allNodes.find(n => n.id === rule.source);
-                      if (matchedNode) resolvedSource = `Node: ${matchedNode.name}`;
+                      if (matchedNode) resolvedSource = `${t('sg.nodeLabel')}${matchedNode.name}`;
                       else {
                         const matchedSubnet = allSubnets.find(s => s.id === rule.source);
-                        if (matchedSubnet) resolvedSource = `Subnet: ${matchedSubnet.name}`;
+                        if (matchedSubnet) resolvedSource = `${t('sg.subnetLabel')}${matchedSubnet.name}`;
                       }
 
                       return (
@@ -131,7 +133,7 @@ export default function SecurityGroupsModal({
                               backgroundColor: rule.type === 'inbound' ? '#DBEAFE' : '#F3E8FF',
                               color: rule.type === 'inbound' ? '#1E40AF' : '#6B21A8'
                             }}>
-                              {rule.type.toUpperCase()}
+                              {rule.type === 'inbound' ? t('sg.inbound').toUpperCase() : t('sg.outbound').toUpperCase()}
                             </span>
                           </td>
                           <td style={styles.td}>
@@ -186,7 +188,7 @@ export default function SecurityGroupsModal({
                     })
                   ) : (
                     <tr style={styles.tr}>
-                      <td colSpan={6} style={styles.tdEmpty}>No rules configured. All traffic is blocked.</td>
+                      <td colSpan={6} style={styles.tdEmpty}>{t('sg.noRules')}</td>
                     </tr>
                   )}
                 </tbody>
@@ -195,18 +197,18 @@ export default function SecurityGroupsModal({
           </div>
 
           <div style={styles.formSection}>
-            <h4 style={styles.sectionTitle}>Add Rule</h4>
+            <h4 style={styles.sectionTitle}>{t('sg.addRuleTitle')}</h4>
             <form onSubmit={handleAddRule} style={styles.form}>
               <div style={styles.formGroup}>
-                <label style={styles.label}>Direction</label>
+                <label style={styles.label}>{t('sg.direction')}</label>
                 <select name="type" style={styles.select}>
-                  <option value="inbound">Inbound</option>
-                  <option value="outbound">Outbound</option>
+                  <option value="inbound">{t('sg.inbound')}</option>
+                  <option value="outbound">{t('sg.outbound')}</option>
                 </select>
               </div>
 
               <div style={styles.formGroup}>
-                <label style={styles.label}>Action</label>
+                <label style={styles.label}>{t('sg.action')}</label>
                 <select name="action" style={styles.select}>
                   <option value="ALLOW">ALLOW</option>
                   <option value="DENY">DENY</option>
@@ -214,7 +216,7 @@ export default function SecurityGroupsModal({
               </div>
 
               <div style={styles.formGroup}>
-                <label style={styles.label}>Protocol</label>
+                <label style={styles.label}>{t('sg.protocol')}</label>
                 <select name="protocol" style={styles.select}>
                   <option value="ALL">ALL</option>
                   <option value="TCP">TCP</option>
@@ -224,12 +226,12 @@ export default function SecurityGroupsModal({
               </div>
 
               <div style={styles.formGroup}>
-                <label style={styles.label}>Port Range</label>
+                <label style={styles.label}>{t('sg.portRange')}</label>
                 <input
                   required
                   name="port"
                   type="text"
-                  placeholder="e.g. 80, 5432, ALL"
+                  placeholder={t('sg.portPlaceholder')}
                   defaultValue={
                     (nodeType === 'postgres' || nodeType === 'sql')
                       ? '5432'
@@ -244,17 +246,17 @@ export default function SecurityGroupsModal({
               </div>
 
               <div style={styles.formGroupWide}>
-                <label style={styles.label}>Source / Destination</label>
+                <label style={styles.label}>{t('sg.sourceDestLabel')}</label>
                 <select name="source" style={styles.select}>
-                  <option value="0.0.0.0/0">Anywhere (0.0.0.0/0)</option>
-                  <optgroup label="Subnets">
+                  <option value="0.0.0.0/0">{t('sg.anywhere')}</option>
+                  <optgroup label={t('sg.subnetsGroup')}>
                     {allSubnets.map(s => (
-                      <option key={s.id} value={s.id}>Subnet: {s.name}</option>
+                      <option key={s.id} value={s.id}>{t('sg.subnetLabel')}{s.name}</option>
                     ))}
                   </optgroup>
-                  <optgroup label="Nodes">
+                  <optgroup label={t('sg.nodesGroup')}>
                     {allNodes.map(n => (
-                      <option key={n.id} value={n.id}>Node: {n.name}</option>
+                      <option key={n.id} value={n.id}>{t('sg.nodeLabel')}{n.name}</option>
                     ))}
                   </optgroup>
                 </select>
@@ -262,7 +264,7 @@ export default function SecurityGroupsModal({
 
               <button type="submit" style={styles.addBtn}>
                 <Plus size={14} style={{ marginRight: 4 }} />
-                Add Rule
+                {t('sg.addRuleBtn')}
               </button>
             </form>
           </div>

@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { X, Route, Info, Loader2 } from 'lucide-react';
 
 interface RouteEntry {
@@ -23,6 +24,7 @@ export default function RoutingTableModal({
   onClose,
   onSave
 }: RoutingTableModalProps) {
+  const { t } = useTranslation();
   const [localRoutes, setLocalRoutes] = useState<RouteEntry[]>(routes);
   const [isSaving, setIsSaving] = useState(false);
 
@@ -61,7 +63,7 @@ export default function RoutingTableModal({
         <div style={styles.header}>
           <div style={styles.titleRow}>
             <Route size={18} color="var(--color-accent)" />
-            <span style={styles.title}>{subnetName} - Routing Table</span>
+            <span style={styles.title}>{subnetName}{t('routing.title')}</span>
           </div>
           <button 
             onClick={onClose} 
@@ -80,17 +82,17 @@ export default function RoutingTableModal({
           <div style={styles.infoBox}>
             <Info size={16} color="var(--color-accent)" style={{ flexShrink: 0, marginTop: 2 }} />
             <p style={styles.infoText}>
-              A Routing Table contains a set of rules (called routes) that determine where network traffic from your subnet is directed. Traffic matching the destination CIDR will be forwarded to the corresponding target.
+              {t('routing.description')}
             </p>
           </div>
 
           <table style={styles.table}>
             <thead>
               <tr style={styles.thRow}>
-                <th style={styles.th}>Destination CIDR</th>
-                <th style={styles.th}>Target</th>
-                <th style={styles.th}>Description</th>
-                <th style={styles.thAction}>Action</th>
+                <th style={styles.th}>{t('routing.destCidr')}</th>
+                <th style={styles.th}>{t('routing.target')}</th>
+                <th style={styles.th}>{t('routing.desc')}</th>
+                <th style={styles.thAction}>{t('routing.action')}</th>
               </tr>
             </thead>
             <tbody>
@@ -109,7 +111,7 @@ export default function RoutingTableModal({
                       }}
                       disabled={isSaving}
                     >
-                      Remove
+                      {t('routing.remove')}
                     </button>
                   </td>
                 </tr>
@@ -117,7 +119,7 @@ export default function RoutingTableModal({
               {localRoutes.length === 0 && (
                 <tr>
                   <td colSpan={4} style={{ padding: '16px', textAlign: 'center', color: 'var(--color-text-muted)', fontSize: '12px' }}>
-                    No routes defined. Subnet traffic will be isolated.
+                    {t('routing.noRoutes')}
                   </td>
                 </tr>
               )}
@@ -125,14 +127,14 @@ export default function RoutingTableModal({
           </table>
 
           <div style={styles.formSection}>
-            <h4 style={styles.formTitle}>Add Route Rule</h4>
+            <h4 style={styles.formTitle}>{t('routing.addTitle')}</h4>
             <form onSubmit={handleFormSubmit} style={styles.form}>
               <input
                 required
                 disabled={isSaving}
                 name="destination"
                 type="text"
-                placeholder="e.g. 0.0.0.0/0, 10.0.0.0/16"
+                placeholder={t('routing.cidrPlaceholder')}
                 style={styles.input}
               />
               <select
@@ -151,7 +153,7 @@ export default function RoutingTableModal({
                 disabled={isSaving}
                 name="description"
                 type="text"
-                placeholder="Rule description (optional)"
+                placeholder={t('routing.descPlaceholder')}
                 style={styles.inputWide}
               />
               <button 
@@ -163,7 +165,7 @@ export default function RoutingTableModal({
                 }} 
                 disabled={isSaving}
               >
-                Add Route
+                {t('routing.addBtn')}
               </button>
             </form>
           </div>
@@ -183,7 +185,7 @@ export default function RoutingTableModal({
               }}
             >
               {isSaving && <Loader2 size={14} style={{ animation: 'spin 1s linear infinite' }} />}
-              {isSaving ? 'Saving Changes...' : 'Save Changes'}
+              {isSaving ? t('routing.saving') : t('routing.save')}
             </button>
           </div>
         </div>
