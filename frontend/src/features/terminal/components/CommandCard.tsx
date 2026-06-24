@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { ChevronDown, ChevronUp, Copy, Check } from 'lucide-react';
 import type { LinuxCommand } from '../hooks/useCommandSearch';
 
@@ -7,6 +8,7 @@ interface CommandCardProps {
 }
 
 export default function CommandCard({ command }: CommandCardProps) {
+  const { t } = useTranslation();
   const [expanded, setExpanded] = useState(false);
   const [copied, setCopied] = useState(false);
 
@@ -36,17 +38,17 @@ export default function CommandCard({ command }: CommandCardProps) {
       {expanded && (
         <div style={styles.details} onClick={e => e.stopPropagation()}>
           <div style={styles.exampleHeader}>
-            <span style={styles.exampleTitle}>Example Usage</span>
+            <span style={styles.exampleTitle}>{t('terminal.cheatsheet.example')}</span>
             <button style={styles.copyBtn} onClick={handleCopy}>
               {copied ? (
                 <>
                   <Check size={13} color="#10B981" style={{ marginRight: 4 }} />
-                  <span style={{ color: '#10B981' }}>Copied!</span>
+                  <span style={{ color: '#10B981' }}>{t('terminal.cheatsheet.copied')}</span>
                 </>
               ) : (
                 <>
                   <Copy size={13} style={{ marginRight: 4 }} />
-                  <span>Copy</span>
+                  <span>{t('terminal.cheatsheet.copy')}</span>
                 </>
               )}
             </button>

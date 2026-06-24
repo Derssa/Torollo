@@ -1,6 +1,7 @@
 import { useCommandSearch } from '../hooks/useCommandSearch';
 import CommandCard from './CommandCard';
 import { Search } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 
 export default function LinuxCheatSheet() {
   const {
@@ -11,6 +12,7 @@ export default function LinuxCheatSheet() {
     categories,
     filteredCommands,
   } = useCommandSearch();
+  const { t } = useTranslation();
 
   return (
     <div style={styles.container}>
@@ -19,7 +21,7 @@ export default function LinuxCheatSheet() {
           <Search size={16} color="var(--color-text-muted)" style={styles.searchIcon} />
           <input
             type="text"
-            placeholder="Search commands, descriptions, or keywords..."
+            placeholder={t('terminal.cheatsheet.searchPlaceholder')}
             value={searchQuery}
             onChange={e => setSearchQuery(e.target.value)}
             style={styles.searchInput}
@@ -36,7 +38,7 @@ export default function LinuxCheatSheet() {
           }}
           onClick={() => setSelectedCategory(null)}
         >
-          All
+          {t('terminal.cheatsheet.all')}
         </button>
         {categories.map(cat => (
           <button
@@ -60,7 +62,7 @@ export default function LinuxCheatSheet() {
           ))
         ) : (
           <div style={styles.empty}>
-            <span style={styles.emptyText}>No matching commands found.</span>
+            <span style={styles.emptyText}>{t('terminal.cheatsheet.empty')}</span>
           </div>
         )}
       </div>

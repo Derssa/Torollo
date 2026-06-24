@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import { Terminal } from '@xterm/xterm';
 import { FitAddon } from '@xterm/addon-fit';
 import { io, Socket } from 'socket.io-client';
+import { useTranslation } from 'react-i18next';
 import { X, Terminal as TermIcon, BookOpen } from 'lucide-react';
 import '@xterm/xterm/css/xterm.css';
 import LinuxCheatSheet from './LinuxCheatSheet';
@@ -14,6 +15,7 @@ interface TerminalModalProps {
 }
 
 export default function TerminalModal({ containerId, nodeName, onClose }: TerminalModalProps) {
+  const { t } = useTranslation();
   const terminalRef = useRef<HTMLDivElement>(null);
   const socketRef = useRef<Socket | null>(null);
   const termRef = useRef<Terminal | null>(null);
@@ -85,7 +87,7 @@ export default function TerminalModal({ containerId, nodeName, onClose }: Termin
               onClick={() => setActiveTab('terminal')}
             >
               <TermIcon size={16} style={{ marginRight: 6 }} />
-              Terminal: {nodeName}
+              {t('terminal.tabs.terminal').replace('{{nodeName}}', nodeName)}
             </button>
             <button
               style={{
@@ -95,7 +97,7 @@ export default function TerminalModal({ containerId, nodeName, onClose }: Termin
               onClick={() => setActiveTab('cheatsheet')}
             >
               <BookOpen size={16} style={{ marginRight: 6 }} />
-              Linux Cheat Sheet
+              {t('terminal.tabs.cheatsheet')}
             </button>
           </div>
           <button onClick={onClose} style={styles.closeBtn}>
