@@ -1152,7 +1152,6 @@ export default function CanvasPage({ projectId, projectName, onBackToProjects, o
       return;
     }
 
-    setShowCreateModal(false);
     const type = dropState?.type || 'ubuntu';
     const position = dropState?.position;
 
@@ -1167,8 +1166,12 @@ export default function CanvasPage({ projectId, projectName, onBackToProjects, o
       pendingSubnetIdRef.current = null;
     }
 
-    setDropState(null);
-    await createContainer(name, type, targetSubnetId);
+    try {
+      await createContainer(name, type, targetSubnetId);
+    } finally {
+      setShowCreateModal(false);
+      setDropState(null);
+    }
   };
 
   const handleCancelCreate = () => {
