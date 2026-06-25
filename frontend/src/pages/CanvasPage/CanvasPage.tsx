@@ -1409,17 +1409,19 @@ export default function CanvasPage({ projectId, projectName, onBackToProjects, o
           label="Give your new container a descriptive name."
           placeholder={
             (dropState?.type === 'postgres' || dropState?.type === 'sql')
-              ? "e.g. sql-db, main-store"
+              ? "e.g. sql-1"
               : dropState?.type === 'nosql'
-                ? "e.g. nosql-db, document-store"
+                ? "e.g. nosql-1"
                 : dropState?.type === 'nat'
-                  ? "e.g. nat-gateway, internet-exit"
+                  ? "e.g. nat-1"
                   : dropState?.type === 'loadbalancer'
-                    ? "e.g. alb, web-lb"
+                    ? "e.g. alb-1"
                     : dropState?.type === 'autoscalinggroup'
-                      ? "e.g. asg-web, main-scaling"
-                      : "e.g. web-server, api-gateway"
+                      ? "e.g. asg-1"
+                      : "e.g. server-1"
           }
+          maxLength={10}
+          restrictPattern={/[^a-zA-Z0-9-]/g}
           defaultValue={
             (() => {
               const type = dropState?.type || 'ubuntu';
@@ -1429,12 +1431,12 @@ export default function CanvasPage({ projectId, projectName, onBackToProjects, o
                   : type === 'nosql'
                     ? 'nosql-'
                     : type === 'nat'
-                      ? 'NAT-'
+                      ? 'nat-'
                       : type === 'loadbalancer'
                         ? 'alb-'
                         : type === 'autoscalinggroup'
                           ? 'asg-'
-                          : 'server-';
+                          : 'srv-';
               let suffix = 1;
               while (containers.some(c => c.name === `${prefix}${suffix}`)) {
                 suffix++;

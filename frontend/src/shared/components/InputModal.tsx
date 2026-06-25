@@ -7,6 +7,8 @@ interface InputModalProps {
   placeholder?: string;
   defaultValue?: string;
   submitText?: string;
+  maxLength?: number;
+  restrictPattern?: RegExp;
   onSubmit: (value: string) => void;
   onCancel: () => void;
 }
@@ -17,6 +19,8 @@ export default function InputModal({
   placeholder = '',
   defaultValue = '',
   submitText = 'Create',
+  maxLength,
+  restrictPattern,
   onSubmit,
   onCancel,
 }: InputModalProps) {
@@ -28,6 +32,14 @@ export default function InputModal({
     const timer = setTimeout(() => inputRef.current?.focus(), 150);
     return () => clearTimeout(timer);
   }, []);
+
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    let val = e.target.value;
+    if (restrictPattern) {
+      val = val.replace(restrictPattern, '');
+    }
+    setValue(val);
+  };
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -43,7 +55,8 @@ export default function InputModal({
           ref={inputRef}
           type="text"
           value={value}
-          onChange={(e) => setValue(e.target.value)}
+          maxLength={maxLength}
+          onChange={handleChange}
           placeholder={placeholder}
           style={styles.input}
           id="modal-input"
