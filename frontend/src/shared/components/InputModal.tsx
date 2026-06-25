@@ -9,7 +9,7 @@ interface InputModalProps {
   submitText?: string;
   maxLength?: number;
   restrictPattern?: RegExp;
-  onSubmit: (value: string) => void;
+  onSubmit: (value: string) => void | Promise<void>;
   onCancel: () => void;
 }
 
@@ -25,6 +25,7 @@ export default function InputModal({
   onCancel,
 }: InputModalProps) {
   const [value, setValue] = useState(defaultValue);
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
@@ -41,9 +42,17 @@ export default function InputModal({
     setValue(val);
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (value.trim()) onSubmit(value.trim());
+    if (value.trim()) {
+      setIsSubmitting(true);
+      try {
+        await onSubmit(value.trim());
+      } finally {
+        // Only reset if it didn't unmount, but typically this modal is unmounted by parent on success
+        setIsSubmitting(false);
+      }
+    }
   };
 
   return (
@@ -60,16 +69,18 @@ export default function InputModal({
           placeholder={placeholder}
           style={styles.input}
           id="modal-input"
+          disabled={isSubmitting}
         />
         <div style={styles.actions}>
-          <button type="button" onClick={onCancel} style={styles.cancelBtn}>
+          <button type="button" onClick={onCancel} style={styles.cancelBtn} disabled={isSubmitting}>
             Cancel
           </button>
-          <button type="submit" disabled={!value.trim()} style={{
+          <button type="submit" disabled={!value.trim() || isSubmitting} style={{
             ...styles.submitBtn,
-            opacity: value.trim() ? 1 : 0.5,
+            opacity: (!value.trim() || isSubmitting) ? 0.5 : 1,
+            cursor: isSubmitting ? 'wait' : 'pointer'
           }}>
-            {submitText}
+            {isSubmitting ? 'Creating...' : submitText}
           </button>
         </div>
       </form>
