@@ -1420,7 +1420,7 @@ export default function CanvasPage({ projectId, projectName, onBackToProjects, o
                       ? "e.g. asg-1"
                       : "e.g. server-1"
           }
-          maxLength={10}
+          maxLength={20}
           restrictPattern={/[^a-zA-Z0-9-]/g}
           defaultValue={
             (() => {
