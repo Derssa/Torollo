@@ -46,10 +46,10 @@ async function findAvailablePort(startPort) {
   return port;
 }
 
-// Helper to check if Docker is installed
+// Helper to check if Docker is installed and running
 function checkDocker() {
   try {
-    execSync('docker --version', { stdio: 'ignore' });
+    execSync('docker info', { stdio: 'ignore' });
     return true;
   } catch (e) {
     return false;
