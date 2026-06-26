@@ -151,6 +151,18 @@ export class DockerNetworkProvider implements NetworkProvider {
       }
     }
 
+    // Resolve the actual VPC CIDR based on potential subnet shifts
+    let vpcCidr = config.vpcConfig?.cidr || '10.0.0.0/16';
+    const firstResolvedCidr = Object.values(resolvedCidrs)[0];
+    if (firstResolvedCidr) {
+      const resolvedParts = firstResolvedCidr.split('.');
+      const vpcParts = vpcCidr.split('.');
+      if (resolvedParts.length > 1 && vpcParts.length > 1) {
+        vpcParts[1] = resolvedParts[1];
+        vpcCidr = vpcParts.join('.');
+      }
+    }
+
     // 3. Connect containers to their target subnet networks (or akal-lab-network) and assign static IPs
     for (const ep of endpoints) {
       const containerInfo = dockerContainers.find(c => 
@@ -440,7 +452,6 @@ export class DockerNetworkProvider implements NetworkProvider {
         await this.runExec(containerId, ['sh', '-c', 'iptables -t nat -A POSTROUTING -j MASQUERADE']);
         await this.runExec(containerId, ['sh', '-c', 'iptables -F FORWARD 2>/dev/null || true']);
         if (isIgwEnabled) {
-          const vpcCidr = config.vpcConfig?.cidr || '10.0.0.0/16';
           await this.runExec(containerId, ['sh', '-c', 'iptables -A FORWARD -m conntrack --ctstate RELATED,ESTABLISHED -j ACCEPT']);
           await this.runExec(containerId, ['sh', '-c', `iptables -A FORWARD -s ${vpcCidr} -j ACCEPT`]);
           await this.runExec(containerId, ['sh', '-c', 'iptables -A FORWARD -j REJECT']);
@@ -617,7 +628,6 @@ ${locationsConfig}
       // Check if this subnet has a NAT Gateway route
       const natRoute = this.findNatRoute(subnet, endpoints, config, dockerContainers, projectId);
       const isInternetAllowed = isIgwEnabled && ((isPublicSubnet && hasIgwRoute) || !!natRoute);
-      const vpcCidr = config.vpcConfig?.cidr || '10.0.0.0/16';
 
       // Configure default route for this container based on routing tables
       if (natRoute) {
