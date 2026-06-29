@@ -473,6 +473,7 @@ const styles: Record<string, React.CSSProperties> = {
     flexDirection: 'column',
     gap: '6px',
     flex: 1,
+    minWidth: 0,
   },
   formGroupShort: {
     display: 'flex',
@@ -597,6 +598,10 @@ const styles: Record<string, React.CSSProperties> = {
     backgroundColor: '#FFF',
     outline: 'none',
     height: '32px',
+    width: '100%',
+    textOverflow: 'ellipsis',
+    overflow: 'hidden',
+    whiteSpace: 'nowrap',
   },
   simulateBtn: {
     backgroundColor: 'var(--color-accent)',
