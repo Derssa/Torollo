@@ -26,6 +26,7 @@ export default function ProjectsPage({ onSelectProject }: ProjectsPageProps) {
   const toggleLanguage = () => {
     const nextLang = i18n.language === 'fr' ? 'en' : 'fr';
     i18n.changeLanguage(nextLang);
+    localStorage.setItem('torollo_lang', nextLang);
   };
 
   const fetchProjects = async () => {
