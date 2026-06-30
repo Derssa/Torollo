@@ -37,9 +37,10 @@ You can drag and drop a wide range of infrastructure components onto the canvas.
 *   **Computing**
     *   **Ubuntu Server:** A basic Linux container. Includes a fully functional, native web-terminal integrated directly into your browser via WebSockets.
     *   **Auto Scaling Group (ASG):** Define a template and scale replicas up or down instantly.
-*   **Databases**
+*   **Databases / Caches**
     *   **PostgreSQL:** Relational database node. Features a built-in interactive Explorer to view schemas, tables, and execute SQL queries directly from the UI.
     *   **MongoDB (NoSQL):** Document database node. Features an interactive Explorer to view collections and run JSON queries without needing external GUI clients.
+    *   **Redis (Cache Store):** In-memory data store. Includes a built-in Explorer to view keys and run native Redis CLI commands interactively.
 *   **Networking & Security**
     *   **VPC & Subnets:** Isolated network boundaries backed by custom Docker bridge networks.
     *   **Security Groups:** Drag-and-drop visual firewall rules (Inbound/Outbound). Rules are converted and enforced using actual `iptables` injected securely into the containers.
@@ -51,7 +52,6 @@ You can drag and drop a wide range of infrastructure components onto the canvas.
 ## Coming Very Soon
 
 *   **Terraform Generation:** Automatic Infrastructure-as-Code (IaC) generation for your visual architectures, supporting every major cloud provider (AWS, Azure, GCP).
-*   **Databases:** Redis In-Memory Cache
 *   **Message Brokers:** RabbitMQ, Kafka
 *   **Application Services:** API Service, Microservices Host, Serverless Functions
 *   **Observability:** Live Metrics, Logs, & Monitoring Components
