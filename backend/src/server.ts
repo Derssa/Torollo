@@ -5,6 +5,7 @@ import cors from 'cors';
 import { ENV } from './config/env';
 import projectRouter from './modules/projects/routes/projectRoutes';
 import containerRouter from './modules/containers/routes/containerRoutes';
+import healthRouter from './modules/health/routes/healthRoutes';
 import { TerminalGateway } from './modules/terminal/gateway/terminalGateway';
 import { DockerInitializer } from './infrastructure/docker/DockerInitializer';
 
@@ -16,6 +17,9 @@ app.use(cors({
   methods: ['GET', 'POST', 'DELETE']
 }));
 app.use(express.json());
+
+// Health probe
+app.use('/health', healthRouter);
 
 // Scoped APIs
 app.use('/api/projects', projectRouter);
