@@ -227,7 +227,7 @@
     "name": "git clone",
     "category": "Git",
     "description": "Clone an existing remote repository into a new local directory.",
-    "example": "git clone https://github.com/Derssa/akal.git",
+    "example": "git clone https://github.com/Derssa/torollo.git",
     "keywords": ["git", "clone", "download", "repo", "copy"]
   },
   {

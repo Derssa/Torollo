@@ -14,7 +14,7 @@ export interface ContainerInfo {
 }
 
 export class ContainerManager {
-  private static LAB_PREFIX = 'akal-lab-';
+  private static LAB_PREFIX = 'torollo-lab-';
   private static crashedInstances = new Set<string>();
 
   public static markAsCrashed(instanceId: string): void {
@@ -226,7 +226,7 @@ export class ContainerManager {
   public static async listContainersByProject(projectId: string): Promise<ContainerInfo[]> {
     const containers = await docker.listContainers({ all: true });
     return containers
-      .filter(c => c.Labels && c.Labels['akal.project.id'] === projectId)
+      .filter(c => c.Labels && c.Labels['torollo.project.id'] === projectId)
       .map(c => {
         let port = '';
         if (c.Ports && c.Ports.length > 0) {
@@ -242,16 +242,16 @@ export class ContainerManager {
         let ip = '';
         const networks = c.NetworkSettings?.Networks;
         if (networks) {
-          let key = Object.keys(networks).find(k => k.startsWith('akal-subnet-'));
+          let key = Object.keys(networks).find(k => k.startsWith('torollo-subnet-'));
           if (!key) {
-            key = Object.keys(networks).find(k => k.startsWith('akal-'));
+            key = Object.keys(networks).find(k => k.startsWith('torollo-'));
           }
           if (key && networks[key]) {
             ip = networks[key].IPAddress;
           }
         }
-        const asgId = c.Labels['akal.asg.id'];
-        const isAsgInstance = c.Labels['akal.asg.instance'] === 'true';
+        const asgId = c.Labels['torollo.asg.id'];
+        const isAsgInstance = c.Labels['torollo.asg.instance'] === 'true';
         const isFakeCrashed = this.isCrashed(c.Id);
         return {
           id: c.Id,
@@ -259,7 +259,7 @@ export class ContainerManager {
           image: c.Image,
           state: isFakeCrashed ? 'exited' : c.State,
           status: isFakeCrashed ? 'Exited (0) 1 second ago' : c.Status,
-          type: (c.Labels['akal.node.type'] || 'ubuntu') as 'ubuntu' | 'postgres' | 'sql' | 'nosql' | 'redis' | 'nat' | 'loadbalancer' | 'autoscalinggroup',
+          type: (c.Labels['torollo.node.type'] || 'ubuntu') as 'ubuntu' | 'postgres' | 'sql' | 'nosql' | 'redis' | 'nat' | 'loadbalancer' | 'autoscalinggroup',
           port,
           ip,
           asgId,
@@ -316,13 +316,13 @@ export class ContainerManager {
       Image: image,
       name: safeName,
       Labels: {
-        'akal.project.id': projectId,
-        'akal.node.type': type,
+        'torollo.project.id': projectId,
+        'torollo.node.type': type,
         ...(extraLabels || {})
       },
       HostConfig: {
         AutoRemove: false,
-        NetworkMode: 'akal-lab-network',
+        NetworkMode: 'torollo-lab-network',
         CapAdd: ['NET_ADMIN'],
         ...(type === 'nat' ? {
           Privileged: true,
@@ -331,7 +331,7 @@ export class ContainerManager {
       },
       NetworkingConfig: {
         EndpointsConfig: {
-          'akal-lab-network': {
+          'torollo-lab-network': {
             Aliases: [nodeName]
           }
         }
@@ -381,7 +381,7 @@ export class ContainerManager {
     let ip = '';
     const networks = inspectData.NetworkSettings.Networks;
     if (networks) {
-      const key = Object.keys(networks).find(k => k.startsWith('akal-'));
+      const key = Object.keys(networks).find(k => k.startsWith('torollo-'));
       if (key && networks[key]) {
         ip = networks[key].IPAddress;
       }

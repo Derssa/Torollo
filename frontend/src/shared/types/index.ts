@@ -1,4 +1,4 @@
-/** Shared type definitions for the Akal Systems Lab frontend */
+/** Shared type definitions for the Torollo Systems Lab frontend */
 
 export interface ContainerData {
   id: string;

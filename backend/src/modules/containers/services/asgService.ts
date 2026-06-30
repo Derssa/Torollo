@@ -5,7 +5,7 @@ import docker from '../../../infrastructure/docker/DockerClient';
 
 export class AsgService {
   private static getAsgImageName(projectId: string, asgId: string): string {
-    return `akal-lab-project-${projectId}-asg-${asgId}-image`.toLowerCase();
+    return `torollo-lab-project-${projectId}-asg-${asgId}-image`.toLowerCase();
   }
 
   public static async deployASG(
@@ -55,7 +55,7 @@ export class AsgService {
     // List active ASG instances
     const allContainers = await docker.listContainers({ all: true });
     const asgInstances = allContainers.filter(
-      c => c.Labels && c.Labels['akal.asg.id'] === asgId && c.Labels['akal.asg.instance'] === 'true'
+      c => c.Labels && c.Labels['torollo.asg.id'] === asgId && c.Labels['torollo.asg.instance'] === 'true'
     );
 
     const currentCount = asgInstances.length;
@@ -83,8 +83,8 @@ export class AsgService {
           isPublic,
           `${imageName}:latest`,
           {
-            'akal.asg.id': asgId,
-            'akal.asg.instance': 'true'
+            'torollo.asg.id': asgId,
+            'torollo.asg.instance': 'true'
           }
         );
 

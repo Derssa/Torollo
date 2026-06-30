@@ -73,7 +73,7 @@ export default function ProjectsPage({ onSelectProject }: ProjectsPageProps) {
     try {
       const res = await fetch(`${API_BASE}/api/projects/${id}`, { method: 'DELETE' });
       if (res.ok) {
-        localStorage.removeItem(`akal-lab-graph-layout-${id}`);
+        localStorage.removeItem(`torollo-lab-graph-layout-${id}`);
       }
     } catch (err) {
       console.error(err);

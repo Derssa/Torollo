@@ -28,15 +28,15 @@ export class DockerInitializer {
 
       // Subnet network cleanup removed to allow persistence between npx runs
 
-      const hasNetwork = networks.some(n => n.Name === 'akal-lab-network');
+      const hasNetwork = networks.some(n => n.Name === 'torollo-lab-network');
       if (!hasNetwork) {
-        console.log('Creating global shared network: akal-lab-network...');
+        console.log('Creating global shared network: torollo-lab-network...');
         await docker.createNetwork({
-          Name: 'akal-lab-network',
+          Name: 'torollo-lab-network',
           Driver: 'bridge'
         });
       } else {
-        console.log('Global shared network akal-lab-network ready');
+        console.log('Global shared network torollo-lab-network ready');
       }
     } catch (err) {
       console.error('[DockerInitializer] Failed to check/create global network:', err);
@@ -150,7 +150,7 @@ export class DockerInitializer {
         
         // Clean up any stale temp containers from previous runs
         try {
-          const oldContainer = docker.getContainer('akal-lab-temp-mongo-build');
+          const oldContainer = docker.getContainer('torollo-lab-temp-mongo-build');
           await oldContainer.remove({ force: true });
         } catch {
           // Ignore if old container doesn't exist
@@ -159,7 +159,7 @@ export class DockerInitializer {
         console.log(`[DockerInitializer] Creating temporary build container for MongoDB...`);
         const tempContainer = await docker.createContainer({
           Image: fallbackTag,
-          name: 'akal-lab-temp-mongo-build',
+          name: 'torollo-lab-temp-mongo-build',
           Entrypoint: ['tail', '-f', '/dev/null']
         });
         await tempContainer.start();

@@ -6,7 +6,7 @@ import type { ProjectInfo, TerminalInfo } from '../shared/types';
 
 function App() {
   const [activeProject, setActiveProject] = useState<ProjectInfo | null>(() => {
-    const saved = localStorage.getItem('akal-active-project');
+    const saved = localStorage.getItem('torollo-active-project');
     try {
       return saved ? JSON.parse(saved) : null;
     } catch {
@@ -18,9 +18,9 @@ function App() {
   const handleSelectProject = (project: ProjectInfo | null) => {
     setActiveProject(project);
     if (project) {
-      localStorage.setItem('akal-active-project', JSON.stringify(project));
+      localStorage.setItem('torollo-active-project', JSON.stringify(project));
     } else {
-      localStorage.removeItem('akal-active-project');
+      localStorage.removeItem('torollo-active-project');
     }
   };
 

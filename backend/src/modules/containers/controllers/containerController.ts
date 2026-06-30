@@ -55,7 +55,7 @@ export class ContainerController {
       let projectId: string | undefined;
       try {
         const inspectData = await docker.getContainer(containerId).inspect();
-        projectId = inspectData.Config.Labels['akal.project.id'];
+        projectId = inspectData.Config.Labels['torollo.project.id'];
       } catch (inspectErr) {
         console.warn(`Failed to inspect container before starting:`, inspectErr);
       }
@@ -84,7 +84,7 @@ export class ContainerController {
       let projectId: string | undefined;
       try {
         const inspectData = await docker.getContainer(containerId).inspect();
-        projectId = inspectData.Config.Labels['akal.project.id'];
+        projectId = inspectData.Config.Labels['torollo.project.id'];
       } catch (inspectErr) {
         console.warn(`Failed to inspect container before stopping:`, inspectErr);
       }
@@ -113,7 +113,7 @@ export class ContainerController {
       let projectId: string | undefined;
       try {
         const inspectData = await docker.getContainer(containerId).inspect();
-        projectId = inspectData.Config.Labels['akal.project.id'];
+        projectId = inspectData.Config.Labels['torollo.project.id'];
       } catch (inspectErr) {
         console.warn(`Failed to inspect container before deleting:`, inspectErr);
       }

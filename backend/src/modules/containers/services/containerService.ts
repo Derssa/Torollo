@@ -71,7 +71,7 @@ export class ContainerService {
             CREATE TABLE IF NOT EXISTS users (id SERIAL PRIMARY KEY, name VARCHAR(100), email VARCHAR(100) UNIQUE, role VARCHAR(50));
             CREATE TABLE IF NOT EXISTS products (id SERIAL PRIMARY KEY, name VARCHAR(100), price DECIMAL(10,2));
             CREATE TABLE IF NOT EXISTS orders (id SERIAL PRIMARY KEY, user_id INT, amount DECIMAL(10,2), status VARCHAR(50));
-            INSERT INTO users (name, email, role) VALUES ('Alice Smith', 'alice@akal-lab.io', 'admin'), ('Bob Jones', 'bob@akal-lab.io', 'developer'), ('Charlie Davis', 'charlie@akal-lab.io', 'analyst') ON CONFLICT DO NOTHING;
+            INSERT INTO users (name, email, role) VALUES ('Alice Smith', 'alice@torollo-lab.io', 'admin'), ('Bob Jones', 'bob@torollo-lab.io', 'developer'), ('Charlie Davis', 'charlie@torollo-lab.io', 'analyst') ON CONFLICT DO NOTHING;
             INSERT INTO products (name, price) VALUES ('Micro VM vCPU', 4.50), ('Standard DB Storage 10GB', 12.00), ('NAT Routing Unit', 15.00);
             INSERT INTO orders (user_id, amount, status) VALUES (1, 16.50, 'completed'), (2, 12.00, 'pending');
           `;
@@ -136,7 +136,7 @@ export class ContainerService {
     // stored in logical DB 1, which survives a FLUSHDB on the default DB 0 — that way a
     // user can run destructive commands (FLUSHDB, DEL) and actually observe an empty
     // cache instead of it being silently re-seeded on the next explorer refresh.
-    const seeded = await ContainerManager.executeRedisCommand(containerId, ['-n', '1', 'GET', 'akal:seeded']);
+    const seeded = await ContainerManager.executeRedisCommand(containerId, ['-n', '1', 'GET', 'torollo:seeded']);
     if (seeded.startsWith('ERROR')) {
       throw new Error(seeded);
     }
@@ -147,7 +147,7 @@ export class ContainerService {
       await ContainerManager.executeRedisCommand(containerId, ['RPUSH', 'queue:emails', 'welcome', 'reminder', 'invoice']);
       await ContainerManager.executeRedisCommand(containerId, ['HSET', 'product:1', 'name', 'Micro VM vCPU', 'price', '4.50']);
       await ContainerManager.executeRedisCommand(containerId, ['SADD', 'tags:active', 'admin', 'developer', 'analyst']);
-      await ContainerManager.executeRedisCommand(containerId, ['-n', '1', 'SET', 'akal:seeded', '1']);
+      await ContainerManager.executeRedisCommand(containerId, ['-n', '1', 'SET', 'torollo:seeded', '1']);
     }
 
     // List all keys (KEYS is fine for an educational lab; production would use SCAN)
@@ -211,9 +211,9 @@ export class ContainerService {
         if (collections.length === 0 || !collections.includes('users')) {
           const seedScript = `
             db.getSiblingDB('${dbName}').users.insertMany([
-              { name: "Alice Smith", email: "alice@akal-lab.io", role: "admin", status: "active" },
-              { name: "Bob Jones", email: "bob@akal-lab.io", role: "developer", status: "active" },
-              { name: "Charlie Davis", email: "charlie@akal-lab.io", role: "analyst", status: "pending" }
+              { name: "Alice Smith", email: "alice@torollo-lab.io", role: "admin", status: "active" },
+              { name: "Bob Jones", email: "bob@torollo-lab.io", role: "developer", status: "active" },
+              { name: "Charlie Davis", email: "charlie@torollo-lab.io", role: "analyst", status: "pending" }
             ]);
             db.getSiblingDB('${dbName}').products.insertMany([
               { name: "Micro VM vCPU", price: 4.50, instock: true },

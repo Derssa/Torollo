@@ -190,7 +190,7 @@ export default function CanvasPage({ projectId, projectName, onBackToProjects, o
   const saveNetworkConfig = useCallback((newConfig: NetworkConfig) => {
     const grownConfig = autoGrowContainers(newConfig);
     setNetworkConfig(grownConfig);
-    localStorage.setItem(`akal-lab-network-config-${projectId}`, JSON.stringify(grownConfig));
+    localStorage.setItem(`torollo-lab-network-config-${projectId}`, JSON.stringify(grownConfig));
 
     // Sync to backend to trigger runtime enforcement
     return fetch(`${API_BASE}/api/projects/${projectId}/network-config`, {
@@ -510,7 +510,7 @@ export default function CanvasPage({ projectId, projectName, onBackToProjects, o
   // Load saved positions, network configurations and start polling
   useEffect(() => {
     fetchContainers();
-    const savedLayout = localStorage.getItem(`akal-lab-graph-layout-${projectId}`);
+    const savedLayout = localStorage.getItem(`torollo-lab-graph-layout-${projectId}`);
     if (savedLayout) {
       try {
         positionsRef.current = JSON.parse(savedLayout);
@@ -526,7 +526,7 @@ export default function CanvasPage({ projectId, projectName, onBackToProjects, o
         if (data && data.vpcConfig) {
           setNetworkConfig(data);
         } else {
-          const savedConfig = localStorage.getItem(`akal-lab-network-config-${projectId}`);
+          const savedConfig = localStorage.getItem(`torollo-lab-network-config-${projectId}`);
           if (savedConfig) {
             const parsed = JSON.parse(savedConfig);
             if (!parsed.vpcConfig) {
@@ -546,7 +546,7 @@ export default function CanvasPage({ projectId, projectName, onBackToProjects, o
       })
       .catch(err => {
         console.error('Failed to fetch network config from backend, using localStorage:', err);
-        const savedConfig = localStorage.getItem(`akal-lab-network-config-${projectId}`);
+        const savedConfig = localStorage.getItem(`torollo-lab-network-config-${projectId}`);
         if (savedConfig) {
           try {
             const parsed = JSON.parse(savedConfig);
@@ -778,7 +778,7 @@ export default function CanvasPage({ projectId, projectName, onBackToProjects, o
     });
 
     // Save current positions (including auto-placed new nodes) to localStorage
-    localStorage.setItem(`akal-lab-graph-layout-${projectId}`, JSON.stringify(positionsRef.current));
+    localStorage.setItem(`torollo-lab-graph-layout-${projectId}`, JSON.stringify(positionsRef.current));
   }, [projectId, containers, startContainer, stopContainer, onTerminalOpen, setNodes, networkConfig, saveNetworkConfig, handleDeleteSubnet, handleSubnetResize]);
 
 
@@ -1070,7 +1070,7 @@ export default function CanvasPage({ projectId, projectName, onBackToProjects, o
         return;
       }
 
-      localStorage.setItem(`akal-lab-graph-layout-${projectId}`, JSON.stringify(positionsRef.current));
+      localStorage.setItem(`torollo-lab-graph-layout-${projectId}`, JSON.stringify(positionsRef.current));
       const newConfig = {
         ...networkConfig,
         nodeSubnetMap: updatedNodeSubnetMap,
@@ -1144,7 +1144,7 @@ export default function CanvasPage({ projectId, projectName, onBackToProjects, o
       }
     });
     positionsRef.current = currentPositions;
-    localStorage.setItem(`akal-lab-graph-layout-${projectId}`, JSON.stringify(currentPositions));
+    localStorage.setItem(`torollo-lab-graph-layout-${projectId}`, JSON.stringify(currentPositions));
     showToast('Graph layout saved successfully');
   };
 
@@ -1194,7 +1194,7 @@ export default function CanvasPage({ projectId, projectName, onBackToProjects, o
       const success = await deleteContainer(id);
       if (success) {
         delete positionsRef.current[id];
-        localStorage.setItem(`akal-lab-graph-layout-${projectId}`, JSON.stringify(positionsRef.current));
+        localStorage.setItem(`torollo-lab-graph-layout-${projectId}`, JSON.stringify(positionsRef.current));
 
         const updatedNodeSubnetMap = { ...networkConfig.nodeSubnetMap };
         delete updatedNodeSubnetMap[id];

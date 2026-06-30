@@ -73,7 +73,7 @@ export class NetworkService {
     const dockerContainers = await docker.listContainers({ all: true });
     const asgReplicas: Record<string, string[]> = {};
     for (const c of dockerContainers) {
-      const asgId = c.Labels?.['akal.asg.id'];
+      const asgId = c.Labels?.['torollo.asg.id'];
       if (asgId && c.State === 'running') {
         if (!asgReplicas[asgId]) asgReplicas[asgId] = [];
         asgReplicas[asgId].push(c.Id);
@@ -93,7 +93,7 @@ export class NetworkService {
 
       // If the node ID corresponds to an active replica container, find which ASG it belongs to and inherit its rules
       const containerInfo = dockerContainers.find(c => c.Id === srcNodeId || c.Id.startsWith(srcNodeId));
-      const asgId = containerInfo?.Labels?.['akal.asg.id'];
+      const asgId = containerInfo?.Labels?.['torollo.asg.id'];
       
       if (asgId) {
         const asgConfig = config.asgs?.[asgId];
