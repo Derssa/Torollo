@@ -34,7 +34,7 @@
   font-weight: 700;
   font-size: 14px;
   color: var(--color-text-primary);
-  max-width: 8ch;
+  max-width: 6ch;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
