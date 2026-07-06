@@ -9,6 +9,7 @@ router.post('/', ContainerController.create);
 router.post('/:id/start', ContainerController.start);
 router.post('/:id/stop', ContainerController.stop);
 router.delete('/:id', ContainerController.delete);
+router.patch('/:id/rename', ContainerController.rename);
 router.get('/:id/postgres/explorer', ContainerController.postgresExplorer);
 router.post('/:id/postgres/query', ContainerController.postgresQuery);
 router.get('/:id/nosql/explorer', ContainerController.nosqlExplorer);

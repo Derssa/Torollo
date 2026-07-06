@@ -12,6 +12,7 @@ interface NatNodeProps {
     onStop: (id: string) => void;
     onStart: (id: string) => void;
     onDelete: (id: string) => void;
+    onRename?: (id: string, currentName: string) => void;
   };
 }
 
@@ -36,6 +37,7 @@ export default function NatNode({ data }: NatNodeProps) {
       onStart={data.onStart}
       onStop={data.onStop}
       onDelete={data.onDelete}
+      onRename={data.onRename}
       primaryAction={{
         label: 'Info & Guide',
         icon: <ArrowRightLeft size={14} />,

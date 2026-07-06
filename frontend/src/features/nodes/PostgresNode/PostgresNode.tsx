@@ -13,6 +13,7 @@ interface PostgresNodeProps {
     onStop: (id: string) => void;
     onStart: (id: string) => void;
     onDelete: (id: string) => void;
+    onRename?: (id: string, currentName: string) => void;
   };
 }
 
@@ -35,6 +36,7 @@ export default function PostgresNode({ data }: PostgresNodeProps) {
       onStart={data.onStart}
       onStop={data.onStop}
       onDelete={data.onDelete}
+      onRename={data.onRename}
       onSecurityGroupOpen={data.onSecurityGroupOpen}
       primaryAction={{
         label: 'Inspect',

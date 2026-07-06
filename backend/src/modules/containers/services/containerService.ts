@@ -36,6 +36,10 @@ export class ContainerService {
     await ContainerManager.deleteContainer(id);
   }
 
+  public static async renameContainer(containerId: string, projectId: string, newName: string): Promise<void> {
+    return ContainerManager.renameContainer(containerId, projectId, newName);
+  }
+
   public static async getPostgresExplorer(containerId: string) {
     // Get list of databases (filtering out templates)
     const dbsRaw = await ContainerManager.executePsqlCommand(

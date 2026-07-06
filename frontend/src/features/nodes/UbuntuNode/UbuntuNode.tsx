@@ -15,6 +15,7 @@ interface UbuntuNodeProps {
     onStop: (id: string) => void;
     onStart: (id: string) => void;
     onDelete: (id: string) => void;
+    onRename?: (id: string, currentName: string) => void;
   };
 }
 
@@ -37,6 +38,7 @@ export default function UbuntuNode({ data }: UbuntuNodeProps) {
       onStart={data.onStart}
       onStop={data.onStop}
       onDelete={data.onDelete}
+      onRename={data.onRename}
       onSecurityGroupOpen={data.onSecurityGroupOpen}
       primaryAction={{
         label: 'Terminal',
