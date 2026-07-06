@@ -18,6 +18,7 @@ interface LoadBalancerNodeProps {
     onStop: (id: string) => void;
     onStart: (id: string) => void;
     onDelete: (id: string) => void;
+    onRename?: (id: string, currentName: string) => void;
   };
 }
 
@@ -41,6 +42,7 @@ export default function LoadBalancerNode({ data }: LoadBalancerNodeProps) {
       onStart={data.onStart}
       onStop={data.onStop}
       onDelete={data.onDelete}
+      onRename={data.onRename}
       onSecurityGroupOpen={data.onSecurityGroupOpen}
       primaryAction={{
         label: 'Configure',

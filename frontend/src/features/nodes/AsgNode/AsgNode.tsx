@@ -26,6 +26,7 @@ interface AsgNodeProps {
     onStop: (id: string) => void;
     onStart: (id: string) => void;
     onDelete: (id: string) => void;
+    onRename?: (id: string, currentName: string) => void;
   };
 }
 
@@ -50,6 +51,7 @@ export default function AsgNode({ data }: AsgNodeProps) {
       onStart={data.onStart}
       onStop={data.onStop}
       onDelete={data.onDelete}
+      onRename={data.onRename}
       primaryAction={{
         label: 'Inspect',
         icon: <Settings size={14} />,

@@ -18,6 +18,7 @@ app.post('/api/projects/:projectId/containers', ContainerController.create);
 app.post('/api/containers/:id/start', ContainerController.start);
 app.post('/api/containers/:id/stop', ContainerController.stop);
 app.delete('/api/containers/:id', ContainerController.delete);
+app.patch('/api/projects/:projectId/containers/:id/rename', ContainerController.rename);
 
 describe('ContainerController', () => {
   beforeEach(() => {
@@ -74,6 +75,53 @@ describe('ContainerController', () => {
 
       expect(res.status).toBe(400);
       expect(res.body).toEqual({ error: 'Name is required' });
+    });
+  });
+
+  describe('PATCH /api/projects/:projectId/containers/:id/rename', () => {
+    it('should rename a container successfully', async () => {
+      (ContainerService.renameContainer as jest.Mock).mockResolvedValue(undefined);
+
+      const res = await request(app)
+        .patch('/api/projects/test-project/containers/1/rename')
+        .send({ newName: 'new-name' });
+
+      expect(res.status).toBe(200);
+      expect(res.body).toEqual({ success: true });
+      expect(ContainerService.renameContainer).toHaveBeenCalledWith('1', 'test-project', 'new-name');
+    });
+
+    it('should return 400 if newName is missing', async () => {
+      const res = await request(app)
+        .patch('/api/projects/test-project/containers/1/rename')
+        .send({});
+
+      expect(res.status).toBe(400);
+      expect(res.body).toEqual({ error: 'newName is required' });
+    });
+
+    it('should handle the same-name error gracefully by returning success', async () => {
+      (ContainerService.renameContainer as jest.Mock).mockRejectedValue(
+        new Error('Renaming a container with the same name as its current name')
+      );
+
+      const res = await request(app)
+        .patch('/api/projects/test-project/containers/1/rename')
+        .send({ newName: 'same-name' });
+
+      expect(res.status).toBe(200);
+      expect(res.body).toEqual({ success: true, message: 'Container already has the same name.' });
+    });
+
+    it('should return 500 on unexpected service errors', async () => {
+      (ContainerService.renameContainer as jest.Mock).mockRejectedValue(new Error('Unexpected error'));
+
+      const res = await request(app)
+        .patch('/api/projects/test-project/containers/1/rename')
+        .send({ newName: 'other-name' });
+
+      expect(res.status).toBe(500);
+      expect(res.body).toEqual({ error: 'Unexpected error' });
     });
   });
 });

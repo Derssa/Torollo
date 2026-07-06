@@ -401,6 +401,58 @@ export class ContainerManager {
     };
   }
 
+  public static async renameContainer(
+    containerId: string,
+    projectId: string,
+    newName: string
+  ): Promise<void> {
+    const container = docker.getContainer(containerId);
+    const safeName = `${this.LAB_PREFIX}${projectId}-${newName.replace(/[^a-zA-Z0-9-_]/g, '')}`;
+
+    try {
+      const containerInfo = await container.inspect();
+      const currentName = containerInfo.Name.replace(/^\//, '');
+      if (currentName.toLowerCase() === safeName.toLowerCase()) {
+        return;
+      }
+    } catch (inspectErr) {
+      console.warn(`Failed to inspect container ${containerId} during rename check:`, inspectErr);
+    }
+
+    // Rename the Docker container itself
+    await container.rename({ name: safeName });
+
+    // Update the network alias so that inter-container DNS resolves to the new
+    // name. Docker does not support mutating aliases on a live connection, so we
+    // disconnect and reconnect — this is safe because rename is only allowed on
+    // stopped containers.
+    const network = docker.getNetwork('akal-lab-network');
+    try {
+      await network.disconnect({ Container: containerId });
+    } catch (err: any) {
+      const msg = err.message || '';
+      if (msg.includes('not connected to the network') || msg.includes('is not connected')) {
+        console.log(`[ContainerManager] Container ${containerId} is not connected to network akal-lab-network, skipping disconnect.`);
+      } else {
+        throw err;
+      }
+    }
+
+    try {
+      await network.connect({
+        Container: containerId,
+        EndpointConfig: { Aliases: [newName] }
+      });
+    } catch (err: any) {
+      const msg = err.message || '';
+      if (msg.includes('already connected') || msg.includes('already exists')) {
+        console.log(`[ContainerManager] Container ${containerId} already connected to network, ignoring error.`);
+      } else {
+        throw err;
+      }
+    }
+  }
+
   public static async executePsqlCommand(containerId: string, database: string, sqlQuery: string, extraArgs: string[] = []): Promise<string> {
     const container = docker.getContainer(containerId);
 

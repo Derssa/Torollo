@@ -221,4 +221,23 @@ export class ContainerController {
       res.status(500).json({ error: err.message });
     }
   }
+
+  public static async rename(req: Request, res: Response): Promise<void> {
+    try {
+      const { projectId, id } = req.params;
+      const { newName } = req.body;
+      if (!newName) {
+        res.status(400).json({ error: 'newName is required' });
+        return;
+      }
+      await ContainerService.renameContainer(id as string, projectId as string, newName);
+      res.json({ success: true });
+    } catch (err: any) {
+      if (err.message && err.message.includes('Renaming a container with the same name')) {
+        res.json({ success: true, message: 'Container already has the same name.' });
+        return;
+      }
+      res.status(500).json({ error: err.message });
+    }
+  }
 }

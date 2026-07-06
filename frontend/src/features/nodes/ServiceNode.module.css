@@ -126,3 +126,71 @@
   border: 1px solid rgba(220, 38, 38, 0.3);
   width: 32px;
 }
+
+.renameBtn {
+  position: relative;
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 2px;
+  display: flex;
+  align-items: center;
+  margin-left: 2px;
+  color: #9CA3AF;
+  transition: color 0.15s ease;
+}
+
+.renameBtn:hover:not(.disabled) {
+  color: #3B82F6;
+}
+
+.renameBtn.disabled {
+  cursor: not-allowed;
+  opacity: 0.4;
+}
+
+/* Tooltip container */
+.renameBtn::after {
+  content: attr(data-tooltip);
+  position: absolute;
+  bottom: 140%;
+  left: 50%;
+  transform: translateX(-50%) scale(0.95);
+  background-color: rgba(17, 24, 39, 0.95);
+  color: #FFFFFF;
+  padding: 4px 8px;
+  border-radius: 4px;
+  font-size: 10px;
+  font-family: inherit;
+  font-weight: 500;
+  line-height: 1;
+  white-space: nowrap;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.1s ease, transform 0.1s ease;
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.2);
+  z-index: 50;
+}
+
+/* Tooltip arrow */
+.renameBtn::before {
+  content: '';
+  position: absolute;
+  bottom: 110%;
+  left: 50%;
+  transform: translateX(-50%);
+  border-width: 4px;
+  border-style: solid;
+  border-color: rgba(17, 24, 39, 0.95) transparent transparent transparent;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.1s ease;
+  z-index: 50;
+}
+
+/* Show tooltip on hover */
+.renameBtn:hover::after,
+.renameBtn:hover::before {
+  opacity: 1;
+  transform: translateX(-50%) scale(1);
+}
