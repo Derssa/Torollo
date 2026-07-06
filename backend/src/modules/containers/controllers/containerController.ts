@@ -224,7 +224,7 @@ export class ContainerController {
 
   public static async rename(req: Request, res: Response): Promise<void> {
     try {
-      const { projectId, id } = req.params;
+      const { id } = req.params;
       const { newName } = req.body;
       const trimmedNewName = typeof newName === 'string' ? newName.trim() : '';
       if (!trimmedNewName) {
