@@ -1,5 +1,5 @@
 import { Handle, Position } from '@xyflow/react';
-import { Play, Square, Trash2, Shield } from 'lucide-react';
+import { Play, Square, Trash2, Shield, Pencil } from 'lucide-react';
 import React from 'react';
 import styles from '../ServiceNode.module.css';
 
@@ -15,6 +15,7 @@ interface BaseNodeProps {
   hideHandles?: boolean;
   
   // Handlers
+  onRename?: (id: string, currentName: string) => void;
   onStart: (id: string) => void;
   onStop: (id: string) => void;
   onDelete: (id: string) => void;
@@ -41,6 +42,7 @@ export default function BaseNode({
   customBorder,
   customTitleColor,
   hideHandles,
+  onRename,
   onStart,
   onStop,
   onDelete,
@@ -67,7 +69,22 @@ export default function BaseNode({
         <div className={styles.titleContainer}>
           {icon}
           <span className={styles.title} style={{ color: titleColor }}>{name}</span>
-          
+
+          {onRename && (
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                if (!isRunning) {
+                  onRename(id, name);
+                }
+              }}
+              className={`${styles.renameBtn} ${isRunning ? styles.disabled : ''}`}
+              data-tooltip={isRunning ? "Stop the service to rename this node" : "Rename node"}
+            >
+              <Pencil size={12} />
+            </button>
+          )}
+
           {onSecurityGroupOpen && (
             <button
               onClick={(e) => {

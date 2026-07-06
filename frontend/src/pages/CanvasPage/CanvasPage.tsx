@@ -132,6 +132,9 @@ export default function CanvasPage({ projectId, projectName, onBackToProjects, o
   const [inspectingSubnet, setInspectingSubnet] = useState<{ id: string; name: string } | null>(null);
   const [inspectingSecurityGroup, setInspectingSecurityGroup] = useState<{ id: string; name: string; type: string } | null>(null);
 
+  // Rename modal state
+  const [renamingNode, setRenamingNode] = useState<{ id: string; currentName: string } | null>(null);
+
   // Drag and drop tracking
   const [reactFlowInstance, setReactFlowInstance] = useState<ReactFlowInstance | null>(null);
   const [dropState, setDropState] = useState<{ position: { x: number; y: number }; type: string } | null>(null);
@@ -769,6 +772,9 @@ export default function CanvasPage({ projectId, projectName, onBackToProjects, o
             },
             onSecurityGroupOpen: (id: string, name: string) => {
               setInspectingSecurityGroup({ id, name, type: nodeType });
+            },
+            onRename: (id: string, currentName: string) => {
+              setRenamingNode({ id, currentName });
             }
           },
         };
@@ -1186,6 +1192,64 @@ export default function CanvasPage({ projectId, projectName, onBackToProjects, o
     pendingSubnetIdRef.current = null;
   };
 
+  const handleRenameNode = async (newName: string) => {
+    if (!renamingNode) return;
+    const { id, currentName } = renamingNode;
+    const trimmedNewName = newName.trim();
+
+    // Guard against renaming to the same name
+    if (trimmedNewName.toLowerCase() === currentName.toLowerCase()) {
+      showNotification({ type: 'warning', message: `The node is already named "${currentName}".` });
+      setRenamingNode(null);
+      return;
+    }
+
+    // Guard against duplicate names (same check used at creation time)
+    const exists = containers.some(
+      c => c.name.toLowerCase() === trimmedNewName.toLowerCase() && c.id !== id
+    );
+    if (exists) {
+      showNotification({ type: 'error', message: `A node named "${trimmedNewName}" already exists in this project.` });
+      return;
+    }
+
+    try {
+      const res = await fetch(`${API_BASE}/api/projects/${projectId}/containers/${id}/rename`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ newName: trimmedNewName }),
+      });
+      if (!res.ok) {
+        let message = 'Rename failed.';
+        try {
+          const data = await res.json();
+          if (typeof data?.error === 'string' && data.error.trim()) {
+            message = data.error;
+          }
+        } catch {
+          // Keep the generic message when the server returns a non-JSON body.
+        }
+        showNotification({ type: 'error', message });
+        return;
+      }
+    } catch {
+      showNotification({ type: 'error', message: 'Rename failed: could not reach the server.' });
+      return;
+    }
+
+    // Migrate the position key from the old name to the new name so the node
+    // does not lose its canvas position after being renamed.
+    if (positionsRef.current[currentName]) {
+      positionsRef.current[trimmedNewName] = positionsRef.current[currentName];
+      delete positionsRef.current[currentName];
+      localStorage.setItem(`akal-lab-graph-layout-${projectId}`, JSON.stringify(positionsRef.current));
+    }
+
+    setRenamingNode(null);
+    showToast(`Node renamed to "${trimmedNewName}"`);
+    await fetchContainers();
+  };
+
   const handleDeleteConfirmed = async () => {
     if (!deleteTarget) return;
     const id = deleteTarget;
@@ -1486,6 +1550,20 @@ export default function CanvasPage({ projectId, projectName, onBackToProjects, o
           variant="danger"
           onConfirm={handleDeleteConfirmed}
           onCancel={() => setDeleteTarget(null)}
+        />
+      )}
+
+      {renamingNode && (
+        <InputModal
+          title="Rename Node"
+          label="Enter a new name for this node."
+          placeholder="e.g. api-gateway"
+          maxLength={20}
+          restrictPattern={/[^a-zA-Z0-9-]/g}
+          defaultValue={renamingNode.currentName}
+          submitText="Rename"
+          onSubmit={handleRenameNode}
+          onCancel={() => setRenamingNode(null)}
         />
       )}
 
