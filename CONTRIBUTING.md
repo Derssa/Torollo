@@ -69,6 +69,16 @@ node ./bin/cli.js start
 5.  Use [Conventional Commits](https://www.conventionalcommits.org/) for your commit messages (e.g., `feat: add new network module`, `fix: resolve docker IP issue`).
 6.  Open a Pull Request! Please describe the changes you made and link to any relevant issues.
 
+## Contributor License Agreement (CLA)
+
+Before we can merge your first pull request, you must sign our [Contributor License Agreement](CLA.md). It protects both you and the project, and does not change your rights to use your own contributions for any other purpose.
+
+Signing is fully automated: when you open a pull request, the CLA Assistant bot will comment on it with instructions. To sign, simply reply to the bot with:
+
+> I have read the CLA Document and I hereby sign the CLA
+
+You only need to sign once — the signature covers all your future contributions to this repository.
+
 ## Code of Conduct
 
 By participating in this project, you are expected to uphold our [Code of Conduct](CODE_OF_CONDUCT.md). Please report unacceptable behavior to the project maintainers.

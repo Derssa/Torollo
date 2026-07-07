@@ -7,3 +7,6 @@ build/
 env.js
 /frontend/public/env.js
 /frontend/dist/env.js
+
+# Rapport d'audit local (ne pas publier)
+doc/
