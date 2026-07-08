@@ -71,6 +71,8 @@ node ./bin/cli.js start
 
 ## Contributor License Agreement (CLA)
 
+By submitting a pull request, you agree to the terms of our [CLA](CLA.md).
+
 Before we can merge your first pull request, you must sign our [Contributor License Agreement](CLA.md). It protects both you and the project, and does not change your rights to use your own contributions for any other purpose.
 
 Signing is fully automated: when you open a pull request, the CLA Assistant bot will comment on it with instructions. To sign, simply reply to the bot with:
