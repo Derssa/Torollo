@@ -1,4 +1,4 @@
-import { ContainerManager } from '../../../infrastructure/docker/ContainerManager';
+import { containerProvider } from '../../../infrastructure/docker/providers/dockerContainerProvider';
 import { ProjectService } from '../../projects/services/projectService';
 import { NetworkService } from '../../network/services/networkService';
 import docker from '../../../infrastructure/docker/DockerClient';
@@ -23,7 +23,7 @@ export class AsgService {
     }
 
     // 1. Get parent container details
-    const containers = await ContainerManager.listContainersByProject(projectId);
+    const containers = await containerProvider.listContainersByProject(projectId);
     const parentContainer = containers.find(c => c.id === parentNodeId || c.id.startsWith(parentNodeId));
     if (!parentContainer) {
       throw new Error(`Parent template server container not found`);
@@ -31,7 +31,7 @@ export class AsgService {
 
     // 2. Commit parent container state to custom image
     const imageName = this.getAsgImageName(projectId, asgId);
-    await ContainerManager.commitContainer(parentContainer.id, imageName, 'latest');
+    await containerProvider.commitContainer(parentContainer.id, imageName, 'latest');
 
     // 3. Perform rolling update/sync to match desired capacity using the new image
     return this.scaleASG(projectId, asgId, desiredCapacity, subnetIds);
@@ -76,7 +76,7 @@ export class AsgService {
         console.log(`[AsgService] Spawning instance ${name} in subnet ${targetSubnetId} (Public: ${isPublic})`);
 
         // Create container using custom image
-        const instance = await ContainerManager.createContainer(
+        const instance = await containerProvider.createContainer(
           projectId,
           name,
           'ubuntu',
@@ -100,7 +100,7 @@ export class AsgService {
         const cId = sortedInstances[i].Id;
         console.log(`[AsgService] Scaling down: deleting excess instance ${cId.slice(0, 12)}`);
         try {
-          await ContainerManager.deleteContainer(cId);
+          await containerProvider.deleteContainer(cId);
         } catch (err) {
           console.error(`Failed to delete container ${cId}:`, err);
         }
@@ -115,12 +115,12 @@ export class AsgService {
     await NetworkService.applyPolicy(projectId, config);
 
     // Return the updated list of containers belonging to this project
-    return ContainerManager.listContainersByProject(projectId);
+    return containerProvider.listContainersByProject(projectId);
   }
 
   public static async terminateInstance(projectId: string, instanceId: string): Promise<any[]> {
     console.log(`[AsgService] Simulating failure (Fake crash): ${instanceId}`);
-    ContainerManager.markAsCrashed(instanceId);
+    containerProvider.markAsCrashed(instanceId);
 
     // Run health check self-healing check asynchronously to simulate recovery delay
     setTimeout(async () => {
@@ -131,14 +131,14 @@ export class AsgService {
       }
     }, 1500);
 
-    return ContainerManager.listContainersByProject(projectId);
+    return containerProvider.listContainersByProject(projectId);
   }
 
   public static async runSelfHealing(projectId: string): Promise<void> {
     console.log(`[AsgService] Running self-healing monitor check (Fake healing) for project: ${projectId}`);
     
     // Clear fake crashed states to heal the containers
-    ContainerManager.clearAllCrashed();
+    containerProvider.clearAllCrashed();
 
     const config = await ProjectService.getNetworkConfig(projectId);
     if (config) {
