@@ -1,4 +1,4 @@
-import { defineConfig } from 'vite'
+import { defineConfig } from 'vitest/config'
 import react from '@vitejs/plugin-react'
 
 import fs from 'fs'
@@ -15,5 +15,9 @@ export default defineConfig({
   server: {
     port: 23232,
     strictPort: true
+  },
+  test: {
+    environment: 'jsdom',
+    setupFiles: ['./src/setupTests.ts']
   }
 })
