@@ -1,4 +1,5 @@
-import { ContainerManager, ContainerInfo } from '../../../infrastructure/docker/ContainerManager';
+import { ContainerInfo } from '../../../infrastructure/docker/providers/containerProvider';
+import { containerProvider } from '../../../infrastructure/docker/providers/dockerContainerProvider';
 
 /**
  * Tokenizes a redis-cli command line into individual arguments, honoring single
@@ -17,32 +18,32 @@ function parseRedisArgs(input: string): string[] {
 
 export class ContainerService {
   public static async listContainers(projectId: string): Promise<ContainerInfo[]> {
-    return ContainerManager.listContainersByProject(projectId);
+    return containerProvider.listContainersByProject(projectId);
   }
 
   public static async createContainer(projectId: string, name: string, type?: string, isPublic?: boolean, customImage?: string, extraLabels?: Record<string, string>): Promise<ContainerInfo> {
-    return ContainerManager.createContainer(projectId, name, type, isPublic, customImage, extraLabels);
+    return containerProvider.createContainer(projectId, name, type, isPublic, customImage, extraLabels);
   }
 
   public static async startContainer(id: string): Promise<void> {
-    await ContainerManager.startContainer(id);
+    await containerProvider.startContainer(id);
   }
 
   public static async stopContainer(id: string): Promise<void> {
-    await ContainerManager.stopContainer(id);
+    await containerProvider.stopContainer(id);
   }
 
   public static async deleteContainer(id: string): Promise<void> {
-    await ContainerManager.deleteContainer(id);
+    await containerProvider.deleteContainer(id);
   }
 
   public static async renameContainer(containerId: string, projectId: string, newName: string): Promise<void> {
-    return ContainerManager.renameContainer(containerId, projectId, newName);
+    return containerProvider.renameContainer(containerId, projectId, newName);
   }
 
   public static async getPostgresExplorer(containerId: string) {
     // Get list of databases (filtering out templates)
-    const dbsRaw = await ContainerManager.executePsqlCommand(
+    const dbsRaw = await containerProvider.executePsqlCommand(
       containerId,
       'postgres',
       "SELECT datname FROM pg_database WHERE datistemplate = false AND datname NOT IN ('template1');",
@@ -63,7 +64,7 @@ export class ContainerService {
     for (const db of databases) {
       try {
         // Check if database is empty, seed with initial tables and values if so
-        const tablesCheck = await ContainerManager.executePsqlCommand(
+        const tablesCheck = await containerProvider.executePsqlCommand(
           containerId,
           db,
           "SELECT count(*) FROM pg_tables WHERE schemaname = 'public' AND tablename = 'users';",
@@ -79,11 +80,11 @@ export class ContainerService {
             INSERT INTO products (name, price) VALUES ('Micro VM vCPU', 4.50), ('Standard DB Storage 10GB', 12.00), ('NAT Routing Unit', 15.00);
             INSERT INTO orders (user_id, amount, status) VALUES (1, 16.50, 'completed'), (2, 12.00, 'pending');
           `;
-          await ContainerManager.executePsqlCommand(containerId, db, seedSql);
+          await containerProvider.executePsqlCommand(containerId, db, seedSql);
         }
 
         // Get public tables in this database
-        const tablesRaw = await ContainerManager.executePsqlCommand(
+        const tablesRaw = await containerProvider.executePsqlCommand(
           containerId,
           db,
           "SELECT tablename FROM pg_tables WHERE schemaname = 'public';",
@@ -94,7 +95,7 @@ export class ContainerService {
         const tableNodes: any[] = [];
         for (const table of tables) {
           // Get columns and types in this table
-          const colsRaw = await ContainerManager.executePsqlCommand(
+          const colsRaw = await containerProvider.executePsqlCommand(
             containerId,
             db,
             `SELECT column_name, data_type FROM information_schema.columns WHERE table_name = '${table}';`,
@@ -131,7 +132,7 @@ export class ContainerService {
   }
 
   public static async executePostgresQuery(containerId: string, database: string, query: string): Promise<string> {
-    return ContainerManager.executePsqlCommand(containerId, database, query);
+    return containerProvider.executePsqlCommand(containerId, database, query);
   }
 
   public static async getRedisExplorer(containerId: string) {
@@ -140,27 +141,27 @@ export class ContainerService {
     // stored in logical DB 1, which survives a FLUSHDB on the default DB 0 — that way a
     // user can run destructive commands (FLUSHDB, DEL) and actually observe an empty
     // cache instead of it being silently re-seeded on the next explorer refresh.
-    const seeded = await ContainerManager.executeRedisCommand(containerId, ['-n', '1', 'GET', 'akal:seeded']);
+    const seeded = await containerProvider.executeRedisCommand(containerId, ['-n', '1', 'GET', 'akal:seeded']);
     if (seeded.startsWith('ERROR')) {
       throw new Error(seeded);
     }
     if (seeded.trim() === '') {
-      await ContainerManager.executeRedisCommand(containerId, ['SET', 'user:1:name', 'Alice Smith']);
-      await ContainerManager.executeRedisCommand(containerId, ['SET', 'user:2:name', 'Bob Jones']);
-      await ContainerManager.executeRedisCommand(containerId, ['INCR', 'page:home:views']);
-      await ContainerManager.executeRedisCommand(containerId, ['RPUSH', 'queue:emails', 'welcome', 'reminder', 'invoice']);
-      await ContainerManager.executeRedisCommand(containerId, ['HSET', 'product:1', 'name', 'Micro VM vCPU', 'price', '4.50']);
-      await ContainerManager.executeRedisCommand(containerId, ['SADD', 'tags:active', 'admin', 'developer', 'analyst']);
-      await ContainerManager.executeRedisCommand(containerId, ['-n', '1', 'SET', 'akal:seeded', '1']);
+      await containerProvider.executeRedisCommand(containerId, ['SET', 'user:1:name', 'Alice Smith']);
+      await containerProvider.executeRedisCommand(containerId, ['SET', 'user:2:name', 'Bob Jones']);
+      await containerProvider.executeRedisCommand(containerId, ['INCR', 'page:home:views']);
+      await containerProvider.executeRedisCommand(containerId, ['RPUSH', 'queue:emails', 'welcome', 'reminder', 'invoice']);
+      await containerProvider.executeRedisCommand(containerId, ['HSET', 'product:1', 'name', 'Micro VM vCPU', 'price', '4.50']);
+      await containerProvider.executeRedisCommand(containerId, ['SADD', 'tags:active', 'admin', 'developer', 'analyst']);
+      await containerProvider.executeRedisCommand(containerId, ['-n', '1', 'SET', 'akal:seeded', '1']);
     }
 
     // List all keys (KEYS is fine for an educational lab; production would use SCAN)
-    const keysRaw = await ContainerManager.executeRedisCommand(containerId, ['KEYS', '*']);
+    const keysRaw = await containerProvider.executeRedisCommand(containerId, ['KEYS', '*']);
     const keys = keysRaw.split('\n').map(k => k.trim()).filter(Boolean);
 
     const entries: Array<{ key: string; type: string }> = [];
     for (const key of keys) {
-      const type = await ContainerManager.executeRedisCommand(containerId, ['TYPE', key]);
+      const type = await containerProvider.executeRedisCommand(containerId, ['TYPE', key]);
       entries.push({ key, type: type.trim() });
     }
 
@@ -172,11 +173,11 @@ export class ContainerService {
     if (args.length === 0) {
       return '';
     }
-    return ContainerManager.executeRedisCommand(containerId, args);
+    return containerProvider.executeRedisCommand(containerId, args);
   }
 
   public static async getNosqlExplorer(containerId: string) {
-    const dbsJson = await ContainerManager.executeMongoCommand(
+    const dbsJson = await containerProvider.executeMongoCommand(
       containerId,
       "JSON.stringify(db.adminCommand({ listDatabases: 1 }).databases.map(d => d.name))"
     );
@@ -201,7 +202,7 @@ export class ContainerService {
 
     for (const dbName of databases) {
       try {
-        const collsJson = await ContainerManager.executeMongoCommand(
+        const collsJson = await containerProvider.executeMongoCommand(
           containerId,
           `JSON.stringify(db.getSiblingDB('${dbName}').getCollectionNames())`
         );
@@ -229,9 +230,9 @@ export class ContainerService {
               { user: "Bob Jones", amount: 12.00, status: "pending" }
             ]);
           `;
-          await ContainerManager.executeMongoCommand(containerId, seedScript);
+          await containerProvider.executeMongoCommand(containerId, seedScript);
           
-          const refetchJson = await ContainerManager.executeMongoCommand(
+          const refetchJson = await containerProvider.executeMongoCommand(
             containerId,
             `JSON.stringify(db.getSiblingDB('${dbName}').getCollectionNames())`
           );
@@ -244,7 +245,7 @@ export class ContainerService {
 
         const tableNodes: any[] = [];
         for (const collName of collections) {
-          const docJson = await ContainerManager.executeMongoCommand(
+          const docJson = await containerProvider.executeMongoCommand(
             containerId,
             `JSON.stringify(db.getSiblingDB('${dbName}').getCollection('${collName}').findOne() || {})`
           );
@@ -291,10 +292,10 @@ export class ContainerService {
   }
 
   public static async executeNosqlQuery(containerId: string, query: string): Promise<string> {
-    return ContainerManager.executeMongoCommand(containerId, query);
+    return containerProvider.executeMongoCommand(containerId, query);
   }
 
   public static async scaleContainer(containerId: string, cpus?: number, memory?: number): Promise<void> {
-    await ContainerManager.scaleContainer(containerId, cpus, memory);
+    await containerProvider.scaleContainer(containerId, cpus, memory);
   }
 }

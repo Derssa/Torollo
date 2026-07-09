@@ -1,10 +1,7 @@
 import docker from './DockerClient';
+import { NODE_TYPES } from './nodeTypes';
 
 export class DockerInitializer {
-  private static readonly UBUNTU_IMAGE_TAG = 'derssa/backend-lab-ubuntu:v1';
-  private static readonly POSTGRES_IMAGE_TAG = 'derssa/backend-lab-postgres:v1';
-  private static readonly MONGO_IMAGE_TAG = 'derssa/backend-lab-mongo:v1';
-  private static readonly REDIS_IMAGE_TAG = 'derssa/backend-lab-redis:v1';
   private static isInitializing = false;
 
   /**
@@ -78,10 +75,10 @@ export class DockerInitializer {
       const images = await docker.listImages();
       const tags = images.flatMap(img => img.RepoTags || []);
 
-      await this.ensureImage(tags, this.UBUNTU_IMAGE_TAG, 'Ubuntu');
-      await this.ensureImage(tags, this.POSTGRES_IMAGE_TAG, 'PostgreSQL');
-      await this.ensureImage(tags, this.MONGO_IMAGE_TAG, 'MongoDB');
-      await this.ensureImage(tags, this.REDIS_IMAGE_TAG, 'Redis');
+      await this.ensureImage(tags, NODE_TYPES.ubuntu.image, 'Ubuntu');
+      await this.ensureImage(tags, NODE_TYPES.postgres.image, 'PostgreSQL');
+      await this.ensureImage(tags, NODE_TYPES.mongo.image, 'MongoDB');
+      await this.ensureImage(tags, NODE_TYPES.redis.image, 'Redis');
     } catch (err) {
       console.error('[DockerInitializer] Docker check failed. Is Docker running?');
       throw err;
@@ -122,7 +119,7 @@ export class DockerInitializer {
       });
     } catch (pullErr) {
       console.warn(`[DockerInitializer] Failed to pull ${tag} (${pullErr}). Trying fallback...`);
-      if (tag === this.POSTGRES_IMAGE_TAG) {
+      if (tag === NODE_TYPES.postgres.image) {
         const fallbackTag = 'postgres:15-alpine';
         if (existingTags.includes(fallbackTag)) {
           console.log(`[DockerInitializer] Tagging local ${fallbackTag} as ${tag}...`);
@@ -132,7 +129,7 @@ export class DockerInitializer {
         } else {
           throw pullErr;
         }
-      } else if (tag === this.MONGO_IMAGE_TAG) {
+      } else if (tag === NODE_TYPES.mongo.image) {
         const fallbackTag = 'mongo:latest';
         console.log(`[DockerInitializer] Tag ${tag} not found. Building custom MongoDB image locally...`);
         
@@ -191,7 +188,7 @@ export class DockerInitializer {
         console.log(`[DockerInitializer] Cleaning up temporary build container...`);
         await tempContainer.remove({ force: true });
         console.log(`[DockerInitializer] Custom MongoDB image with iptables created successfully.`);
-      } else if (tag === this.REDIS_IMAGE_TAG) {
+      } else if (tag === NODE_TYPES.redis.image) {
         const fallbackTag = 'redis:7-alpine';
         console.log(`[DockerInitializer] Tag ${tag} not found. Building custom Redis image locally...`);
         

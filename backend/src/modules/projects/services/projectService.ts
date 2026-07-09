@@ -1,7 +1,7 @@
 import fs from 'fs';
 import path from 'path';
 import os from 'os';
-import { ContainerManager } from '../../../infrastructure/docker/ContainerManager';
+import { containerProvider } from '../../../infrastructure/docker/providers/dockerContainerProvider';
 import { NetworkService } from '../../network/services/networkService';
 
 export interface Project {
@@ -65,10 +65,10 @@ export class ProjectService {
     this.writeDB(filtered);
 
     // Stop and delete all containers belonging to this project
-    const containers = await ContainerManager.listContainersByProject(id);
+    const containers = await containerProvider.listContainersByProject(id);
     for (const c of containers) {
       try {
-        await ContainerManager.deleteContainer(c.id);
+        await containerProvider.deleteContainer(c.id);
       } catch (err) {
         console.error(`Failed to delete container ${c.id} during project cleanup:`, err);
       }
