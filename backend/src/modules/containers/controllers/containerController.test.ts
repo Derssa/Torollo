@@ -52,7 +52,7 @@ describe('ContainerController', () => {
       const res = await request(app).get('/api/projects/test-project/containers');
 
       expect(res.status).toBe(500);
-      expect(res.body).toEqual({ error: 'Docker error' });
+      expect(res.body).toEqual({ error: 'Docker error', code: 'DOCKER_ERROR' });
     });
   });
 
@@ -179,7 +179,62 @@ describe('ContainerController', () => {
         .send({ newName: 'other-name' });
 
       expect(res.status).toBe(500);
-      expect(res.body).toEqual({ error: 'Unexpected error' });
+      expect(res.body).toEqual({ error: 'Unexpected error', code: 'DOCKER_ERROR' });
+    });
+  });
+
+  describe('Docker error classification', () => {
+    it('should return 503 DOCKER_UNAVAILABLE when the Docker daemon is unreachable on start', async () => {
+      (ContainerService.startContainer as jest.Mock).mockRejectedValue(
+        Object.assign(new Error('connect ECONNREFUSED /var/run/docker.sock'), { code: 'ECONNREFUSED' })
+      );
+
+      const res = await request(app).post('/api/containers/1/start');
+
+      expect(res.status).toBe(503);
+      expect(res.body.code).toBe('DOCKER_UNAVAILABLE');
+      expect(res.body.error).toContain('Docker daemon');
+    });
+
+    it('should return 502 IMAGE_NOT_FOUND when the image pull fails on create', async () => {
+      (ProjectService.getNetworkConfig as jest.Mock).mockResolvedValue(null);
+      (ContainerService.createContainer as jest.Mock).mockRejectedValue(
+        new Error('pull access denied for ghost, repository does not exist')
+      );
+
+      const res = await request(app)
+        .post('/api/projects/test-project/containers')
+        .send({ name: 'ghost-1', type: 'ubuntu' });
+
+      expect(res.status).toBe(502);
+      expect(res.body.code).toBe('IMAGE_NOT_FOUND');
+      expect(res.body.error).toContain('image');
+    });
+
+    it('should return 409 PORT_IN_USE when a host port is already taken on create', async () => {
+      (ProjectService.getNetworkConfig as jest.Mock).mockResolvedValue(null);
+      (ContainerService.createContainer as jest.Mock).mockRejectedValue(
+        Object.assign(new Error('Bind for 0.0.0.0:8080 failed: port is already allocated'), { statusCode: 500 })
+      );
+
+      const res = await request(app)
+        .post('/api/projects/test-project/containers')
+        .send({ name: 'web-1', type: 'ubuntu' });
+
+      expect(res.status).toBe(409);
+      expect(res.body.code).toBe('PORT_IN_USE');
+      expect(res.body.error).toContain('port');
+    });
+
+    it('should treat a 304 (already started) as a successful no-op', async () => {
+      (ContainerService.startContainer as jest.Mock).mockRejectedValue(
+        Object.assign(new Error('container already started'), { statusCode: 304 })
+      );
+
+      const res = await request(app).post('/api/containers/1/start');
+
+      expect(res.status).toBe(200);
+      expect(res.body).toEqual({ success: true });
     });
   });
 });

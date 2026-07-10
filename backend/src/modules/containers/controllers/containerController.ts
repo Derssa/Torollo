@@ -3,6 +3,7 @@ import { ContainerService } from '../services/containerService';
 import { ProjectService } from '../../projects/services/projectService';
 import { NetworkService } from '../../network/services/networkService';
 import docker from '../../../infrastructure/docker/DockerClient';
+import { sendDockerError } from '../../../infrastructure/docker/dockerErrors';
 
 export class ContainerController {
   public static async list(req: Request, res: Response): Promise<void> {
@@ -11,7 +12,7 @@ export class ContainerController {
       const list = await ContainerService.listContainers(projectId as string);
       res.json(list);
     } catch (err: any) {
-      res.status(500).json({ error: err.message });
+      sendDockerError(res, err, 'listing the containers');
     }
   }
 
@@ -45,7 +46,7 @@ export class ContainerController {
 
       res.status(201).json(container);
     } catch (err: any) {
-      res.status(500).json({ error: err.message });
+      sendDockerError(res, err, 'creating the container');
     }
   }
 
@@ -74,7 +75,7 @@ export class ContainerController {
 
       res.json({ success: true });
     } catch (err: any) {
-      res.status(500).json({ error: err.message });
+      sendDockerError(res, err, 'starting the container');
     }
   }
 
@@ -103,7 +104,7 @@ export class ContainerController {
 
       res.json({ success: true });
     } catch (err: any) {
-      res.status(500).json({ error: err.message });
+      sendDockerError(res, err, 'stopping the container');
     }
   }
 
@@ -132,7 +133,7 @@ export class ContainerController {
 
       res.json({ success: true });
     } catch (err: any) {
-      res.status(500).json({ error: err.message });
+      sendDockerError(res, err, 'deleting the container');
     }
   }
 
@@ -142,7 +143,7 @@ export class ContainerController {
       const explorerData = await ContainerService.getPostgresExplorer(id as string);
       res.json(explorerData);
     } catch (err: any) {
-      res.status(500).json({ error: err.message });
+      sendDockerError(res, err, 'exploring the database');
     }
   }
 
@@ -157,7 +158,7 @@ export class ContainerController {
       const result = await ContainerService.executePostgresQuery(id as string, database || 'postgres', query);
       res.json({ result });
     } catch (err: any) {
-      res.status(500).json({ error: err.message });
+      sendDockerError(res, err, 'running the query');
     }
   }
 
@@ -167,7 +168,7 @@ export class ContainerController {
       const explorerData = await ContainerService.getRedisExplorer(id as string);
       res.json(explorerData);
     } catch (err: any) {
-      res.status(500).json({ error: err.message });
+      sendDockerError(res, err, 'exploring the database');
     }
   }
 
@@ -182,7 +183,7 @@ export class ContainerController {
       const result = await ContainerService.executeRedisQuery(id as string, query);
       res.json({ result });
     } catch (err: any) {
-      res.status(500).json({ error: err.message });
+      sendDockerError(res, err, 'running the query');
     }
   }
 
@@ -192,7 +193,7 @@ export class ContainerController {
       const explorerData = await ContainerService.getNosqlExplorer(id as string);
       res.json(explorerData);
     } catch (err: any) {
-      res.status(500).json({ error: err.message });
+      sendDockerError(res, err, 'exploring the database');
     }
   }
 
@@ -207,7 +208,7 @@ export class ContainerController {
       const result = await ContainerService.executeNosqlQuery(id as string, query);
       res.json({ result });
     } catch (err: any) {
-      res.status(500).json({ error: err.message });
+      sendDockerError(res, err, 'running the query');
     }
   }
 
@@ -218,7 +219,7 @@ export class ContainerController {
       await ContainerService.scaleContainer(id as string, cpus, memory);
       res.json({ success: true });
     } catch (err: any) {
-      res.status(500).json({ error: err.message });
+      sendDockerError(res, err, 'scaling the container');
     }
   }
 
@@ -260,7 +261,7 @@ export class ContainerController {
         res.json({ success: true, message: 'Container already has the same name.' });
         return;
       }
-      res.status(500).json({ error: err.message });
+      sendDockerError(res, err, 'renaming the container');
     }
   }
 }

@@ -1,5 +1,6 @@
 import { Request, Response } from 'express';
 import { AsgService } from '../services/asgService';
+import { sendDockerError } from '../../../infrastructure/docker/dockerErrors';
 
 export class AsgController {
   public static async deploy(req: Request, res: Response): Promise<void> {
@@ -26,7 +27,7 @@ export class AsgController {
       );
       res.json(containers);
     } catch (err: any) {
-      res.status(500).json({ error: err.message });
+      sendDockerError(res, err, 'deploying the auto-scaling group');
     }
   }
 
@@ -49,7 +50,7 @@ export class AsgController {
       );
       res.json(containers);
     } catch (err: any) {
-      res.status(500).json({ error: err.message });
+      sendDockerError(res, err, 'scaling the auto-scaling group');
     }
   }
 
@@ -66,7 +67,7 @@ export class AsgController {
       const containers = await AsgService.terminateInstance(projectId, instanceId);
       res.json(containers);
     } catch (err: any) {
-      res.status(500).json({ error: err.message });
+      sendDockerError(res, err, 'terminating the instance');
     }
   }
 }
