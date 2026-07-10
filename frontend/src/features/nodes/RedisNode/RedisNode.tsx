@@ -7,6 +7,7 @@ interface RedisNodeProps {
     id: string;
     name: string;
     state?: string;
+    lastError?: string;
     ip?: string;
     onSecurityGroupOpen?: (id: string, name: string) => void;
     onInspect: (id: string, name: string) => void;
@@ -25,6 +26,7 @@ export default function RedisNode({ data }: RedisNodeProps) {
       id={data.id}
       name={data.name}
       isRunning={isRunning}
+      errorMessage={data.lastError}
       icon={<Database size={18} color={isRunning ? '#DC2626' : '#6B7280'} />}
       customBorder={isRunning ? '1px solid #DC2626' : undefined}
       subtitle={

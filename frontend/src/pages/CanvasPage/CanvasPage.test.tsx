@@ -333,6 +333,35 @@ describe('CanvasPage', () => {
     await waitFor(() => expect(screen.getByText('Container is locked by the runtime')).toBeInTheDocument());
   });
 
+  it('surfaces the server error and flags the node when starting a container fails', async () => {
+    const networkConfig = {
+      vpcConfig: validVpcConfig,
+      subnets: [subnetFixture()],
+      nodeSubnetMap: { c1: 'subnet-1' },
+      nodeSecurityGroups: {},
+      nodeIpMap: { c1: '10.0.1.2' },
+    };
+    const fetchMock = buildFetchMock({
+      containers: [{ id: 'c1', name: 'web-1', state: 'stopped', status: 'stopped', type: 'ubuntu' }],
+      networkConfig,
+    });
+    const base = fetchMock.getMockImplementation()!;
+    const portError = 'A port this container needs is already taken on your machine. Stop the application using it, then try again.';
+    fetchMock.mockImplementation((url: string, init?: RequestInit) => {
+      if (url.includes('/start')) return jsonResponse(false, { error: portError, code: 'PORT_IN_USE' });
+      return base(url, init);
+    });
+    const { container } = await renderCanvasPage(fetchMock);
+    await waitFor(() => expect(screen.getByText('web-1')).toBeInTheDocument());
+
+    fireEvent.click(within(nodeEl(container, 'c1')).getByTitle('Start Node'));
+
+    // The reason appears both as a toast and as a persistent badge on the node.
+    await waitFor(() => expect(screen.getAllByText(portError).length).toBeGreaterThan(0));
+    await waitFor(() => expect(within(nodeEl(container, 'c1')).getByText('Error')).toBeInTheDocument());
+    expect(within(nodeEl(container, 'c1')).getByText(portError)).toBeInTheDocument();
+  });
+
   it('deleting a node cascades cleanup of its subnet mapping, security groups, rules targeting it, and IP', async () => {
     const networkConfig = {
       vpcConfig: validVpcConfig,

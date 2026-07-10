@@ -7,6 +7,7 @@ interface LoadBalancerNodeProps {
     id: string;
     name: string;
     state?: string;
+    lastError?: string;
     ip?: string;
     port?: string | number;
     config?: {
@@ -30,6 +31,7 @@ export default function LoadBalancerNode({ data }: LoadBalancerNodeProps) {
       id={data.id}
       name={data.name}
       isRunning={isRunning}
+      errorMessage={data.lastError}
       icon={<GitFork size={18} color={isRunning ? '#EF4444' : '#6B7280'} />}
       customBorder="2px solid #EF4444"
       customTitleColor="#DC2626"

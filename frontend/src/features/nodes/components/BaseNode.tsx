@@ -32,6 +32,9 @@ interface BaseNodeProps {
   
   // Quick sub-info line
   subtitle?: React.ReactNode;
+
+  // Reason of the last failed operation (start/stop/delete) on this node
+  errorMessage?: string;
 }
 
 export default function BaseNode({
@@ -48,12 +51,18 @@ export default function BaseNode({
   onDelete,
   onSecurityGroupOpen,
   primaryAction,
-  subtitle
+  subtitle,
+  errorMessage
 }: BaseNodeProps) {
-  
+
   const titleColor = customTitleColor || 'var(--color-text-primary)';
-  const indicatorColor = isRunning ? '#10B981' : '#EF4444';
-  const shadowColor = isRunning ? 'rgba(16, 185, 129, 0.6)' : 'rgba(239, 68, 68, 0.6)';
+  const hasError = Boolean(errorMessage) && !isRunning;
+  const indicatorColor = isRunning ? '#10B981' : hasError ? '#F59E0B' : '#EF4444';
+  const shadowColor = isRunning
+    ? 'rgba(16, 185, 129, 0.6)'
+    : hasError
+      ? 'rgba(245, 158, 11, 0.6)'
+      : 'rgba(239, 68, 68, 0.6)';
 
   return (
     <div 
@@ -115,13 +124,28 @@ export default function BaseNode({
               boxShadow: `0 0 8px ${shadowColor}`
             }}
           />
-          <span className={styles.statusText}>{isRunning ? 'Online' : 'Offline'}</span>
+          <span className={styles.statusText}>{isRunning ? 'Online' : hasError ? 'Error' : 'Offline'}</span>
         </div>
       </div>
 
       {subtitle && (
         <div className={styles.details}>
           {subtitle}
+        </div>
+      )}
+
+      {hasError && (
+        <div
+          className={styles.details}
+          title={errorMessage}
+          style={{
+            color: '#92400E',
+            whiteSpace: 'nowrap',
+            overflow: 'hidden',
+            textOverflow: 'ellipsis',
+          }}
+        >
+          {errorMessage}
         </div>
       )}
 

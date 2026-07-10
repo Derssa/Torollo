@@ -7,6 +7,7 @@ interface NatNodeProps {
     id: string;
     name: string;
     state?: string;
+    lastError?: string;
     ip?: string;
     onInspect: (id: string, name: string) => void;
     onStop: (id: string) => void;
@@ -24,6 +25,7 @@ export default function NatNode({ data }: NatNodeProps) {
       id={data.id}
       name={data.name}
       isRunning={isRunning}
+      errorMessage={data.lastError}
       icon={<ArrowRightLeft size={18} color={isRunning ? '#8B5CF6' : '#6B7280'} />}
       customBorder="2px solid #8B5CF6"
       customTitleColor="#6D28D9"

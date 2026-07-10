@@ -7,6 +7,7 @@ interface UbuntuNodeProps {
     id: string;
     name: string;
     state?: string;
+    lastError?: string;
     ip?: string;
     subnetType?: 'public' | 'private';
     port?: string | number;
@@ -27,6 +28,7 @@ export default function UbuntuNode({ data }: UbuntuNodeProps) {
       id={data.id}
       name={data.name}
       isRunning={isRunning}
+      errorMessage={data.lastError}
       icon={<Cpu size={18} color={isRunning ? '#3B82F6' : '#6B7280'} />}
       customTitleColor="var(--color-text-primary)"
       subtitle={

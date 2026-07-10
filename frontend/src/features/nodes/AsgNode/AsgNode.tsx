@@ -7,6 +7,7 @@ interface AsgNodeProps {
     id: string;
     name: string;
     state?: string;
+    lastError?: string;
     ip?: string;
     config?: {
       asgs?: Record<string, { desiredCapacity: number; minCapacity?: number; maxCapacity?: number; parentId?: string; subnetIds?: string[] }>;
@@ -38,6 +39,7 @@ export default function AsgNode({ data }: AsgNodeProps) {
       id={data.id}
       name={data.name}
       isRunning={isRunning}
+      errorMessage={data.lastError}
       icon={<Layers size={18} color={isRunning ? '#EC4899' : '#6B7280'} />}
       customBorder="2px dashed #EC4899"
       customTitleColor="#DB2777"

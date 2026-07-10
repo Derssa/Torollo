@@ -7,6 +7,7 @@ interface NoSqlNodeProps {
     id: string;
     name: string;
     state?: string;
+    lastError?: string;
     ip?: string;
     onSecurityGroupOpen?: (id: string, name: string) => void;
     onInspect: (id: string, name: string) => void;
@@ -25,6 +26,7 @@ export default function NoSqlNode({ data }: NoSqlNodeProps) {
       id={data.id}
       name={data.name}
       isRunning={isRunning}
+      errorMessage={data.lastError}
       icon={<Braces size={18} color={isRunning ? '#475569' : '#6B7280'} />}
       customBorder={isRunning ? '1px solid #475569' : undefined}
       subtitle={

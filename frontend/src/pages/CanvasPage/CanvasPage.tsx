@@ -21,6 +21,7 @@ import NodeLibrary from './components/NodeLibrary';
 import { useContainers } from '../../shared/hooks/useContainers';
 import { useToast } from '../../shared/hooks/useToast';
 import { ToastNotification } from '../../shared/components/Toast';
+import { DockerUnavailableBanner } from '../../shared/components/DockerUnavailableBanner';
 import InputModal from '../../shared/components/InputModal';
 import ConfirmModal from '../../shared/components/ConfirmModal';
 import CanvasTopbar from './components/CanvasTopbar';
@@ -110,12 +111,14 @@ export default function CanvasPage({ projectId, projectName, onBackToProjects, o
     containers,
     loading,
     creating,
+    opErrors,
+    dockerUnavailable,
     fetchContainers,
     createContainer,
     startContainer,
     stopContainer,
     deleteContainer,
-  } = useContainers({ projectId, onToast: showToast });
+  } = useContainers({ projectId, onNotify: showNotification });
 
   // Modal and inspector states
   const [showCreateModal, setShowCreateModal] = useState(false);
@@ -731,6 +734,7 @@ export default function CanvasPage({ projectId, projectName, onBackToProjects, o
             name: c.name,
             state: c.state,
             status: c.status,
+            lastError: opErrors[c.id],
             port: c.port,
             ip: networkConfig.nodeIpMap?.[c.id] || 'pending',
             subnetType,
@@ -785,7 +789,7 @@ export default function CanvasPage({ projectId, projectName, onBackToProjects, o
 
     // Save current positions (including auto-placed new nodes) to localStorage
     localStorage.setItem(`akal-lab-graph-layout-${projectId}`, JSON.stringify(positionsRef.current));
-  }, [projectId, containers, startContainer, stopContainer, onTerminalOpen, setNodes, networkConfig, saveNetworkConfig, handleDeleteSubnet, handleSubnetResize]);
+  }, [projectId, containers, opErrors, startContainer, stopContainer, onTerminalOpen, setNodes, networkConfig, saveNetworkConfig, handleDeleteSubnet, handleSubnetResize]);
 
 
 
@@ -1752,6 +1756,8 @@ export default function CanvasPage({ projectId, projectName, onBackToProjects, o
           initialTab="simulator"
         />
       )}
+
+      {dockerUnavailable && <DockerUnavailableBanner />}
 
       {toast && (
         <ToastNotification type={toast.type} message={toast.message} onDismiss={dismissToast} />
