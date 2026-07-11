@@ -1,3 +1,6 @@
+import fs from 'fs';
+import path from 'path';
+import os from 'os';
 import docker from './DockerClient';
 import { NODE_TYPES } from './nodeTypes';
 
@@ -24,7 +27,40 @@ export class DockerInitializer {
     try {
       const networks = await docker.listNetworks();
 
-      // Subnet network cleanup removed to allow persistence between npx runs
+      // Clean up orphaned subnet networks (from deleted/wiped projects) on startup
+      const TOROLLO_DIR = path.join(os.homedir(), '.torollo');
+      const DB_PATH = path.join(TOROLLO_DIR, 'projects.json');
+      const activeSubnetNetNames = new Set<string>();
+      if (fs.existsSync(DB_PATH)) {
+        try {
+          const projects = JSON.parse(fs.readFileSync(DB_PATH, 'utf-8'));
+          for (const p of projects) {
+            const subnets = p.networkConfig?.subnets || [];
+            for (const s of subnets) {
+              activeSubnetNetNames.add(`akal-subnet-${p.id}-${s.id}`);
+            }
+          }
+        } catch (err) {
+          console.error('[DockerInitializer] Failed to parse projects.json for orphaned network cleanup:', err);
+        }
+      }
+
+      for (const net of networks) {
+        if (net.Name.startsWith('akal-subnet-') && !activeSubnetNetNames.has(net.Name)) {
+          console.log(`[DockerInitializer] Cleaning up orphaned subnet network: ${net.Name}`);
+          try {
+            const network = docker.getNetwork(net.Id);
+            const netInspect = await network.inspect();
+            const connectedContainers = Object.keys(netInspect.Containers || {});
+            for (const cId of connectedContainers) {
+              await network.disconnect({ Container: cId, Force: true });
+            }
+            await network.remove();
+          } catch (err) {
+            console.error(`Failed to clean up orphaned network ${net.Name}:`, err);
+          }
+        }
+      }
 
       const hasNetwork = networks.some(n => n.Name === 'akal-lab-network');
       if (!hasNetwork) {

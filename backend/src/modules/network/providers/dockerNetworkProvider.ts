@@ -2,6 +2,7 @@ import { NetworkProvider } from './networkProvider';
 import { VirtualEndpoint } from '../mapper/virtualNetworkMapper';
 import { NetworkIntent } from '../planner/enforcementPlanner';
 import docker from '../../../infrastructure/docker/DockerClient';
+import { ProjectService } from '../../projects/services/projectService';
 
 export class DockerNetworkProvider implements NetworkProvider {
   private async runExec(containerId: string, cmd: string[]): Promise<string> {
@@ -851,6 +852,52 @@ ${locationsConfig}
         throw new Error(`Firewall verification failed inside container ${containerId.slice(0, 12)}: custom chains were not created/found.`);
       }
     }));
+
+    // Write back the updated/shifted CIDRs to projects.json
+    let configChanged = false;
+
+    if (config.vpcConfig && config.vpcConfig.cidr !== vpcCidr) {
+      config.vpcConfig.cidr = vpcCidr;
+      configChanged = true;
+    }
+
+    if (config.subnets) {
+      for (const subnet of config.subnets) {
+        const resolvedCidr = resolvedCidrs[subnet.id];
+        if (resolvedCidr && subnet.cidr !== resolvedCidr) {
+          subnet.cidr = resolvedCidr;
+          configChanged = true;
+        }
+
+        // Also update any 'local' route destinations to match the shifted VPC CIDR
+        if (subnet.routes) {
+          for (const route of subnet.routes) {
+            if (route.target === 'local' && route.destination !== vpcCidr) {
+              route.destination = vpcCidr;
+              configChanged = true;
+            }
+          }
+        }
+      }
+    }
+
+    if (config.nodeIpMap) {
+      for (const [nodeId, ip] of Object.entries(ipMap)) {
+        if (config.nodeIpMap[nodeId] !== ip) {
+          config.nodeIpMap[nodeId] = ip;
+          configChanged = true;
+        }
+      }
+    }
+
+    if (configChanged) {
+      console.log(`[DockerNetworkProvider] Persisting shifted CIDRs and IPs back to projects.json...`);
+      try {
+        await ProjectService.saveNetworkConfig(projectId, config);
+      } catch (err) {
+        console.error('[DockerNetworkProvider] Failed to persist shifted CIDRs to database:', err);
+      }
+    }
   }
 
   public async cleanupProjectPolicies(projectId: string, endpoints: VirtualEndpoint[]): Promise<void> {
