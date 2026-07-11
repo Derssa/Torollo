@@ -9,7 +9,7 @@ This document provides guidelines and steps for contributing to this project.
 *   **Reporting Bugs:** If you find a bug, please open an issue and describe the steps to reproduce it, what you expected to happen, and what actually happened.
 *   **Suggesting Enhancements:** Have an idea for a new feature? Open an issue to discuss it before you start coding!
 *   **Code Contributions:** We welcome pull requests! Whether it's fixing a typo, resolving a bug, or building a new feature.
-*   **Adding a New Node:** Want to add a new piece of infrastructure to the canvas (a database, cache, broker, …)? Follow our step-by-step [Adding a New Node](docs/adding-a-node.md) guide, which also documents our code standards.
+*   **Adding a New Node:** Want to add a new piece of infrastructure to the canvas (a database, cache, broker, …)? Follow our step-by-step [Adding a New Node](docs/adding-a-node.md) guide, which also documents our code standards and the [tooling every node image must ship](docs/adding-a-node.md#required-tooling-inside-every-node-image) (`iptables` + `iproute2`).
 *   **Documentation:** Improving our documentation is just as important as writing code.
 
 ## Local Development Setup

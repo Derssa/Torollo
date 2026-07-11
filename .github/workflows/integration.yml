@@ -1,0 +1,52 @@
+# Verifies that every node image ships iptables/iproute2 (required for Security
+# Group enforcement) — see docs/adding-a-node.md#required-tooling-inside-every-node-image.
+#
+# This pulls the real images from Docker Hub, so it only runs when something that
+# affects them changes. Image pushes to Docker Hub happen outside this repo and
+# can't trigger CI — use "Run workflow" (workflow_dispatch) after publishing one.
+name: Integration
+
+on:
+  push:
+    branches: [ main, dev ]
+    paths:
+      - 'backend/src/infrastructure/docker/nodeTypes.ts'
+      - 'backend/src/infrastructure/docker/imageRequirements.itest.ts'
+      - 'backend/jest.integration.config.js'
+      - 'backend/package.json'
+      - 'backend/package-lock.json'
+      - '.github/workflows/integration.yml'
+  pull_request:
+    branches: [ main, dev ]
+    paths:
+      - 'backend/src/infrastructure/docker/nodeTypes.ts'
+      - 'backend/src/infrastructure/docker/imageRequirements.itest.ts'
+      - 'backend/jest.integration.config.js'
+      - 'backend/package.json'
+      - 'backend/package-lock.json'
+      - '.github/workflows/integration.yml'
+  workflow_dispatch:
+
+jobs:
+  backend-integration-tests:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: backend
+
+    steps:
+    - name: Checkout Code
+      uses: actions/checkout@v4
+
+    - name: Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: '20'
+        cache: 'npm'
+        cache-dependency-path: backend/package-lock.json
+
+    - name: Install Dependencies
+      run: npm ci
+
+    - name: Run Integration Tests
+      run: npm run test:integration
