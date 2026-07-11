@@ -86,8 +86,10 @@ function buildFetchMock({ containers = [] as unknown[], networkConfig }: { conta
     if (url.includes('/rename')) return jsonResponse(true, {});
     if (method === 'DELETE') return jsonResponse(true, {});
     if (method === 'POST') return jsonResponse(true, {});
-    // GET containers list
-    return jsonResponse(true, containers);
+    // GET containers list — return a fresh array each time, like res.json()
+    // on a real response, so stateful mutations of `containers` in a test are
+    // seen as a new state by React instead of bailing out on the same ref.
+    return jsonResponse(true, [...containers]);
   });
 }
 
@@ -198,7 +200,8 @@ describe('CanvasPage', () => {
     expect(screen.queryByText('Give your new container a descriptive name.')).not.toBeInTheDocument();
   });
 
-  it('shows the delete confirmation for a node, and only deletes on confirm', async () => {
+  it('shows the delete confirmation for a node, only deletes on confirm, and drops its saved layout position', async () => {
+    localStorage.setItem('akal-lab-graph-layout-p1', JSON.stringify({ c1: { x: 60, y: 60 } }));
     const networkConfig = {
       vpcConfig: validVpcConfig,
       subnets: [{ id: 'subnet-1', name: 'Public Subnet-1', type: 'public', vpcId: 'root-vpc', position: { x: 0, y: 0 }, width: 680, height: 260, columns: 2, rows: 1, routes: [] }],
@@ -206,9 +209,14 @@ describe('CanvasPage', () => {
       nodeSecurityGroups: {},
       nodeIpMap: { c1: '10.0.1.2' },
     };
-    const fetchMock = buildFetchMock({
-      containers: [{ id: 'c1', name: 'web-1', state: 'running', status: 'running', type: 'ubuntu' }],
-      networkConfig,
+    const containers = [{ id: 'c1', name: 'web-1', state: 'running', status: 'running', type: 'ubuntu' }];
+    const fetchMock = buildFetchMock({ containers, networkConfig });
+    // Stateful mock: after a successful delete, subsequent container fetches
+    // must no longer return the node, like the real backend would.
+    const base = fetchMock.getMockImplementation()!;
+    fetchMock.mockImplementation((url: string, init?: RequestInit) => {
+      if (init?.method === 'DELETE') containers.length = 0;
+      return base(url, init);
     });
     await renderCanvasPage(fetchMock);
 
@@ -226,9 +234,13 @@ describe('CanvasPage', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Delete' }));
 
     await waitFor(() => expect(fetchMock.mock.calls.some(c => (c[1] as RequestInit | undefined)?.method === 'DELETE')).toBe(true));
+    await waitFor(() => {
+      const layout = JSON.parse(localStorage.getItem('akal-lab-graph-layout-p1')!);
+      expect(layout['c1']).toBeUndefined();
+    });
   });
 
-  it('renames a stopped node via PATCH and migrates its saved layout position to the new name', async () => {
+  it('renames a stopped node via PATCH and keeps its saved layout position under the container id', async () => {
     const networkConfig = {
       vpcConfig: validVpcConfig,
       subnets: [subnetFixture()],
@@ -264,8 +276,9 @@ describe('CanvasPage', () => {
 
     await waitFor(() => {
       const layout = JSON.parse(localStorage.getItem('akal-lab-graph-layout-p1')!);
-      expect(layout['web-2']).toBeDefined();
+      expect(layout['c1']).toBeDefined();
       expect(layout['web-1']).toBeUndefined();
+      expect(layout['web-2']).toBeUndefined();
     });
   });
 
@@ -458,12 +471,8 @@ describe('CanvasPage', () => {
   });
 
   it('blocks shrinking a subnet grid over an occupied cell, naming the blocking node', async () => {
-    // The shrink guard reads positions keyed by container ID, while the canvas
-    // sync effect keys them by name — seed the saved layout with both so the
-    // fixture stays valid regardless of which key each code path reads.
     localStorage.setItem('akal-lab-graph-layout-p1', JSON.stringify({
       c1: { x: 60 + 2 * 340, y: 60 },
-      'web-1': { x: 60 + 2 * 340, y: 60 },
     }));
     const networkConfig = {
       vpcConfig: validVpcConfig,

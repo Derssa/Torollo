@@ -641,10 +641,13 @@ export default function CanvasPage({ projectId, projectName, onBackToProjects, o
         const defaultX = 150 + (index % 3) * 280;
         const defaultY = 150 + Math.floor(index / 3) * 220;
 
-        const savedPos = positionsRef.current[c.name];
+        const savedPos = positionsRef.current[c.id];
+        // dropPositionsRef is keyed by name: at drop time the container does
+        // not exist yet, so the name is the only handle. Consume it here and
+        // re-key the position by id like everything else.
         const dropPos = dropPositionsRef.current[c.name];
         if (dropPos) {
-          positionsRef.current[c.name] = dropPos;
+          positionsRef.current[c.id] = dropPos;
           delete dropPositionsRef.current[c.name];
         }
 
@@ -659,7 +662,7 @@ export default function CanvasPage({ projectId, projectName, onBackToProjects, o
           const cols = subnet?.columns || 2;
           const rows = subnet?.rows || 1;
 
-          const pos = positionsRef.current[c.name];
+          const pos = positionsRef.current[c.id];
           let col = -1;
           let row = -1;
           if (pos) {
@@ -671,7 +674,7 @@ export default function CanvasPage({ projectId, projectName, onBackToProjects, o
             return containers.filter(node => !node.isAsgInstance).some(node => {
               if (node.id === excludeId) return false;
               if (updatedNodeSubnetMap[node.id] !== parentId) return false;
-              const nodePos = positionsRef.current[node.name];
+              const nodePos = positionsRef.current[node.id];
               if (!nodePos) return false;
               const nCol = Math.round((nodePos.x - 60) / 340);
               const nRow = Math.round((nodePos.y - 60) / 190);
@@ -702,7 +705,7 @@ export default function CanvasPage({ projectId, projectName, onBackToProjects, o
             x: 60 + col * 340,
             y: 60 + row * 190
           };
-          positionsRef.current[c.name] = position;
+          positionsRef.current[c.id] = position;
         }
 
         const nodeType = c.type || 'ubuntu';
@@ -1043,8 +1046,7 @@ export default function CanvasPage({ projectId, projectName, onBackToProjects, o
         const col = Math.max(0, Math.min(cols - 1, Math.round((relX - 60) / 340)));
         const row = Math.max(0, Math.min(rows - 1, Math.round((relY - 60) / 190)));
 
-        const key = (draggedNode.type === 'subnet' ? draggedNode.id : draggedNode.data?.name) as string;
-        positionsRef.current[key] = {
+        positionsRef.current[draggedNode.id] = {
           x: 60 + col * 340,
           y: 60 + row * 190
         };
@@ -1239,14 +1241,6 @@ export default function CanvasPage({ projectId, projectName, onBackToProjects, o
     } catch {
       showNotification({ type: 'error', message: 'Rename failed: could not reach the server.' });
       return;
-    }
-
-    // Migrate the position key from the old name to the new name so the node
-    // does not lose its canvas position after being renamed.
-    if (positionsRef.current[currentName]) {
-      positionsRef.current[trimmedNewName] = positionsRef.current[currentName];
-      delete positionsRef.current[currentName];
-      localStorage.setItem(`akal-lab-graph-layout-${projectId}`, JSON.stringify(positionsRef.current));
     }
 
     setRenamingNode(null);
