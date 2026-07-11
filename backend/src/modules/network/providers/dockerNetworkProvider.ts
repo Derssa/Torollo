@@ -435,10 +435,11 @@ export class DockerNetworkProvider implements NetworkProvider {
       const containerInfo = updatedDockerContainers.find(c => c.Id === containerId);
       if (!containerInfo) return;
 
-      // Check if iptables is available inside this container
-      const hasIptables = await this.runExec(containerId, ['sh', '-c', 'command -v iptables || true']);
-      if (!hasIptables || hasIptables.includes('not found') || hasIptables.trim() === '') {
-        console.warn(`[DockerNetworkProvider] Skipping firewall configuration for container ${containerId.slice(0, 12)} (${ep.containerName}): 'iptables' is not installed.`);
+      // Check that iptables and ip (iproute2) are available inside this container:
+      // both are exec'd below, and a missing 'ip' would otherwise throw mid-plan.
+      const hasNetTools = await this.runExec(containerId, ['sh', '-c', 'command -v iptables >/dev/null 2>&1 && command -v ip >/dev/null 2>&1 && echo ok || true']);
+      if (hasNetTools.trim() !== 'ok') {
+        console.warn(`[DockerNetworkProvider] Skipping firewall configuration for container ${containerId.slice(0, 12)} (${ep.containerName}): 'iptables' and/or 'ip' (iproute2) is not installed. See docs/adding-a-node.md#required-tooling-inside-every-node-image.`);
         return;
       }
 

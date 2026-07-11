@@ -68,7 +68,7 @@ Instead of reading passive, theory-heavy documentation, you learn by *doing*:
 - **Web Terminals:** Instantly open a root shell into any Ubuntu or Database container straight from the browser.
 
 ### Architecture Overview
-*   **Backend:** Node.js, Express, TypeScript, and Dockerode. The backend acts as the supervisor—it manipulates the local Docker daemon, compiles your visual network topology into real `iptables` rules, and manages persistent state in `~/.torollo/projects.json`.
+*   **Backend:** Node.js, Express, TypeScript, and Dockerode. The backend acts as the supervisor—it manipulates the local Docker daemon, compiles your visual network topology into real `iptables` rules, and manages persistent state in `~/.torollo/projects.json`. Because those rules are applied *inside* the containers, every node image must ship with `iptables` and `iproute2` installed — see [Required tooling inside every node image](docs/adding-a-node.md#required-tooling-inside-every-node-image).
 *   **Frontend:** React, TypeScript, Vite, and React Flow. Renders the interactive visual grid, node inspector modals, database explorers, and `xterm.js` terminals.
 
 ---

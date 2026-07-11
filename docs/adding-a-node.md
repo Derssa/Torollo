@@ -74,6 +74,40 @@ Here is the complete list. Nothing else needs to change.
 | `backend/src/infrastructure/docker/ContainerManager.ts` | The image tag, an `ensure<X>Image()` pull helper, the image-selection branch, any custom container options, and the port mapping. This is the **only** file that talks to Docker. |
 | `backend/src/modules/containers/services/containerService.ts` | *(Optional)* An explorer/query method, if your node has an inspector modal (like `getRedisExplorer`). |
 
+#### Required tooling inside every node image
+
+Every image referenced in `backend/src/infrastructure/docker/nodeTypes.ts` — and any custom
+image a user supplies — **must include `iptables` and `iproute2`**. This is not optional:
+the backend enforces Security Groups by exec-ing `iptables` inside the container, and
+programs routing (NAT gateways, VPC routes) with `ip route`. Containers are started with
+`CAP_NET_ADMIN`, so only the binaries are required — the image does not need to run
+privileged.
+
+If the tools are missing, the failure is easy to miss:
+
+- **No `iptables`** → firewall configuration is silently skipped (a warning in the backend
+  logs); the node runs with **no Security Group enforcement at all**.
+- **No `ip` (iproute2)** → routing setup for the node is skipped the same way, so NAT and
+  VPC routes won't apply.
+
+The published `derssa/backend-lab-*:v1` images already ship both tools. If you build your
+own image, either base it on one of those, or add the packages in your Dockerfile:
+
+```dockerfile
+# Debian/Ubuntu-based images
+RUN apt-get update && apt-get install -y iptables iproute2 && rm -rf /var/lib/apt/lists/*
+
+# Alpine-based images
+RUN apk add --no-cache iptables iproute2
+```
+
+To verify an image is correctly configured, run the integration suite (requires a running
+Docker daemon):
+
+```bash
+cd backend && npm run test:integration
+```
+
 ### Frontend
 
 | File | What you add |
@@ -448,6 +482,9 @@ Copy this into your PR description and tick it off:
 
 - [ ] `type` string is lowercase and identical across palette, `nodeTypes`, API, labels, and unions.
 - [ ] Backend: image tag, `ensure<X>Image()`, image selection branch, port mapping, `ContainerInfo` union.
+- [ ] If you added or changed a node image: it includes `iptables` and `iproute2`
+      (see [Required tooling inside every node image](#required-tooling-inside-every-node-image)),
+      and `npm run test:integration` passes.
 - [ ] Frontend: `<X>Node.tsx` (via `BaseNode`), `nodeTypes`, `NodeLibrary`, `ContainerData` union, drop placeholder.
 - [ ] Inspector modal + backend explorer wired (or intentionally omitted).
 - [ ] README "Supported Infrastructure Nodes" list updated.
