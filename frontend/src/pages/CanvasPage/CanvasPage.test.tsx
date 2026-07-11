@@ -86,8 +86,10 @@ function buildFetchMock({ containers = [] as unknown[], networkConfig }: { conta
     if (url.includes('/rename')) return jsonResponse(true, {});
     if (method === 'DELETE') return jsonResponse(true, {});
     if (method === 'POST') return jsonResponse(true, {});
-    // GET containers list
-    return jsonResponse(true, containers);
+    // GET containers list — return a fresh array each time, like res.json()
+    // on a real response, so stateful mutations of `containers` in a test are
+    // seen as a new state by React instead of bailing out on the same ref.
+    return jsonResponse(true, [...containers]);
   });
 }
 
