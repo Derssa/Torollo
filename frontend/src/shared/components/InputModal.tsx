@@ -27,6 +27,7 @@ export default function InputModal({
 }: InputModalProps) {
   const [value, setValue] = useState(defaultValue);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [error, setError] = useState('');
   const inputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
@@ -41,14 +42,18 @@ export default function InputModal({
       val = val.replace(restrictPattern, '');
     }
     setValue(val);
+    setError(''); // Clear error on typing
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (value.trim()) {
       setIsSubmitting(true);
+      setError('');
       try {
         await onSubmit(value.trim());
+      } catch (err: any) {
+        setError(err.message || 'An error occurred');
       } finally {
         setIsSubmitting(false);
       }
@@ -67,10 +72,18 @@ export default function InputModal({
           maxLength={maxLength}
           onChange={handleChange}
           placeholder={placeholder}
-          style={styles.input}
+          style={{
+            ...styles.input,
+            border: error ? '1px solid #DC2626' : '1px solid rgba(0, 0, 0, 0.12)'
+          }}
           id="modal-input"
           disabled={isSubmitting}
         />
+        {error && (
+          <div style={styles.errorMsg}>
+            {error}
+          </div>
+        )}
         <div style={styles.actions}>
           <button type="button" onClick={onCancel} style={styles.cancelBtn} disabled={isSubmitting}>
             Cancel
@@ -152,5 +165,11 @@ const styles: Record<string, React.CSSProperties> = {
     color: '#FFF',
     cursor: 'pointer',
     transition: 'opacity 0.15s, transform 0.1s',
+  },
+  errorMsg: {
+    color: '#DC2626',
+    fontSize: '12px',
+    marginTop: '6px',
+    fontWeight: 500,
   },
 };
