@@ -93,7 +93,10 @@ export class DockerContainerProvider implements ContainerProvider {
             key = Object.keys(networks).find(k => k.startsWith('akal-'));
           }
           if (key && networks[key]) {
-            ip = networks[key].IPAddress;
+            const tempIp = networks[key].IPAddress;
+            if (tempIp && !tempIp.startsWith('172.')) {
+              ip = tempIp;
+            }
           }
         }
         const asgId = c.Labels['akal.asg.id'];

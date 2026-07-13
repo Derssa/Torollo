@@ -2,6 +2,8 @@ import { NetworkProvider } from './networkProvider';
 import { VirtualEndpoint } from '../mapper/virtualNetworkMapper';
 import { NetworkIntent } from '../planner/enforcementPlanner';
 import docker from '../../../infrastructure/docker/DockerClient';
+import { ProjectService } from '../../projects/services/projectService';
+import { buildCidrCorrections, applyCidrCorrections } from './cidrCorrections';
 
 export class DockerNetworkProvider implements NetworkProvider {
   private async runExec(containerId: string, cmd: string[]): Promise<string> {
@@ -851,6 +853,24 @@ ${locationsConfig}
         throw new Error(`Firewall verification failed inside container ${containerId.slice(0, 12)}: custom chains were not created/found.`);
       }
     }));
+
+    // Persist shifted CIDRs/IPs back to projects.json. Merge the corrections
+    // into a freshly read config: this plan may have been queued behind other
+    // work, and saving the config it started from would clobber any save that
+    // landed in the meantime.
+    const corrections = buildCidrCorrections(config, vpcCidr, resolvedCidrs, ipMap);
+    if (corrections) {
+      console.log(`[DockerNetworkProvider] Persisting shifted CIDRs and IPs back to projects.json...`);
+      try {
+        const currentConfig = await ProjectService.getNetworkConfig(projectId);
+        if (currentConfig) {
+          applyCidrCorrections(currentConfig, corrections);
+          await ProjectService.saveNetworkConfig(projectId, currentConfig);
+        }
+      } catch (err) {
+        console.error('[DockerNetworkProvider] Failed to persist shifted CIDRs to database:', err);
+      }
+    }
   }
 
   public async cleanupProjectPolicies(projectId: string, endpoints: VirtualEndpoint[]): Promise<void> {

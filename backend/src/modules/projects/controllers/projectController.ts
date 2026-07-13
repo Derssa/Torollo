@@ -19,6 +19,14 @@ export class ProjectController {
         res.status(400).json({ error: 'Project name is required' });
         return;
       }
+      
+      const db = await ProjectService.listProjects();
+      const nameExists = db.some(p => p.name.trim().toLowerCase() === name.trim().toLowerCase());
+      if (nameExists) {
+        res.status(409).json({ error: `A project named "${name}" already exists.` });
+        return;
+      }
+
       const project = await ProjectService.createProject(name);
       res.status(201).json(project);
     } catch (err: any) {
@@ -54,12 +62,12 @@ export class ProjectController {
       }
       await ProjectService.saveNetworkConfig(projectId, networkConfig);
       
-      // Enforce the logic asynchronously
-      NetworkService.applyPolicy(projectId, networkConfig).catch(err => {
-        console.error(`Failed to apply network policy for project ${projectId}:`, err);
-      });
+      // Enforce the logic synchronously so any shifted CIDRs are computed and saved
+      await NetworkService.applyPolicy(projectId, networkConfig);
 
-      res.json({ success: true });
+      // Fetch and return the updated config containing shifted CIDRs and IPs
+      const updatedConfig = await ProjectService.getNetworkConfig(projectId);
+      res.json(updatedConfig || { success: true });
     } catch (err: any) {
       res.status(500).json({ error: err.message });
     }

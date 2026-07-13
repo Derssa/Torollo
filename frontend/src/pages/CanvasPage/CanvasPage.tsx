@@ -205,7 +205,20 @@ export default function CanvasPage({ projectId, projectName, onBackToProjects, o
         'Content-Type': 'application/json'
       },
       body: JSON.stringify({ networkConfig: grownConfig })
-    }).catch(err => {
+    })
+    .then(res => {
+      if (!res.ok) {
+        throw new Error(`Failed to save network config (HTTP ${res.status})`);
+      }
+      return res.json();
+    })
+    .then(data => {
+      if (data && data.vpcConfig) {
+        setNetworkConfig(data);
+        localStorage.setItem(`akal-lab-network-config-${projectId}`, JSON.stringify(data));
+      }
+    })
+    .catch(err => {
       console.error('Failed to sync network configuration to backend:', err);
       throw err;
     });
@@ -513,24 +526,13 @@ export default function CanvasPage({ projectId, projectName, onBackToProjects, o
     ];
   };
 
-  // Load saved positions, network configurations and start polling
-  useEffect(() => {
-    fetchContainers();
-    const savedLayout = localStorage.getItem(`akal-lab-graph-layout-${projectId}`);
-    if (savedLayout) {
-      try {
-        positionsRef.current = JSON.parse(savedLayout);
-      } catch (err) {
-        console.error(err);
-      }
-    }
-
-    // Fetch network config from backend, fallback to localStorage if unavailable
+  const fetchNetworkConfig = useCallback(() => {
     fetch(`${API_BASE}/api/projects/${projectId}/network-config`)
       .then(res => res.json())
       .then(data => {
         if (data && data.vpcConfig) {
           setNetworkConfig(data);
+          localStorage.setItem(`akal-lab-network-config-${projectId}`, JSON.stringify(data));
         } else {
           const savedConfig = localStorage.getItem(`akal-lab-network-config-${projectId}`);
           if (savedConfig) {
@@ -565,10 +567,27 @@ export default function CanvasPage({ projectId, projectName, onBackToProjects, o
           }
         }
       });
+  }, [projectId, defaultVpcConfig]);
 
-    const timer = setInterval(fetchContainers, 4000);
+  // Load saved positions, network configurations and start polling
+  useEffect(() => {
+    fetchContainers();
+    fetchNetworkConfig();
+    const savedLayout = localStorage.getItem(`akal-lab-graph-layout-${projectId}`);
+    if (savedLayout) {
+      try {
+        positionsRef.current = JSON.parse(savedLayout);
+      } catch (err) {
+        console.error(err);
+      }
+    }
+
+    const timer = setInterval(() => {
+      fetchContainers();
+      fetchNetworkConfig();
+    }, 4000);
     return () => clearInterval(timer);
-  }, [projectId, fetchContainers, defaultVpcConfig]);
+  }, [projectId, fetchContainers, fetchNetworkConfig]);
 
   // Sync container data into React Flow nodes when containers change
   useEffect(() => {
@@ -739,7 +758,7 @@ export default function CanvasPage({ projectId, projectName, onBackToProjects, o
             status: c.status,
             lastError: opErrors[c.id],
             port: c.port,
-            ip: networkConfig.nodeIpMap?.[c.id] || 'pending',
+            ip: c.ip || networkConfig.nodeIpMap?.[c.id] || 'pending',
             subnetType,
             config: nodeConfig,
             asgConfig: asgConfig ? { ...asgConfig, parentName } : undefined,
@@ -1335,11 +1354,16 @@ export default function CanvasPage({ projectId, projectName, onBackToProjects, o
           return;
         }
 
+        // Derive the subnet CIDR and local route from the current VPC CIDR:
+        // it may have shifted from the default 10.0.0.0/16 when Docker's
+        // address pool overlapped the requested range.
+        const vpcCidr = networkConfig.vpcConfig.cidr;
+        const vpcPrefix = vpcCidr.split('.').slice(0, 2).join('.');
         const newSubnet: Subnet = {
           id: `subnet-${Math.random().toString(36).substr(2, 9)}`,
           name: `${isPublic ? 'Public' : 'Private'} Subnet-${networkConfig.subnets.length + 1}`,
           type: isPublic ? 'public' : 'private',
-          cidr: `10.0.${networkConfig.subnets.length + 1}.0/24`,
+          cidr: `${vpcPrefix}.${networkConfig.subnets.length + 1}.0/24`,
           vpcId: 'root-vpc',
           position: position,
           width: subnetWidth,
@@ -1347,7 +1371,7 @@ export default function CanvasPage({ projectId, projectName, onBackToProjects, o
           columns: cols,
           rows: rows,
           routes: [
-            { destination: '10.0.0.0/16', target: 'local', description: 'Local VPC routing' },
+            { destination: vpcCidr, target: 'local', description: 'Local VPC routing' },
             ...(isPublic ? [{ destination: '0.0.0.0/0', target: 'igw', description: 'Internet access' }] : [])
           ]
         };
@@ -1595,7 +1619,7 @@ export default function CanvasPage({ projectId, projectName, onBackToProjects, o
       {inspectingNat && (
         <NatGatewayModal
           nodeName={inspectingNat.name}
-          ipAddress={networkConfig.nodeIpMap?.[inspectingNat.id]}
+          ipAddress={containers.find(c => c.id === inspectingNat.id)?.ip || networkConfig.nodeIpMap?.[inspectingNat.id]}
           state={containers.find(c => c.id === inspectingNat.id)?.state || 'stopped'}
           onClose={() => setInspectingNat(null)}
         />
@@ -1605,7 +1629,7 @@ export default function CanvasPage({ projectId, projectName, onBackToProjects, o
         <LoadBalancerModal
           containerId={inspectingLoadBalancer.id}
           nodeName={inspectingLoadBalancer.name}
-          ipAddress={networkConfig.nodeIpMap?.[inspectingLoadBalancer.id]}
+          ipAddress={containers.find(c => c.id === inspectingLoadBalancer.id)?.ip || networkConfig.nodeIpMap?.[inspectingLoadBalancer.id]}
           port={containers.find(c => c.id === inspectingLoadBalancer.id)?.port}
           state={containers.find(c => c.id === inspectingLoadBalancer.id)?.state || 'stopped'}
           config={{

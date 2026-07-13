@@ -49,19 +49,17 @@ export default function ProjectsPage({ onSelectProject }: ProjectsPageProps) {
   }, []);
 
   const handleCreateProject = async (name: string) => {
-    try {
-      const res = await fetch(`${API_BASE}/api/projects`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ name }),
-      });
-      if (res.ok) {
-        fetchProjects();
-      }
-    } catch (err) {
-      console.error(err);
-    } finally {
+    const res = await fetch(`${API_BASE}/api/projects`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ name }),
+    });
+    if (res.ok) {
+      fetchProjects();
       setShowCreateModal(false);
+    } else {
+      const errorData = await res.json();
+      throw new Error(errorData.error || 'Failed to create project');
     }
   };
 
