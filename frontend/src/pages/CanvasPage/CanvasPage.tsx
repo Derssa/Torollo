@@ -206,7 +206,12 @@ export default function CanvasPage({ projectId, projectName, onBackToProjects, o
       },
       body: JSON.stringify({ networkConfig: grownConfig })
     })
-    .then(res => res.json())
+    .then(res => {
+      if (!res.ok) {
+        throw new Error(`Failed to save network config (HTTP ${res.status})`);
+      }
+      return res.json();
+    })
     .then(data => {
       if (data && data.vpcConfig) {
         setNetworkConfig(data);
