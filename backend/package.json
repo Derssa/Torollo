@@ -11,13 +11,15 @@
     "test": "jest",
     "test:integration": "jest --config jest.integration.config.js",
     "test:coverage": "jest --coverage",
-    "test:watch": "jest --watch"
+    "test:watch": "jest --watch",
+    "roadmap:validate": "ts-node src/modules/learning/format/validateRoadmapCli.ts"
   },
   "keywords": [],
   "author": "",
   "license": "ISC",
   "type": "commonjs",
   "dependencies": {
+    "ajv": "^8.20.0",
     "cors": "^2.8.6",
     "dockerode": "^5.0.0",
     "dotenv": "^17.4.2",
