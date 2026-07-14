@@ -32,12 +32,11 @@ import VpcNode from '../../features/nodes/VpcNode/VpcNode';
 import SubnetNode from '../../features/nodes/SubnetNode/SubnetNode';
 import RoutingTableModal from '../../features/nodes/SubnetNode/RoutingTableModal';
 import SecurityGroupsModal from '../../features/nodes/SecurityGroups/SecurityGroupsModal';
-import type { SecurityGroupRule } from '../../features/nodes/SecurityGroups/SecurityGroupsModal';
 import VpcModal from '../../features/nodes/VpcNode/VpcModal';
-import type { VPCConfig } from '../../features/nodes/VpcNode/VpcModal';
 import ButtonEdge from './components/ButtonEdge';
 import { validateArchitecture } from '../../shared/utils/architectureValidator';
 import { API_BASE } from '../../shared/types';
+import type { Subnet, NetworkConfig, SecurityGroupRule } from '../../shared/types/network';
 
 // Recursively calculate absolute coordinates of a node
 const getAbsoluteCoordinates = (nodeId: string, currentNodes: Node[]): { x: number; y: number } => {
@@ -56,33 +55,6 @@ interface CanvasPageProps {
   projectName: string;
   onBackToProjects: () => void;
   onTerminalOpen: (id: string, name: string) => void;
-}
-
-interface Subnet {
-  id: string;
-  name: string;
-  type: 'public' | 'private';
-  cidr?: string;
-  vpcId: string | null;
-  position: { x: number; y: number };
-  width: number;
-  height: number;
-  columns?: number;
-  rows?: number;
-  routes: Array<{ destination: string; target: string; description: string }>;
-}
-
-interface NetworkConfig {
-  vpcConfig: VPCConfig;
-  subnets: Subnet[];
-  nodeSubnetMap: Record<string, string>; // nodeId -> subnetId or vpcId
-  nodeSecurityGroups: Record<string, SecurityGroupRule[]>; // nodeId -> SecurityGroupRule[]
-  nodeIpMap: Record<string, string>; // nodeId -> ipAddress
-  loadBalancerAlgorithms?: Record<string, 'round_robin' | 'least_conn'>;
-  loadBalancerTargets?: Record<string, string[]>;
-  loadBalancerTargetPorts?: Record<string, number>;
-  loadBalancerRoutingRules?: Record<string, Array<{ path: string; targetId: string }>>;
-  asgs?: Record<string, { desiredCapacity: number; minCapacity: number; maxCapacity: number; parentId: string; subnetIds: string[] }>;
 }
 
 function autoGrowContainers(

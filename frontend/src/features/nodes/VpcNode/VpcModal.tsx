@@ -2,15 +2,9 @@ import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { X, Shield, Send, CheckCircle2, XCircle } from 'lucide-react';
 import type { ContainerData } from '../../../shared/types';
-import type { SecurityGroupRule } from '../SecurityGroups/SecurityGroupsModal';
+import type { SecurityGroupRule, VPCConfig } from '../../../shared/types/network';
 
-export interface VPCConfig {
-  name: string;
-  cidr: string;
-  dnsEnabled: boolean;
-  igwEnabled: boolean;
-  description: string;
-}
+export type { VPCConfig };
 
 interface VpcModalProps {
   vpcConfig: VPCConfig;

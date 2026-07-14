@@ -1,31 +1,8 @@
 import type { ContainerData } from '../types';
-import type { SecurityGroupRule } from '../../features/nodes/SecurityGroups/SecurityGroupsModal';
+import type { NetworkConfig as FullNetworkConfig } from '../types/network';
 
-export interface VPC {
-  id: string;
-  name: string;
-  position: { x: number; y: number };
-  width: number;
-  height: number;
-}
-
-export interface Subnet {
-  id: string;
-  name: string;
-  type: 'public' | 'private';
-  vpcId: string | null;
-  position: { x: number; y: number };
-  width: number;
-  height: number;
-  routes: Array<{ destination: string; target: string; description: string }>;
-}
-
-export interface NetworkConfig {
-  vpcs?: VPC[];
-  subnets: Subnet[];
-  nodeSubnetMap: Record<string, string>;
-  nodeSecurityGroups: Record<string, SecurityGroupRule[]>;
-}
+/** The validator only reads the topology-related slice of the network config. */
+export type NetworkConfig = Pick<FullNetworkConfig, 'subnets' | 'nodeSubnetMap' | 'nodeSecurityGroups'>;
 
 export interface ValidationResult {
   errors: string[];
