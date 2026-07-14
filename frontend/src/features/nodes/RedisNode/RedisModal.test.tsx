@@ -37,7 +37,8 @@ describe('RedisModal', () => {
     fireEvent.click(screen.getByRole('button', { name: /Redis Shell/i }));
 
     expect(screen.getByText('redis-cli')).toBeInTheDocument();
-    expect(screen.queryByText('Cache Node Details')).not.toBeInTheDocument();
+    // Inactive tabs stay mounted (their state survives tab switches) but hidden.
+    expect(screen.getByText('Cache Node Details')).not.toBeVisible();
   });
 
   it('fetches and renders keys in the explorer tab on success', async () => {

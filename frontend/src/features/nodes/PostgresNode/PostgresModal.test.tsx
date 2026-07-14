@@ -44,8 +44,8 @@ describe('PostgresModal', () => {
     await renderModal();
 
     expect(() => fireEvent.click(screen.getByRole('button', { name: /^Simulation$/i }))).not.toThrow();
-    expect(screen.getByText(/reads/i)).toBeInTheDocument();
-    expect(screen.getByText(/writes/i)).toBeInTheDocument();
+    expect(screen.getByText('Reads Handled')).toBeInTheDocument();
+    expect(screen.getByText('Writes Handled')).toBeInTheDocument();
   });
 
   it('fetches and renders the database/table tree in the explorer tab, expanding to show columns', async () => {
@@ -55,12 +55,14 @@ describe('PostgresModal', () => {
     await renderModal();
 
     fireEvent.click(screen.getByRole('button', { name: /Database Explorer/i }));
-    await waitFor(() => expect(screen.getByText('app_db')).toBeInTheDocument());
+    // The shell tab (mounted but hidden) lists databases in its <select> too,
+    // so scope the query to the explorer tree's span.
+    await waitFor(() => expect(screen.getByText('app_db', { selector: 'span' })).toBeInTheDocument());
 
     // Database node starts collapsed by default (only 'postgres' is pre-expanded).
     expect(screen.queryByText('users')).not.toBeInTheDocument();
 
-    fireEvent.click(screen.getByText('app_db'));
+    fireEvent.click(screen.getByText('app_db', { selector: 'span' }));
     expect(screen.getByText('users')).toBeInTheDocument();
     expect(screen.queryByText('id')).not.toBeInTheDocument();
 
@@ -141,8 +143,8 @@ describe('PostgresModal', () => {
     await renderModal();
 
     fireEvent.click(screen.getByRole('button', { name: /Database Explorer/i }));
-    await waitFor(() => expect(screen.getByText('app_db')).toBeInTheDocument());
-    fireEvent.click(screen.getByText('app_db'));
+    await waitFor(() => expect(screen.getByText('app_db', { selector: 'span' })).toBeInTheDocument());
+    fireEvent.click(screen.getByText('app_db', { selector: 'span' }));
     fireEvent.click(screen.getByRole('button', { name: /View Data/i }));
 
     expect(screen.getByText('Target Database:')).toBeInTheDocument();
@@ -152,7 +154,7 @@ describe('PostgresModal', () => {
 
   it('filters the cheat sheet by search query and copies an entry to the clipboard', async () => {
     mockFetchResponses([{ ok: true, json: [] }]);
-    const writeText = vi.fn();
+    const writeText = vi.fn().mockResolvedValue(undefined);
     Object.assign(navigator, { clipboard: { writeText } });
     await renderModal();
 

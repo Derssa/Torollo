@@ -1,7 +1,17 @@
-import { useState, useEffect, useCallback, useRef } from 'react';
+import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { X, Database, Table, Columns, Play, Copy, Check, Search, BookOpen, Terminal, RefreshCw, AlertCircle, Eye, Loader2, Settings, Activity, Server } from 'lucide-react';
+import { Database, BookOpen, Terminal, Settings, Activity } from 'lucide-react';
 import { API_BASE } from '../../../shared/types';
+import InspectorModal, { TabPanel } from '../components/InspectorModal';
+import CheatSheetTab from '../components/CheatSheetTab';
+import QueryShellTab from '../components/QueryShellTab';
+import SchemaTreeExplorer from '../components/SchemaTreeExplorer';
+import type { DBNode } from '../components/SchemaTreeExplorer';
+import ResourceLimitsPanel from '../components/ResourceLimitsPanel';
+import { useExplorerData } from '../components/useExplorerData';
+import { inspectorStyles } from '../components/inspectorStyles';
+import PostgresSimulationTab from './PostgresSimulationTab';
+import type { PostgresSimLog } from './PostgresSimulationTab';
 import postgresCheatSheet from './data/postgresCheatSheet.json';
 
 interface PostgresModalProps {
@@ -11,320 +21,39 @@ interface PostgresModalProps {
   onClose: () => void;
 }
 
-interface DBColumn {
-  name: string;
-  type: string;
-}
-
-interface DBTable {
-  name: string;
-  columns: DBColumn[];
-}
-
-interface DBNode {
-  database: string;
-  tables: DBTable[];
-  error?: boolean;
-}
-
-const CHEAT_SHEET_DATA = postgresCheatSheet;
-
 export default function PostgresModal({ containerId, nodeName, projectId, onClose }: PostgresModalProps) {
   const { t } = useTranslation();
-  const [activeTab, setActiveTab] = useState<'details' | 'simulation' | 'explorer' | 'shell' | 'cheatsheet'>('details');
-  const [explorerData, setExplorerData] = useState<DBNode[]>([]);
-  const [loadingExplorer, setLoadingExplorer] = useState(false);
-  const [explorerError, setExplorerError] = useState<string | null>(null);
-  
+  const [activeTab, setActiveTab] = useState('details');
+
+  const {
+    data: explorerData,
+    loading: loadingExplorer,
+    error: explorerError,
+    refetch: fetchExplorerData,
+  } = useExplorerData<DBNode>(
+    `${API_BASE}/api/projects/${projectId}/containers/${containerId}/postgres/explorer`,
+    'Failed to inspect schema'
+  );
+
   // Shell states
   const [selectedDb, setSelectedDb] = useState('postgres');
   const [sqlQuery, setSqlQuery] = useState('SELECT * FROM pg_tables WHERE schemaname = \'public\';');
   const [queryOutput, setQueryOutput] = useState('');
   const [executing, setExecuting] = useState(false);
 
-  // Cheat Sheet Search
-  const [cheatQuery, setCheatQuery] = useState('');
-  const [copiedIndex, setCopiedIndex] = useState<number | null>(null);
-
-  // Database structure expand/collapse maps
-  const [expandedDBs, setExpandedDBs] = useState<Record<string, boolean>>({ postgres: true });
-  const [expandedTables, setExpandedTables] = useState<Record<string, boolean>>({});
-
-  // Details & Config vertical limits
-  const [cpuLimit, setCpuLimit] = useState(1);
-  const [memoryLimit, setMemoryLimit] = useState(512);
-  const [storageLimit, setStorageLimit] = useState(50);
-  const [appliedCpu, setAppliedCpu] = useState(1);
-  const [appliedMemory, setAppliedMemory] = useState(512);
-  const [appliedStorage, setAppliedStorage] = useState(50);
+  // Scaling topology shared between the details tab (counters) and the
+  // simulation tab (topology map, failover promotes a replica).
   const [replicas, setReplicas] = useState(1);
   const [partitions, setPartitions] = useState(2);
-  const [scalingLoading, setScalingLoading] = useState(false);
-  const [feedbackMessage, setFeedbackMessage] = useState<string | null>(
-    "Database operating at baseline resources: 1 vCPU, 512MB RAM, 50GB storage. Handles standard query throughput."
-  );
-
-  // Zoom and Pan states for interactive topology viewport
-  const [zoomScale, setZoomScale] = useState(1);
-  const [panOffset, setPanOffset] = useState({ x: 0, y: 0 });
-  const [isPanning, setIsPanning] = useState(false);
-  const [panStart, setPanStart] = useState({ x: 0, y: 0 });
-
-  // Floating query particles
-  const [particles, setParticles] = useState<Array<{ id: string; target: 'primary' | 'replica'; index?: number; isWrite: boolean; isReplicationCopy?: boolean }>>([]);
-
-  // Active highlighted target node for simulation flash
-  const [activeHighlightNode, setActiveHighlightNode] = useState<string | null>(null);
-
-  // Simulation tab states
-  const [isPrimaryCrashed, setIsPrimaryCrashed] = useState(false);
-  const [simLogs, setSimLogs] = useState<Array<{ id: string; type: 'read' | 'write' | 'sys' | 'err'; msg: string; time: string }>>([
+  const [simLogs, setSimLogs] = useState<PostgresSimLog[]>([
     { id: '1', type: 'sys', msg: 'Primary Database initialized.', time: new Date().toLocaleTimeString() }
   ]);
-  const [simMetrics, setSimMetrics] = useState({ reads: 0, writes: 0, errors: 0 });
-  const [trafficActive, setTrafficActive] = useState(false);
-  const [lastPartitionTarget, setLastPartitionTarget] = useState<number>(-1);
 
-  const fetchExplorerDataRef = useRef<() => Promise<void>>(undefined);
-
-  const fetchExplorerData = useCallback(async () => {
-    try {
-      setLoadingExplorer(true);
-      setExplorerError(null);
-      const res = await fetch(`${API_BASE}/api/projects/${projectId}/containers/${containerId}/postgres/explorer`);
-      if (res.ok) {
-        const data = await res.json();
-        setExplorerData(data);
-      } else {
-        const errData = await res.json();
-        if (errData.error && errData.error.includes('starting up')) {
-          setExplorerError('starting_up');
-          // Auto retry in 2.5 seconds
-          setTimeout(() => {
-            fetchExplorerDataRef.current?.();
-          }, 2500);
-        } else {
-          setExplorerError(errData.error || 'Failed to inspect schema');
-        }
-      }
-    } catch (err: unknown) {
-      const errMsg = err instanceof Error ? err.message : 'Failed to connect to container';
-      setExplorerError(errMsg);
-    } finally {
-      setLoadingExplorer(false);
-    }
-  }, [projectId, containerId]);
-
-  useEffect(() => {
-    fetchExplorerDataRef.current = fetchExplorerData;
-  }, [fetchExplorerData]);
-  useEffect(() => {
-    fetchExplorerData();
-  }, [fetchExplorerData]);
-
-  // Automatic Replica promotion upon Primary database crash
-  useEffect(() => {
-    if (isPrimaryCrashed && replicas > 0) {
-      const timer = setTimeout(() => {
-        setIsPrimaryCrashed(false);
-        setReplicas(prev => Math.max(0, prev - 1));
-        setSimLogs(prev => [
-          { id: Math.random().toString(), type: 'sys', msg: 'AUTOMATIC FAILOVER: Replica pool detected primary outage. Automatically elected Replica #1 to Primary. Primary database online.', time: new Date().toLocaleTimeString() },
-          ...prev
-        ]);
-      }, 3500); // Failover duration 3.5 seconds
-      return () => clearTimeout(timer);
-    }
-  }, [isPrimaryCrashed, replicas]);
-
-  // Interactive zoom & pan helper handlers
-  const handleMouseDown = (e: React.MouseEvent) => {
-    setIsPanning(true);
-    setPanStart({ x: e.clientX - panOffset.x, y: e.clientY - panOffset.y });
-  };
-
-  const handleMouseMove = (e: React.MouseEvent) => {
-    if (!isPanning) return;
-    setPanOffset({ x: e.clientX - panStart.x, y: e.clientY - panStart.y });
-  };
-
-  const handleMouseUp = () => {
-    setIsPanning(false);
-  };
-
-  const handleWheel = (e: React.WheelEvent) => {
-    const scaleChange = e.deltaY < 0 ? 0.08 : -0.08;
-    setZoomScale(prev => Math.max(0.5, Math.min(2.0, prev + scaleChange)));
-  };
-
-  // Traffic simulation engine
-  useEffect(() => {
-    if (!trafficActive || activeTab !== 'simulation') return;
-
-    const interval = setInterval(() => {
-      const isWrite = Math.random() > 0.55;
-      const timeStr = new Date().toLocaleTimeString();
-      const logId = Math.random().toString(36).substr(2, 9);
-      const particleId = Math.random().toString(36).substr(2, 9);
-
-      if (isWrite) {
-        if (isPrimaryCrashed) {
-          setSimLogs(prev => [
-            { id: logId, type: 'err', msg: 'WRITE FAILED: Primary database instance is crashed/unreachable.', time: timeStr },
-            ...prev.slice(0, 19)
-          ]);
-          setSimMetrics(prev => ({ ...prev, errors: prev.errors + 1 }));
-          
-          // Spawn failed write particle
-          setParticles(prev => [...prev, { id: particleId, target: 'primary', isWrite: true }]);
-          setActiveHighlightNode('primary');
-          setTimeout(() => {
-            setParticles(prev => prev.filter(p => p.id !== particleId));
-            setActiveHighlightNode(null);
-          }, 800);
-        } else {
-          const insertId = Math.floor(Math.random() * 1000);
-          const targetPartition = insertId % partitions;
-          setLastPartitionTarget(targetPartition);
-          setSimLogs(prev => [
-            { id: logId, type: 'write', msg: `WRITE SUCCESS: INSERT INTO users VALUES(${insertId}) -> Routed to Primary (10.0.1.2) -> Partition [users_p${targetPartition}]`, time: timeStr },
-            ...prev.slice(0, 19)
-          ]);
-          setSimMetrics(prev => ({ ...prev, writes: prev.writes + 1 }));
-
-          // Spawn successful write particle
-          setParticles(prev => [...prev, { id: particleId, target: 'primary', isWrite: true }]);
-          setActiveHighlightNode('primary');
-
-          // Trigger replicas update replication flow
-          if (replicas > 0) {
-            setTimeout(() => {
-              const repParticleIds: string[] = [];
-              for (let r = 0; r < replicas; r++) {
-                const repParticleId = Math.random().toString(36).substr(2, 9);
-                repParticleIds.push(repParticleId);
-                setParticles(prev => [...prev, { id: repParticleId, target: 'replica', index: r, isWrite: true, isReplicationCopy: true }]);
-              }
-              // Clean up replication particles after 800ms
-              setTimeout(() => {
-                setParticles(prev => prev.filter(p => !repParticleIds.includes(p.id)));
-              }, 800);
-            }, 400);
-          }
-
-          setTimeout(() => {
-            setParticles(prev => prev.filter(p => p.id !== particleId));
-            setActiveHighlightNode(null);
-          }, 800);
-        }
-      } else {
-        // Read
-        if (replicas > 0) {
-          const targetReplica = Math.floor(Math.random() * replicas) + 1;
-          const readId = Math.floor(Math.random() * 1000);
-          const sourcePartition = readId % partitions;
-          setLastPartitionTarget(sourcePartition);
-          setSimLogs(prev => [
-            { id: logId, type: 'read', msg: `READ SUCCESS: SELECT * FROM users_p${sourcePartition} -> Load balanced to Replica #${targetReplica} (10.0.1.${2 + targetReplica})`, time: timeStr },
-            ...prev.slice(0, 19)
-          ]);
-          setSimMetrics(prev => ({ ...prev, reads: prev.reads + 1 }));
-
-          // Spawn replica read particle
-          setParticles(prev => [...prev, { id: particleId, target: 'replica', index: targetReplica - 1, isWrite: false }]);
-          setActiveHighlightNode(`replica-${targetReplica - 1}`);
-          setTimeout(() => {
-            setParticles(prev => prev.filter(p => p.id !== particleId));
-            setActiveHighlightNode(null);
-          }, 800);
-        } else {
-          if (isPrimaryCrashed) {
-            setSimLogs(prev => [
-              { id: logId, type: 'err', msg: 'READ FAILED: No active replicas, and primary database instance is crashed.', time: timeStr },
-              ...prev.slice(0, 19)
-            ]);
-            setSimMetrics(prev => ({ ...prev, errors: prev.errors + 1 }));
-
-            // Spawn failed read particle
-            setParticles(prev => [...prev, { id: particleId, target: 'primary', isWrite: false }]);
-            setActiveHighlightNode('primary');
-            setTimeout(() => {
-              setParticles(prev => prev.filter(p => p.id !== particleId));
-              setActiveHighlightNode(null);
-            }, 800);
-          } else {
-            const readId = Math.floor(Math.random() * 1000);
-            const sourcePartition = readId % partitions;
-            setLastPartitionTarget(sourcePartition);
-            setSimLogs(prev => [
-              { id: logId, type: 'read', msg: `READ SUCCESS: SELECT * FROM users_p${sourcePartition} -> Routed to Primary (10.0.1.2) [No Replicas Defined]`, time: timeStr },
-              ...prev.slice(0, 19)
-            ]);
-            setSimMetrics(prev => ({ ...prev, reads: prev.reads + 1 }));
-
-            // Spawn primary read particle
-            setParticles(prev => [...prev, { id: particleId, target: 'primary', isWrite: false }]);
-            setActiveHighlightNode('primary');
-            setTimeout(() => {
-              setParticles(prev => prev.filter(p => p.id !== particleId));
-              setActiveHighlightNode(null);
-            }, 800);
-          }
-        }
-      }
-    }, 1000);
-
-    return () => clearInterval(interval);
-  }, [trafficActive, isPrimaryCrashed, replicas, partitions, activeTab]);
-
-  const handleUpdateLimits = async () => {
-    setScalingLoading(true);
-    setTimeout(() => {
-      setScalingLoading(false);
-      
-      const cpuIncreased = cpuLimit > appliedCpu;
-      const cpuDecreased = cpuLimit < appliedCpu;
-      const memIncreased = memoryLimit > appliedMemory;
-      const memDecreased = memoryLimit < appliedMemory;
-      const storageIncreased = storageLimit > appliedStorage;
-      const storageDecreased = storageLimit < appliedStorage;
-
-      const throughputIncreased = (cpuIncreased || memIncreased) && !cpuDecreased && !memDecreased;
-      const throughputDecreased = (cpuDecreased || memDecreased) && !cpuIncreased && !memIncreased;
-      
-      let customMsg: string;
-      if (throughputIncreased && storageIncreased) {
-        customMsg = "now the database can handle more concurrent requests/transactions and store more data (expanded persistent disk).";
-      } else if (throughputDecreased && storageDecreased) {
-        customMsg = "now the database will handle fewer requests (higher risk of CPU/RAM throttling) and store less data (reduced storage space).";
-      } else if (throughputIncreased && storageDecreased) {
-        customMsg = "now the database can handle more requests (faster query performance) but will store less data due to reduced storage limit.";
-      } else if (throughputDecreased && storageIncreased) {
-        customMsg = "now the database server will handle fewer requests (slower processing capacity) but can store more persistent data.";
-      } else if (throughputIncreased) {
-        customMsg = "now the database can handle more requests and process queries faster.";
-      } else if (throughputDecreased) {
-        customMsg = "now the database will handle fewer requests and experience increased latency under query loads.";
-      } else if (storageIncreased) {
-        customMsg = "now the database can store more data with expanded disk capacity.";
-      } else if (storageDecreased) {
-        customMsg = "now the database storage capacity is reduced.";
-      } else {
-        customMsg = "no resource limits were changed.";
-      }
-
-      const formattedMsg = `RESOURCE SCALING UPDATE: Vertical limits applied. Configured: CPU=${cpuLimit} Cores, RAM=${memoryLimit}MB, Storage=${storageLimit}GB. Impact: ${customMsg}`;
-
-      setSimLogs(prev => [
-        { id: Math.random().toString(), type: 'sys', msg: formattedMsg, time: new Date().toLocaleTimeString() },
-        ...prev
-      ]);
-      setFeedbackMessage(`Limits Applied! Impact: ${customMsg}`);
-
-      setAppliedCpu(cpuLimit);
-      setAppliedMemory(memoryLimit);
-      setAppliedStorage(storageLimit);
-    }, 1200);
+  const appendSysLog = (msg: string) => {
+    setSimLogs(prev => [
+      { id: Math.random().toString(), type: 'sys', msg, time: new Date().toLocaleTimeString() },
+      ...prev
+    ]);
   };
 
   const handleExecuteQuery = async () => {
@@ -399,993 +128,168 @@ export default function PostgresModal({ containerId, nodeName, projectId, onClos
     }
   };
 
-  const handleCopyCheat = (code: string, idx: number) => {
-    navigator.clipboard.writeText(code);
-    setCopiedIndex(idx);
-    setTimeout(() => setCopiedIndex(null), 2000);
-  };
-
-  const toggleDBExpand = (db: string) => {
-    setExpandedDBs(prev => ({ ...prev, [db]: !prev[db] }));
-  };
-
-  const toggleTableExpand = (tblKey: string) => {
-    setExpandedTables(prev => ({ ...prev, [tblKey]: !prev[tblKey] }));
-  };
-
-  const filteredCheatSheet = CHEAT_SHEET_DATA.filter(item => {
-    const query = cheatQuery.toLowerCase();
-    return (
-      item.name.toLowerCase().includes(query) ||
-      item.description.toLowerCase().includes(query) ||
-      item.category.toLowerCase().includes(query)
-    );
-  });
-
-  const getReplicasStyles = () => {
-    let styleStr = '';
-    // Write request flow from client to primary
-    styleStr += `
-      @keyframes flowToPrimary {
-        0% { left: 15%; top: 50%; opacity: 1; }
-        100% { left: 45%; top: 50%; opacity: 0.8; }
-      }
-    `;
-
-    // Read request round-trip flow (client -> primary -> client)
-    styleStr += `
-      @keyframes readFlowToPrimary {
-        0% { left: 15%; top: 50%; opacity: 1; }
-        45% { left: 45%; top: 50%; opacity: 0.9; }
-        55% { left: 45%; top: 50%; opacity: 0.9; }
-        100% { left: 15%; top: 50%; opacity: 1; }
-      }
-    `;
-
-    if (replicas === 1) {
-      styleStr += `
-        @keyframes readFlowToReplica0 {
-          0% { left: 15%; top: 50%; opacity: 1; }
-          45% { left: 78%; top: 50%; opacity: 0.9; }
-          55% { left: 78%; top: 50%; opacity: 0.9; }
-          100% { left: 15%; top: 50%; opacity: 1; }
-        }
-        @keyframes replicationToReplica0 {
-          0% { left: 45%; top: 50%; opacity: 1; }
-          100% { left: 78%; top: 50%; opacity: 0.8; }
-        }
-      `;
-    } else if (replicas === 2) {
-      styleStr += `
-        @keyframes readFlowToReplica0 {
-          0% { left: 15%; top: 50%; opacity: 1; }
-          45% { left: 78%; top: 35%; opacity: 0.9; }
-          55% { left: 78%; top: 35%; opacity: 0.9; }
-          100% { left: 15%; top: 50%; opacity: 1; }
-        }
-        @keyframes readFlowToReplica1 {
-          0% { left: 15%; top: 50%; opacity: 1; }
-          45% { left: 78%; top: 65%; opacity: 0.9; }
-          55% { left: 78%; top: 65%; opacity: 0.9; }
-          100% { left: 15%; top: 50%; opacity: 1; }
-        }
-        @keyframes replicationToReplica0 {
-          0% { left: 45%; top: 50%; opacity: 1; }
-          100% { left: 78%; top: 35%; opacity: 0.8; }
-        }
-        @keyframes replicationToReplica1 {
-          0% { left: 45%; top: 50%; opacity: 1; }
-          100% { left: 78%; top: 65%; opacity: 0.8; }
-        }
-      `;
-    } else if (replicas === 3) {
-      styleStr += `
-        @keyframes readFlowToReplica0 {
-          0% { left: 15%; top: 50%; opacity: 1; }
-          45% { left: 78%; top: 20%; opacity: 0.9; }
-          55% { left: 78%; top: 20%; opacity: 0.9; }
-          100% { left: 15%; top: 50%; opacity: 1; }
-        }
-        @keyframes readFlowToReplica1 {
-          0% { left: 15%; top: 50%; opacity: 1; }
-          45% { left: 78%; top: 50%; opacity: 0.9; }
-          55% { left: 78%; top: 50%; opacity: 0.9; }
-          100% { left: 15%; top: 50%; opacity: 1; }
-        }
-        @keyframes readFlowToReplica2 {
-          0% { left: 15%; top: 50%; opacity: 1; }
-          45% { left: 78%; top: 80%; opacity: 0.9; }
-          55% { left: 78%; top: 80%; opacity: 0.9; }
-          100% { left: 15%; top: 50%; opacity: 1; }
-        }
-        @keyframes replicationToReplica0 {
-          0% { left: 45%; top: 50%; opacity: 1; }
-          100% { left: 78%; top: 20%; opacity: 0.8; }
-        }
-        @keyframes replicationToReplica1 {
-          0% { left: 45%; top: 50%; opacity: 1; }
-          100% { left: 78%; top: 50%; opacity: 0.8; }
-        }
-        @keyframes replicationToReplica2 {
-          0% { left: 45%; top: 50%; opacity: 1; }
-          100% { left: 78%; top: 80%; opacity: 0.8; }
-        }
-      `;
-    }
-    return styleStr;
-  };
+  const tabs = [
+    { id: 'details', label: t('postgres.tabs.details'), icon: <Settings size={15} style={{ marginRight: 6 }} /> },
+    { id: 'simulation', label: t('postgres.tabs.simulation'), icon: <Activity size={15} style={{ marginRight: 6 }} /> },
+    { id: 'explorer', label: t('postgres.tabs.explorer'), icon: <Database size={15} style={{ marginRight: 6 }} /> },
+    { id: 'shell', label: t('postgres.tabs.shell'), icon: <Terminal size={15} style={{ marginRight: 6 }} /> },
+    { id: 'cheatsheet', label: t('postgres.tabs.cheatsheet'), icon: <BookOpen size={15} style={{ marginRight: 6 }} /> },
+  ];
 
   return (
-    <div style={styles.overlay}>
-      <div style={styles.container} className="glass">
-        {/* Header Tabs */}
-        <div style={styles.header}>
-          <div style={styles.tabs}>
-            <button
-              style={{ ...styles.tabBtn, ...(activeTab === 'details' ? styles.activeTabBtn : {}) }}
-              onClick={() => setActiveTab('details')}
-            >
-              <Settings size={15} style={{ marginRight: 6 }} />
-              {t('postgres.tabs.details')}
-            </button>
-            <button
-              style={{ ...styles.tabBtn, ...(activeTab === 'simulation' ? styles.activeTabBtn : {}) }}
-              onClick={() => setActiveTab('simulation')}
-            >
-              <Activity size={15} style={{ marginRight: 6 }} />
-              {t('postgres.tabs.simulation')}
-            </button>
-            <button
-              style={{ ...styles.tabBtn, ...(activeTab === 'explorer' ? styles.activeTabBtn : {}) }}
-              onClick={() => setActiveTab('explorer')}
-            >
-              <Database size={15} style={{ marginRight: 6 }} />
-              {t('postgres.tabs.explorer')}
-            </button>
-            <button
-              style={{ ...styles.tabBtn, ...(activeTab === 'shell' ? styles.activeTabBtn : {}) }}
-              onClick={() => setActiveTab('shell')}
-            >
-              <Terminal size={15} style={{ marginRight: 6 }} />
-              {t('postgres.tabs.shell')}
-            </button>
-            <button
-              style={{ ...styles.tabBtn, ...(activeTab === 'cheatsheet' ? styles.activeTabBtn : {}) }}
-              onClick={() => setActiveTab('cheatsheet')}
-            >
-              <BookOpen size={15} style={{ marginRight: 6 }} />
-              {t('postgres.tabs.cheatsheet')}
-            </button>
-          </div>
-          <button onClick={onClose} style={styles.closeBtn}>
-            <X size={18} />
-          </button>
-        </div>
+    <InspectorModal tabs={tabs} activeTab={activeTab} onTabChange={setActiveTab} onClose={onClose}>
+      <TabPanel visible={activeTab === 'details'}>
+        <div style={inspectorStyles.tabContent}>
+          <h3 style={{ margin: '0 0 8px 0', fontSize: '16px', color: '#1E293B' }}>{t('postgres.details.title')}</h3>
+          <p style={{ margin: '0 0 20px 0', fontSize: '13px', color: '#64748B' }}>
+            {t('postgres.details.desc')}
+          </p>
 
-        {/* Modal Body */}
-        <div style={styles.body}>
-          {/* TAB: Details & Config */}
-          {activeTab === 'details' && (
-            <div style={styles.tabContent}>
-              <h3 style={{ margin: '0 0 8px 0', fontSize: '16px', color: '#1E293B' }}>{t('postgres.details.title')}</h3>
-              <p style={{ margin: '0 0 20px 0', fontSize: '13px', color: '#64748B' }}>
-                {t('postgres.details.desc')}
-              </p>
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '24px' }}>
+            <ResourceLimitsPanel
+              labels={{
+                title: t('postgres.details.verticalTitle'),
+                cpu: t('postgres.details.cpuLabel'),
+                ram: t('postgres.details.ramLabel'),
+                storage: t('postgres.details.storageLabel'),
+                apply: t('postgres.details.applyBtn'),
+                applying: t('postgres.details.applyingBtn'),
+                sysStatus: t('postgres.details.sysStatus'),
+              }}
+              onScalingLog={appendSysLog}
+            />
 
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '24px' }}>
-                <div style={{ border: '1px solid #E2E8F0', borderRadius: '8px', padding: '16px' }}>
-                  <h4 style={{ margin: '0 0 16px 0', fontSize: '14px', color: '#334155' }}>{t('postgres.details.verticalTitle')}</h4>
-                  
-                  <div style={{ marginBottom: '16px' }}>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '6px' }}>
-                      <span style={{ fontSize: '12px', fontWeight: 600 }}>{t('postgres.details.cpuLabel')}</span>
-                      <span style={{ fontSize: '12px', color: '#2563EB', fontWeight: 'bold' }}>{cpuLimit} vCPU</span>
-                    </div>
-                    <input
-                      type="range"
-                      min="0.2"
-                      max="4"
-                      step="0.2"
-                      value={cpuLimit}
-                      onChange={(e) => setCpuLimit(parseFloat(e.target.value))}
-                      style={{ width: '100%' }}
-                    />
-                  </div>
+            <div style={{ border: '1px solid #E2E8F0', borderRadius: '8px', padding: '16px' }}>
+              <h4 style={{ margin: '0 0 16px 0', fontSize: '14px', color: '#334155' }}>{t('postgres.details.horizontalTitle')}</h4>
 
-                  <div style={{ marginBottom: '20px' }}>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '6px' }}>
-                      <span style={{ fontSize: '12px', fontWeight: 600 }}>{t('postgres.details.ramLabel')}</span>
-                      <span style={{ fontSize: '12px', color: '#2563EB', fontWeight: 'bold' }}>{memoryLimit} MB</span>
-                    </div>
-                    <input
-                      type="range"
-                      min="128"
-                      max="2048"
-                      step="128"
-                      value={memoryLimit}
-                      onChange={(e) => setMemoryLimit(parseInt(e.target.value))}
-                      style={{ width: '100%' }}
-                    />
-                  </div>
-
-                  <div style={{ marginBottom: '20px' }}>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '6px' }}>
-                      <span style={{ fontSize: '12px', fontWeight: 600 }}>{t('postgres.details.storageLabel')}</span>
-                      <span style={{ fontSize: '12px', color: '#2563EB', fontWeight: 'bold' }}>{storageLimit} GB</span>
-                    </div>
-                    <input
-                      type="range"
-                      min="10"
-                      max="500"
-                      step="10"
-                      value={storageLimit}
-                      onChange={(e) => setStorageLimit(parseInt(e.target.value))}
-                      style={{ width: '100%' }}
-                    />
-                  </div>
-
-                  <button
-                    onClick={handleUpdateLimits}
-                    disabled={scalingLoading}
-                    style={{
-                      width: '100%',
-                      backgroundColor: '#2563EB',
-                      color: 'white',
-                      border: 'none',
-                      padding: '8px',
-                      borderRadius: '6px',
-                      fontWeight: 600,
-                      cursor: 'pointer'
-                    }}
-                  >
-                    {scalingLoading ? t('postgres.details.applyingBtn') : t('postgres.details.applyBtn')}
-                  </button>
-
-                  {feedbackMessage && (
-                    <div style={{
-                      marginTop: '12px',
-                      padding: '10px',
-                      borderRadius: '6px',
-                      backgroundColor: '#F0F9FF',
-                      border: '1px solid #BAE6FD',
-                      fontSize: '12px',
-                      color: '#0369A1',
-                      lineHeight: '1.4'
-                    }}>
-                      <div style={{ fontWeight: 600, marginBottom: '2px' }}>{t('postgres.details.sysStatus')}</div>
-                      {feedbackMessage}
-                    </div>
-                  )}
-                </div>
-
-                 <div style={{ border: '1px solid #E2E8F0', borderRadius: '8px', padding: '16px' }}>
-                  <h4 style={{ margin: '0 0 16px 0', fontSize: '14px', color: '#334155' }}>{t('postgres.details.horizontalTitle')}</h4>
-                  
-                  <div style={{ marginBottom: '16px', display: 'flex', gap: '24px' }}>
-                    <div>
-                      <label style={{ display: 'block', fontSize: '12px', fontWeight: 600, marginBottom: '8px' }}>
-                        {t('postgres.details.replicaLabel')}
-                      </label>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-                        <button
-                          onClick={() => setReplicas(prev => Math.max(0, prev - 1))}
-                          style={{ width: '32px', height: '32px', borderRadius: '6px', border: '1px solid #CBD5E1', cursor: 'pointer', fontWeight: 'bold' }}
-                        >
-                          -
-                        </button>
-                        <span style={{ fontSize: '16px', fontWeight: 'bold', width: '20px', textAlign: 'center' }}>{replicas}</span>
-                        <button
-                          onClick={() => setReplicas(prev => Math.min(3, prev + 1))}
-                          style={{ width: '32px', height: '32px', borderRadius: '6px', border: '1px solid #CBD5E1', cursor: 'pointer', fontWeight: 'bold' }}
-                        >
-                          +
-                        </button>
-                      </div>
-                    </div>
-
-                    <div>
-                      <label style={{ display: 'block', fontSize: '12px', fontWeight: 600, marginBottom: '8px' }}>
-                        {t('postgres.details.partitionsLabel')}
-                      </label>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-                        <button
-                          onClick={() => setPartitions(prev => Math.max(1, prev - 1))}
-                          style={{ width: '32px', height: '32px', borderRadius: '6px', border: '1px solid #CBD5E1', cursor: 'pointer', fontWeight: 'bold' }}
-                        >
-                          -
-                        </button>
-                        <span style={{ fontSize: '16px', fontWeight: 'bold', width: '20px', textAlign: 'center' }}>{partitions}</span>
-                        <button
-                          onClick={() => setPartitions(prev => Math.min(5, prev + 1))}
-                          style={{ width: '32px', height: '32px', borderRadius: '6px', border: '1px solid #CBD5E1', cursor: 'pointer', fontWeight: 'bold' }}
-                        >
-                          +
-                        </button>
-                      </div>
-                    </div>
-                  </div>
-
-                  <span style={{ fontSize: '11px', color: '#64748B', display: 'block', marginBottom: '12px' }}>
-                    {t('postgres.details.scaleDesc')}
-                  </span>
-
-                  <div style={{ backgroundColor: '#F8FAFC', borderRadius: '6px', padding: '12px', borderLeft: '3px solid #2563EB' }}>
-                    <h5 style={{ margin: '0 0 4px 0', fontSize: '11px', textTransform: 'uppercase', color: '#475569' }}>{t('postgres.details.topologyTitle')}</h5>
-                    <span style={{ fontSize: '11px', color: '#64748B' }}>
-                      {t('postgres.details.topologyDesc')}
-                    </span>
-                  </div>
-                </div>
-              </div>
-            </div>
-          )}
-
-          {/* TAB: Simulation */}
-          {activeTab === 'simulation' && (
-            <div style={{ ...styles.tabContent, display: 'flex', flexDirection: 'column', gap: '16px' }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <div style={{ marginBottom: '16px', display: 'flex', gap: '24px' }}>
                 <div>
-                  <h3 style={{ margin: '0 0 4px 0', fontSize: '15px', color: '#1E293B' }}>{t('postgres.simulation.title')}</h3>
-                  <p style={{ margin: 0, fontSize: '12px', color: '#64748B' }}>
-                    {t('postgres.simulation.desc')}
-                  </p>
-                </div>
-                <div style={{ display: 'flex', gap: '8px' }}>
-                  <button
-                    onClick={() => setTrafficActive(p => !p)}
-                    style={{
-                      backgroundColor: trafficActive ? '#EF4444' : '#10B981',
-                      color: 'white',
-                      border: 'none',
-                      padding: '6px 12px',
-                      borderRadius: '6px',
-                      fontWeight: 600,
-                      cursor: 'pointer',
-                      fontSize: '12px'
-                    }}
-                  >
-                    {trafficActive ? t('postgres.simulation.pauseBtn') : t('postgres.simulation.startBtn')}
-                  </button>
-                  <button
-                    onClick={() => {
-                      if (isPrimaryCrashed) {
-                        setIsPrimaryCrashed(false);
-                        setSimLogs(prev => [
-                          { id: Math.random().toString(), type: 'sys', msg: 'Failover/Recovery: Primary Postgres Server recovered and is ONLINE.', time: new Date().toLocaleTimeString() },
-                          ...prev
-                        ]);
-                      } else {
-                        setIsPrimaryCrashed(true);
-                        setSimLogs(prev => [
-                          { id: Math.random().toString(), type: 'err', msg: 'FAILOVER EVENT: Primary Postgres container CRASHED (Offline).', time: new Date().toLocaleTimeString() },
-                          ...prev
-                        ]);
-                      }
-                    }}
-                    style={{
-                      backgroundColor: isPrimaryCrashed ? '#10B981' : '#EF4444',
-                      color: 'white',
-                      border: 'none',
-                      padding: '6px 12px',
-                      borderRadius: '6px',
-                      fontWeight: 600,
-                      cursor: 'pointer',
-                      fontSize: '12px'
-                    }}
-                  >
-                    {isPrimaryCrashed ? t('postgres.simulation.recoverBtn') : t('postgres.simulation.crashBtn')}
-                  </button>
-                  {isPrimaryCrashed && replicas > 0 && (
+                  <label style={{ display: 'block', fontSize: '12px', fontWeight: 600, marginBottom: '8px' }}>
+                    {t('postgres.details.replicaLabel')}
+                  </label>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
                     <button
-                      onClick={() => {
-                        setIsPrimaryCrashed(false);
-                        setReplicas(prev => prev - 1);
-                        setSimLogs(prev => [
-                          { id: Math.random().toString(), type: 'sys', msg: 'FAILOVER COMPLETED: Replica promoted to Primary. Writes restored.', time: new Date().toLocaleTimeString() },
-                          ...prev
-                        ]);
-                      }}
-                      style={{
-                        backgroundColor: '#3B82F6',
-                        color: 'white',
-                        border: 'none',
-                        padding: '6px 12px',
-                        borderRadius: '6px',
-                        fontWeight: 600,
-                        cursor: 'pointer',
-                        fontSize: '12px'
-                      }}
+                      onClick={() => setReplicas(prev => Math.max(0, prev - 1))}
+                      style={styles.counterBtn}
                     >
-                      {t('postgres.simulation.promoteBtn')}
+                      -
                     </button>
-                  )}
+                    <span style={styles.counterValue}>{replicas}</span>
+                    <button
+                      onClick={() => setReplicas(prev => Math.min(3, prev + 1))}
+                      style={styles.counterBtn}
+                    >
+                      +
+                    </button>
+                  </div>
+                </div>
+
+                <div>
+                  <label style={{ display: 'block', fontSize: '12px', fontWeight: 600, marginBottom: '8px' }}>
+                    {t('postgres.details.partitionsLabel')}
+                  </label>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                    <button
+                      onClick={() => setPartitions(prev => Math.max(1, prev - 1))}
+                      style={styles.counterBtn}
+                    >
+                      -
+                    </button>
+                    <span style={styles.counterValue}>{partitions}</span>
+                    <button
+                      onClick={() => setPartitions(prev => Math.min(5, prev + 1))}
+                      style={styles.counterBtn}
+                    >
+                      +
+                    </button>
+                  </div>
                 </div>
               </div>
 
-              {/* Simulation metrics */}
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '16px' }}>
-                <div style={{ border: '1px solid #E2E8F0', borderRadius: '8px', padding: '12px', textAlign: 'center', backgroundColor: '#F8FAFC' }}>
-                  <span style={{ fontSize: '11px', textTransform: 'uppercase', color: '#64748B', fontWeight: 600 }}>{t('postgres.simulation.reads')}</span>
-                  <div style={{ fontSize: '20px', fontWeight: 'bold', color: '#2563EB', marginTop: '4px' }}>{simMetrics.reads}</div>
-                </div>
-                <div style={{ border: '1px solid #E2E8F0', borderRadius: '8px', padding: '12px', textAlign: 'center', backgroundColor: '#F8FAFC' }}>
-                  <span style={{ fontSize: '11px', textTransform: 'uppercase', color: '#64748B', fontWeight: 600 }}>{t('postgres.simulation.writes')}</span>
-                  <div style={{ fontSize: '20px', fontWeight: 'bold', color: '#10B981', marginTop: '4px' }}>{simMetrics.writes}</div>
-                </div>
-                <div style={{ border: '1px solid #E2E8F0', borderRadius: '8px', padding: '12px', textAlign: 'center', backgroundColor: '#FEE2E2' }}>
-                  <span style={{ fontSize: '11px', textTransform: 'uppercase', color: '#991B1B', fontWeight: 600 }}>{t('postgres.simulation.errors')}</span>
-                  <div style={{ fontSize: '20px', fontWeight: 'bold', color: '#EF4444', marginTop: '4px' }}>{simMetrics.errors}</div>
-                </div>
-              </div>
+              <span style={{ fontSize: '11px', color: '#64748B', display: 'block', marginBottom: '12px' }}>
+                {t('postgres.details.scaleDesc')}
+              </span>
 
-              {/* Dynamic CSS Styles for Simulation Animations */}
-              <style dangerouslySetInnerHTML={{__html: `
-                .flow-particle {
-                  position: absolute;
-                  width: 12px;
-                  height: 12px;
-                  border-radius: 50%;
-                  pointer-events: none;
-                  z-index: 20;
-                  box-shadow: 0 0 12px 4px currentColor;
-                }
-                .ring-glow {
-                  position: absolute;
-                  border-radius: 50%;
-                  pointer-events: none;
-                  animation: ringFlash 0.8s ease-out forwards;
-                  border: 2px solid currentColor;
-                  z-index: 10;
-                }
-                @keyframes ringFlash {
-                  0% { width: 40px; height: 40px; opacity: 0.8; }
-                  100% { width: 80px; height: 80px; opacity: 0; }
-                }
-                ${getReplicasStyles()}
-              `}} />
-
-              {/* Topology Map Wrapper (Zoom/Pan Container) */}
-              <div 
-                onMouseDown={handleMouseDown}
-                onMouseMove={handleMouseMove}
-                onMouseUp={handleMouseUp}
-                onMouseLeave={handleMouseUp}
-                onWheel={handleWheel}
-                style={{ 
-                  flex: 1, 
-                  minHeight: '260px', 
-                  border: '1px solid #E2E8F0', 
-                  borderRadius: '8px', 
-                  backgroundColor: '#0F172A', 
-                  position: 'relative', 
-                  overflow: 'hidden',
-                  cursor: isPanning ? 'grabbing' : 'grab',
-                  userSelect: 'none'
-                }}
-              >
-                {/* Reset Zoom Button */}
-                <button
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    setZoomScale(1);
-                    setPanOffset({ x: 0, y: 0 });
-                  }}
-                  style={{
-                    position: 'absolute',
-                    top: '10px',
-                    left: '10px',
-                    backgroundColor: 'rgba(15, 23, 42, 0.8)',
-                    border: '1px solid #334155',
-                    borderRadius: '4px',
-                    color: '#94A3B8',
-                    padding: '2px 8px',
-                    fontSize: '11px',
-                    cursor: 'pointer',
-                    zIndex: 30
-                  }}
-                >
-                  Reset View (Zoom: {Math.round(zoomScale * 100)}%)
-                </button>
-
-                {/* Inner Viewport applying Zoom & Pan */}
-                <div style={{
-                  width: '100%',
-                  height: '100%',
-                  position: 'absolute',
-                  transform: `translate(${panOffset.x}px, ${panOffset.y}px) scale(${zoomScale})`,
-                  transformOrigin: 'center center',
-                  display: 'flex',
-                  justifyContent: 'center',
-                  alignItems: 'center'
-                }}>
-                  {/* SVG Connection Paths */}
-                  <svg style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', pointerEvents: 'none', zIndex: 5 }}>
-                    {/* Path to primary */}
-                    <line x1="12%" y1="50%" x2="42%" y2="50%" stroke="rgba(255,255,255,0.12)" strokeWidth="2" strokeDasharray="5,5" />
-                    {/* Paths to replicas */}
-                    {replicas > 0 && Array.from({ length: replicas }).map((_, i) => {
-                      let repTop = '50%';
-                      if (replicas === 2) repTop = i === 0 ? '35%' : '65%';
-                      else if (replicas === 3) repTop = i === 0 ? '20%' : i === 1 ? '50%' : '80%';
-                      return (
-                        <line key={i} x1="12%" y1="50%" x2="78%" y2={repTop} stroke="rgba(255,255,255,0.12)" strokeWidth="2" strokeDasharray="5,5" />
-                      );
-                    })}
-                  </svg>
-
-                  {/* Client source */}
-                  <div style={{ position: 'absolute', left: '10%', top: '50%', transform: 'translateY(-50%)', display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
-                    <Server size={32} color="#94A3B8" />
-                    <span style={{ color: '#E2E8F0', fontSize: '11px', marginTop: '6px', fontWeight: 600 }}>App Server</span>
-                    <span style={{ color: '#64748B', fontSize: '10px' }}>10.0.1.1</span>
-                  </div>
-
-                  {/* Flowing Query Particles */}
-                  {particles.map(p => {
-                    let animationName: string;
-                    if (p.isReplicationCopy) {
-                      animationName = `replicationToReplica${p.index ?? 0}`;
-                    } else if (p.isWrite) {
-                      animationName = 'flowToPrimary';
-                    } else {
-                      animationName = p.target === 'primary' ? 'readFlowToPrimary' : `readFlowToReplica${p.index ?? 0}`;
-                    }
-                    const color = p.isWrite ? '#10B981' : '#3B82F6';
-                    return (
-                      <div
-                        key={p.id}
-                        className="flow-particle"
-                        style={{
-                          color,
-                          backgroundColor: color,
-                          animation: `${animationName} 0.8s ease-in-out forwards`
-                        }}
-                      />
-                    );
-                  })}
-
-                  {/* Arrow indicator */}
-                  <div style={{ position: 'absolute', left: '30%', top: '50%', transform: 'translateY(-50%)', color: trafficActive ? '#10B981' : '#475569' }}>
-                    <span className={trafficActive ? 'pulse' : ''} style={{ fontSize: '18px', fontWeight: 'bold' }}>➔</span>
-                  </div>
-                   {/* Primary DB Node */}
-                  <div style={{ position: 'absolute', left: '42%', top: '50%', transform: 'translateY(-50%)', display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
-                    <div style={{ position: 'relative', display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
-                      <Database size={44} color={isPrimaryCrashed ? '#EF4444' : '#10B981'} />
-                      {activeHighlightNode === 'primary' && (
-                        <div className="ring-glow" style={{ color: isPrimaryCrashed ? '#EF4444' : '#10B981' }} />
-                      )}
-                    </div>
-                    <span style={{ color: '#E2E8F0', fontSize: '12px', fontWeight: 'bold', marginTop: '6px' }}>Primary SQL DB</span>
-                    <span style={{ color: isPrimaryCrashed ? '#EF4444' : '#10B981', fontSize: '10px' }}>
-                      {isPrimaryCrashed ? 'OFFLINE (Crashed)' : 'ONLINE (10.0.1.2)'}
-                    </span>
-
-                    {/* Table Partitions Display */}
-                    {!isPrimaryCrashed && (
-                      <div style={{ display: 'flex', gap: '4px', marginTop: '10px', backgroundColor: 'rgba(30, 41, 59, 0.5)', padding: '4px 8px', borderRadius: '6px', border: '1px solid #334155' }}>
-                        {Array.from({ length: partitions }).map((_, pIdx) => {
-                          const isPartActive = activeHighlightNode === 'primary' && lastPartitionTarget === pIdx;
-                          return (
-                            <div
-                              key={pIdx}
-                              style={{
-                                fontSize: '9px',
-                                padding: '2px 5px',
-                                borderRadius: '4px',
-                                backgroundColor: isPartActive ? 'rgba(16, 185, 129, 0.25)' : 'rgba(15, 23, 42, 0.6)',
-                                border: isPartActive ? '1px solid #10B981' : '1px solid #475569',
-                                color: isPartActive ? '#10B981' : '#94A3B8',
-                                fontWeight: 'bold',
-                                fontFamily: 'monospace',
-                                transition: 'all 0.15s ease-in-out'
-                              }}
-                              title={`Partition: users_p${pIdx}`}
-                            >
-                              p{pIdx}
-                            </div>
-                          );
-                        })}
-                      </div>
-                    )}
-                  </div>
-
-                  {/* Replicas container */}
-                  {replicas > 0 && (
-                    <div style={{ position: 'absolute', right: '12%', top: '50%', transform: 'translateY(-50%)', display: 'flex', flexDirection: 'column', gap: '16px', justifyContent: 'center' }}>
-                      {Array.from({ length: replicas }).map((_, i) => {
-                        const isNodeActive = activeHighlightNode === `replica-${i}`;
-                        return (
-                          <div key={i} style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                            <span style={{ color: '#3B82F6', fontSize: '12px' }}>➔</span>
-                            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
-                              <div style={{ position: 'relative', display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
-                                <Database size={28} color="#3B82F6" />
-                                {isNodeActive && (
-                                  <div className="ring-glow" style={{ color: '#3B82F6' }} />
-                                )}
-                              </div>
-                              <span style={{ color: '#E2E8F0', fontSize: '10px', fontWeight: 600 }}>Replica #{i + 1}</span>
-                              <span style={{ color: '#64748B', fontSize: '9px' }}>10.0.1.{3 + i}</span>
-                            </div>
-                          </div>
-                        );
-                      })}
-                    </div>
-                  )}
-                </div>
-              </div>
-
-              {/* Logs output */}
-              <div style={{ height: '150px', display: 'flex', flexDirection: 'column' }}>
-                <div style={{ fontSize: '11px', fontWeight: 600, color: '#64748B', textTransform: 'uppercase', marginBottom: '6px' }}>
-                  {t('postgres.simulation.logTitle')}
-                </div>
-                <div style={{ flex: 1, backgroundColor: '#0F172A', color: '#94A3B8', borderRadius: '8px', padding: '10px', fontFamily: 'monospace', fontSize: '11px', overflowY: 'auto' }}>
-                  {simLogs.map(log => (
-                    <div key={log.id} style={{ marginBottom: '4px', color: log.type === 'err' ? '#FCA5A5' : log.type === 'sys' ? '#6EE7B7' : log.type === 'write' ? '#A7F3D0' : '#93C5FD' }}>
-                      [{log.time}] {log.msg}
-                    </div>
-                  ))}
-                </div>
+              <div style={{ backgroundColor: '#F8FAFC', borderRadius: '6px', padding: '12px', borderLeft: '3px solid #2563EB' }}>
+                <h5 style={{ margin: '0 0 4px 0', fontSize: '11px', textTransform: 'uppercase', color: '#475569' }}>{t('postgres.details.topologyTitle')}</h5>
+                <span style={{ fontSize: '11px', color: '#64748B' }}>
+                  {t('postgres.details.topologyDesc')}
+                </span>
               </div>
             </div>
-          )}
-
-          {/* TAB: Database Explorer */}
-          {activeTab === 'explorer' && (
-            <div style={styles.tabContent}>
-              <div style={styles.sectionHeader}>
-                <span style={styles.sectionTitle}>{t('postgres.explorer.title')}{nodeName}</span>
-                <button onClick={fetchExplorerData} disabled={loadingExplorer} style={styles.iconActionBtn}>
-                  <RefreshCw size={14} className={loadingExplorer ? 'spin' : ''} />
-                </button>
-              </div>
-
-              <div style={styles.explorerTree}>
-                {explorerError ? (
-                  explorerError === 'starting_up' ? (
-                    <div style={styles.errorContainer}>
-                      <Loader2 size={24} className="spin" color="#3B82F6" style={{ marginBottom: 12 }} />
-                      <span style={styles.errorMessage}>{t('postgres.explorer.initializing')}</span>
-                    </div>
-                  ) : (
-                    <div style={styles.errorContainer}>
-                      <AlertCircle size={24} color="#EF4444" style={{ marginBottom: 12 }} />
-                      <span style={styles.errorMessage}>{explorerError}</span>
-                      <button onClick={fetchExplorerData} style={styles.retryBtn}>
-                        <RefreshCw size={12} style={{ marginRight: 6 }} />
-                        {t('postgres.explorer.retryBtn')}
-                      </button>
-                    </div>
-                  )
-                ) : explorerData.map(node => (
-                  <div key={node.database} style={styles.treeNode}>
-                    <div style={styles.treeRow} onClick={() => toggleDBExpand(node.database)}>
-                      <Database size={16} color="#3B82F6" style={{ marginRight: 8 }} />
-                      <span style={styles.dbName}>{node.database}</span>
-                      {node.error && (
-                        <span title="Database offline/unreachable">
-                          <AlertCircle size={14} color="#EF4444" style={{ marginLeft: 8 }} />
-                        </span>
-                      )}
-                    </div>
-
-                    {expandedDBs[node.database] && (
-                      <div style={styles.treeChildren}>
-                        {node.tables.length > 0 ? (
-                          node.tables.map(table => {
-                            const tblKey = `${node.database}:${table.name}`;
-                            return (
-                              <div key={table.name} style={styles.treeNode}>
-                                <div style={styles.treeRow} onClick={() => toggleTableExpand(tblKey)}>
-                                  <Table size={14} color="#10B981" style={{ marginRight: 8 }} />
-                                  <span style={styles.tableName}>{table.name}</span>
-                                  
-                                  <button
-                                    onClick={(e) => {
-                                      e.stopPropagation();
-                                      handleViewTableData(node.database, table.name);
-                                    }}
-                                    style={styles.inlineViewBtn}
-                                    title="View Table Data (SQL Shell)"
-                                    className="glass"
-                                  >
-                                    <Eye size={12} style={{ marginRight: 4 }} />
-                                    {t('postgres.explorer.viewDataBtn')}
-                                  </button>
-                                </div>
-
-                                {expandedTables[tblKey] && (
-                                  <div style={styles.treeChildren}>
-                                    {table.columns.map(col => (
-                                      <div key={col.name} style={styles.columnRow}>
-                                        <Columns size={12} color="var(--color-text-muted)" style={{ marginRight: 8 }} />
-                                        <span style={styles.columnName}>{col.name}</span>
-                                        <span style={styles.columnType}>{col.type}</span>
-                                      </div>
-                                    ))}
-                                  </div>
-                                )}
-                              </div>
-                            );
-                          })
-                        ) : (
-                          <div style={styles.treeRowEmpty}>{t('postgres.explorer.noPublicTables')}</div>
-                        )}
-                      </div>
-                    )}
-                  </div>
-                ))}
-              </div>
-            </div>
-          )}
-
-          {/* TAB: SQL Shell */}
-          {activeTab === 'shell' && (
-            <div style={{ ...styles.tabContent, display: 'flex', flexDirection: 'column' }}>
-              <div style={styles.shellHeader}>
-                <div style={styles.dbSelectRow}>
-                  <span style={styles.label}>{t('postgres.shell.targetDb')}</span>
-                  <select
-                    value={selectedDb}
-                    onChange={(e) => setSelectedDb(e.target.value)}
-                    style={styles.select}
-                  >
-                    {explorerData.map(dbNode => (
-                      <option key={dbNode.database} value={dbNode.database}>
-                        {dbNode.database}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-                <button
-                  onClick={handleExecuteQuery}
-                  disabled={executing || !sqlQuery.trim()}
-                  style={styles.runBtn}
-                >
-                  <Play size={14} style={{ marginRight: 6 }} fill="#FFF" />
-                  {executing ? t('postgres.shell.executingBtn') : t('postgres.shell.executeBtn')}
-                </button>
-              </div>
-
-              <textarea
-                value={sqlQuery}
-                onChange={(e) => setSqlQuery(e.target.value)}
-                placeholder={t('postgres.shell.placeholder')}
-                style={styles.sqlTextarea}
-              />
-
-              <div style={styles.terminalHeader}>{t('postgres.shell.consoleTitle')}</div>
-              <pre style={styles.terminalOutput}>
-                <code>{queryOutput || t('postgres.shell.emptyOutput')}</code>
-              </pre>
-            </div>
-          )}
-
-          {/* TAB: Cheat Sheet */}
-          {activeTab === 'cheatsheet' && (
-            <div style={{ ...styles.tabContent, display: 'flex', flexDirection: 'column' }}>
-              <div style={styles.searchBar}>
-                <div style={styles.searchWrapper}>
-                  <Search size={15} color="var(--color-text-muted)" style={styles.searchIcon} />
-                  <input
-                    type="text"
-                    placeholder={t('postgres.cheatsheet.placeholder')}
-                    value={cheatQuery}
-                    onChange={(e) => setCheatQuery(e.target.value)}
-                    style={styles.searchInput}
-                  />
-                </div>
-              </div>
-
-              <div style={styles.cheatSheetList}>
-                {filteredCheatSheet.map((item, idx) => (
-                  <div key={item.name} style={styles.cheatCard}>
-                    <div style={styles.cheatHeader}>
-                      <span style={styles.cheatName}>{item.name}</span>
-                      <span style={styles.cheatCategory}>{item.category}</span>
-                    </div>
-                    <p style={styles.cheatDesc}>{item.description}</p>
-                    <div style={styles.codeContainer}>
-                      <pre style={styles.code}>
-                        <code>{item.example}</code>
-                      </pre>
-                      <button
-                        onClick={() => handleCopyCheat(item.example, idx)}
-                        style={styles.copyBtn}
-                      >
-                        {copiedIndex === idx ? <Check size={14} color="#10B981" /> : <Copy size={14} />}
-                      </button>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </div>
-          )}
+          </div>
         </div>
-      </div>
-    </div>
+      </TabPanel>
+
+      <TabPanel visible={activeTab === 'simulation'}>
+        <PostgresSimulationTab
+          visible={activeTab === 'simulation'}
+          replicas={replicas}
+          setReplicas={setReplicas}
+          partitions={partitions}
+          simLogs={simLogs}
+          setSimLogs={setSimLogs}
+        />
+      </TabPanel>
+
+      <TabPanel visible={activeTab === 'explorer'}>
+        <SchemaTreeExplorer
+          title={`${t('postgres.explorer.title')}${nodeName}`}
+          data={explorerData}
+          loading={loadingExplorer}
+          error={explorerError}
+          onRefresh={fetchExplorerData}
+          onViewData={handleViewTableData}
+          initialExpandedDb="postgres"
+          labels={{
+            initializing: t('postgres.explorer.initializing'),
+            retry: t('postgres.explorer.retryBtn'),
+            viewData: t('postgres.explorer.viewDataBtn'),
+            viewDataTitle: 'View Table Data (SQL Shell)',
+            emptyTables: t('postgres.explorer.noPublicTables'),
+          }}
+        />
+      </TabPanel>
+
+      <TabPanel visible={activeTab === 'shell'}>
+        <QueryShellTab
+          promptLabel={t('postgres.shell.targetDb')}
+          headerExtra={
+            <select
+              value={selectedDb}
+              onChange={(e) => setSelectedDb(e.target.value)}
+              style={styles.select}
+            >
+              {explorerData.map(dbNode => (
+                <option key={dbNode.database} value={dbNode.database}>
+                  {dbNode.database}
+                </option>
+              ))}
+            </select>
+          }
+          value={sqlQuery}
+          onChange={setSqlQuery}
+          onExecute={handleExecuteQuery}
+          executing={executing}
+          output={queryOutput}
+          labels={{
+            placeholder: t('postgres.shell.placeholder'),
+            execute: t('postgres.shell.executeBtn'),
+            executing: t('postgres.shell.executingBtn'),
+            consoleTitle: t('postgres.shell.consoleTitle'),
+            emptyOutput: t('postgres.shell.emptyOutput'),
+          }}
+        />
+      </TabPanel>
+
+      <TabPanel visible={activeTab === 'cheatsheet'}>
+        <CheatSheetTab entries={postgresCheatSheet} searchPlaceholder={t('postgres.cheatsheet.placeholder')} />
+      </TabPanel>
+    </InspectorModal>
   );
 }
 
 const styles: Record<string, React.CSSProperties> = {
-  overlay: {
-    position: 'fixed',
-    top: 0,
-    left: 0,
-    width: '100vw',
-    height: '100vh',
-    backgroundColor: 'rgba(0, 0, 0, 0.65)',
-    zIndex: 1000,
-    display: 'flex',
-    alignItems: 'center',
-    justifyContent: 'center',
-    padding: '24px',
-    boxSizing: 'border-box',
-  },
-  container: {
-    width: '900px',
-    maxWidth: '100%',
-    height: '600px',
-    maxHeight: '100%',
-    borderRadius: '12px',
-    display: 'flex',
-    flexDirection: 'column',
-    boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.5), 0 8px 10px -6px rgba(0, 0, 0, 0.5)',
-    overflow: 'hidden',
-  },
-  header: {
-    display: 'flex',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    padding: '12px 20px',
-    borderBottom: '1px solid var(--border-color)',
-    backgroundColor: 'var(--bg-surface-solid)',
-    borderTopLeftRadius: '12px',
-    borderTopRightRadius: '12px',
-  },
-  tabs: {
-    display: 'flex',
-    gap: '8px',
-  },
-  tabBtn: {
-    backgroundColor: 'transparent',
-    border: 'none',
-    borderRadius: '6px',
-    color: 'var(--color-text-secondary)',
-    cursor: 'pointer',
-    padding: '8px 14px',
-    fontSize: '13px',
-    fontWeight: 600,
-    display: 'flex',
-    alignItems: 'center',
-    transition: 'all 0.2s',
-  },
-  activeTabBtn: {
-    backgroundColor: 'var(--color-accent-glow)',
-    color: 'var(--color-accent)',
-  },
-  closeBtn: {
-    background: 'none',
-    border: 'none',
-    color: 'var(--color-text-muted)',
-    cursor: 'pointer',
-    padding: '6px',
-    borderRadius: '50%',
-    display: 'flex',
-    alignItems: 'center',
-    justifyContent: 'center',
-    transition: 'background-color 0.2s, color 0.2s',
-  },
-  body: {
-    flex: 1,
-    overflow: 'hidden',
-    backgroundColor: '#FFFFFF',
-  },
-  tabContent: {
-    height: '100%',
-    overflowY: 'auto',
-    padding: '20px',
-    boxSizing: 'border-box',
-  },
-  sectionHeader: {
-    display: 'flex',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: '16px',
-  },
-  sectionTitle: {
-    fontSize: '14px',
-    fontWeight: 700,
-    color: 'var(--color-text-primary)',
-  },
-  iconActionBtn: {
-    background: 'none',
-    border: 'none',
-    cursor: 'pointer',
-    color: 'var(--color-text-muted)',
-    padding: '4px',
-    borderRadius: '4px',
-    display: 'flex',
-    alignItems: 'center',
-  },
-  explorerTree: {
-    border: '1px solid var(--border-color)',
-    borderRadius: '8px',
-    padding: '12px',
-    backgroundColor: 'var(--bg-main)',
-    minHeight: '240px',
-  },
-  treeNode: {
-    marginBottom: '6px',
-  },
-  treeRow: {
-    display: 'flex',
-    alignItems: 'center',
-    padding: '6px 8px',
-    cursor: 'pointer',
-    borderRadius: '6px',
-    transition: 'background-color 0.2s',
-    userSelect: 'none',
-  },
-  treeRowEmpty: {
-    padding: '6px 8px 6px 32px',
-    fontSize: '12px',
-    color: 'var(--color-text-muted)',
-    fontStyle: 'italic',
-  },
-  treeChildren: {
-    paddingLeft: '24px',
-    borderLeft: '1px dashed var(--border-color)',
-    marginTop: '2px',
-    display: 'flex',
-    flexDirection: 'column',
-    gap: '2px',
-  },
-  dbName: {
-    fontSize: '13px',
-    fontWeight: 600,
-    color: 'var(--color-text-primary)',
-  },
-  tableName: {
-    fontSize: '13px',
-    fontWeight: 500,
-    color: 'var(--color-text-secondary)',
-  },
-  columnRow: {
-    display: 'flex',
-    alignItems: 'center',
-    padding: '4px 8px',
-    fontSize: '12px',
-  },
-  columnName: {
-    color: 'var(--color-text-primary)',
-    fontWeight: 500,
-    marginRight: '8px',
-  },
-  columnType: {
-    color: 'var(--color-text-muted)',
-    fontStyle: 'italic',
-    fontSize: '11px',
-  },
-  shellHeader: {
-    display: 'flex',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: '12px',
-    flexShrink: 0,
-  },
-  dbSelectRow: {
-    display: 'flex',
-    alignItems: 'center',
-    gap: '10px',
-  },
-  label: {
-    fontSize: '12px',
-    fontWeight: 600,
-    color: 'var(--color-text-secondary)',
-  },
   select: {
     padding: '6px 10px',
     borderRadius: '6px',
@@ -1394,173 +298,18 @@ const styles: Record<string, React.CSSProperties> = {
     backgroundColor: '#FFF',
     outline: 'none',
   },
-  runBtn: {
-    backgroundColor: '#10B981',
-    color: '#FFF',
-    border: 'none',
+  counterBtn: {
+    width: '32px',
+    height: '32px',
     borderRadius: '6px',
-    padding: '8px 16px',
-    fontSize: '13px',
-    fontWeight: 600,
+    border: '1px solid #CBD5E1',
     cursor: 'pointer',
-    display: 'flex',
-    alignItems: 'center',
-    boxShadow: '0 1px 3px rgba(16, 185, 129, 0.3)',
+    fontWeight: 'bold',
   },
-  sqlTextarea: {
-    width: '100%',
-    height: '140px',
-    padding: '12px',
-    borderRadius: '8px',
-    border: '1px solid var(--border-color)',
-    fontFamily: 'var(--font-mono)',
-    fontSize: '13px',
-    resize: 'none',
-    boxSizing: 'border-box',
-    outline: 'none',
-    marginBottom: '16px',
-    backgroundColor: 'var(--bg-main)',
-    color: 'var(--color-text-primary)',
-  },
-  terminalHeader: {
-    fontSize: '11px',
-    fontWeight: 600,
-    color: 'var(--color-text-muted)',
-    textTransform: 'uppercase',
-    marginBottom: '8px',
-  },
-  terminalOutput: {
-    flex: 1,
-    margin: 0,
-    padding: '12px',
-    backgroundColor: '#0F172A',
-    color: '#E2E8F0',
-    borderRadius: '8px',
-    fontFamily: 'var(--font-mono)',
-    fontSize: '13px',
-    overflow: 'auto',
-    border: '1px solid rgba(255,255,255,0.05)',
-  },
-  searchBar: {
-    marginBottom: '16px',
-  },
-  searchWrapper: {
-    position: 'relative',
-    display: 'flex',
-    alignItems: 'center',
-  },
-  searchIcon: {
-    position: 'absolute',
-    left: '12px',
-  },
-  searchInput: {
-    width: '100%',
-    padding: '10px 12px 10px 36px',
-    backgroundColor: 'var(--bg-main)',
-    border: '1px solid var(--border-color)',
-    borderRadius: '8px',
-    fontSize: '13px',
-    outline: 'none',
-  },
-  cheatSheetList: {
-    display: 'flex',
-    flexDirection: 'column',
-    gap: '16px',
-  },
-  cheatCard: {
-    border: '1px solid var(--border-color)',
-    borderRadius: '8px',
-    padding: '16px',
-    backgroundColor: 'rgba(255,255,255,0.02)',
-  },
-  cheatHeader: {
-    display: 'flex',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: '8px',
-  },
-  cheatName: {
-    fontSize: '14px',
-    fontWeight: 700,
-    color: 'var(--color-accent)',
-  },
-  cheatCategory: {
-    fontSize: '11px',
-    color: 'var(--color-text-secondary)',
-    backgroundColor: 'rgba(0, 0, 0, 0.04)',
-    border: '1px solid var(--border-color)',
-    padding: '2px 6px',
-    borderRadius: '4px',
-    textTransform: 'uppercase',
-    letterSpacing: '0.5px',
-  },
-  cheatDesc: {
-    fontSize: '13px',
-    color: 'var(--color-text-secondary)',
-    margin: '0 0 12px 0',
-  },
-  codeContainer: {
-    position: 'relative',
-  },
-  code: {
-    margin: 0,
-    padding: '10px 14px',
-    backgroundColor: 'var(--bg-main)',
-    color: 'var(--color-text-primary)',
-    fontFamily: 'var(--font-mono)',
-    fontSize: '13px',
-    borderRadius: '6px',
-    overflowX: 'auto',
-    border: '1px solid var(--border-color)',
-  },
-  copyBtn: {
-    position: 'absolute',
-    right: '8px',
-    top: '8px',
-    background: 'none',
-    border: 'none',
-    cursor: 'pointer',
-    color: 'var(--color-text-muted)',
-    padding: '4px',
-    borderRadius: '4px',
-  },
-  inlineViewBtn: {
-    marginLeft: 'auto',
-    backgroundColor: 'var(--color-accent-glow)',
-    border: '1px solid rgba(37, 99, 235, 0.2)',
-    borderRadius: '4px',
-    color: 'var(--color-accent)',
-    fontSize: '11px',
-    padding: '2px 8px',
-    cursor: 'pointer',
-    display: 'flex',
-    alignItems: 'center',
-    transition: 'all 0.2s',
-  },
-  errorContainer: {
-    display: 'flex',
-    flexDirection: 'column',
-    alignItems: 'center',
-    justifyContent: 'center',
-    padding: '30px 20px',
+  counterValue: {
+    fontSize: '16px',
+    fontWeight: 'bold',
+    width: '20px',
     textAlign: 'center',
   },
-  errorMessage: {
-    fontSize: '13px',
-    color: 'var(--color-text-secondary)',
-    marginBottom: '16px',
-    maxWidth: '400px',
-  },
-  retryBtn: {
-    backgroundColor: 'var(--color-accent)',
-    color: '#FFF',
-    border: 'none',
-    borderRadius: '6px',
-    padding: '6px 16px',
-    fontSize: '12px',
-    fontWeight: 600,
-    cursor: 'pointer',
-    display: 'flex',
-    alignItems: 'center',
-  }
 };

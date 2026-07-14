@@ -68,14 +68,17 @@ describe('NoSqlModal', () => {
     expect(screen.getByText('ObjectId')).toBeInTheDocument();
   });
 
-  it('shows a non-startup explorer error with no retry button (unlike Postgres/Redis)', async () => {
-    mockFetchResponses([{ ok: false, json: { error: 'connection refused' } }]);
+  it('shows a non-startup explorer error with a retry button (aligned with Postgres/Redis)', async () => {
+    const fetchMock = mockFetchResponses([{ ok: false, json: { error: 'connection refused' } }]);
     await renderModal();
 
     fireEvent.click(screen.getByRole('button', { name: /NoSQL Explorer/i }));
 
     await waitFor(() => expect(screen.getByText('connection refused')).toBeInTheDocument());
-    expect(screen.queryByRole('button', { name: /Retry Schema Scan/i })).not.toBeInTheDocument();
+    fetchMock.mockImplementationOnce(() => Promise.resolve({ ok: true, json: () => Promise.resolve([]) } as Response));
+    fireEvent.click(screen.getByRole('button', { name: /Retry Schema Scan/i }));
+
+    await waitFor(() => expect(fetchMock).toHaveBeenCalledTimes(2));
   });
 
   it('shows the initializing state and auto-retries once after 2.5s on a "starting up" error', async () => {
@@ -150,7 +153,7 @@ describe('NoSqlModal', () => {
 
   it('filters the cheat sheet by search query and copies an entry to the clipboard', async () => {
     mockFetchResponses([{ ok: true, json: [] }]);
-    const writeText = vi.fn();
+    const writeText = vi.fn().mockResolvedValue(undefined);
     Object.assign(navigator, { clipboard: { writeText } });
     await renderModal();
 
