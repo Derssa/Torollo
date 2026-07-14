@@ -36,14 +36,8 @@ import VpcModal from '../../features/nodes/VpcNode/VpcModal';
 import ButtonEdge from './components/ButtonEdge';
 import { API_BASE } from '../../shared/types';
 import { useNetworkConfig } from './hooks/useNetworkConfig';
-import {
-  getAbsoluteCoordinates,
-  findSubnetAtPoint,
-  positionToCell,
-  clampToCell,
-  resolveSubnetChildPosition,
-  subnetSize,
-} from './utils/canvasGeometry';
+import { useCanvasDragDrop } from './hooks/useCanvasDragDrop';
+import { positionToCell, resolveSubnetChildPosition, subnetSize } from './utils/canvasGeometry';
 import {
   addConnectionRule,
   parseEdgeId,
@@ -51,12 +45,7 @@ import {
   removeRulesForConnections,
   buildFirewallEdges,
 } from './utils/securityRules';
-import {
-  autoGrowContainers,
-  assignNodeToSubnet,
-  removeNodeFromConfig,
-  createSubnet,
-} from './utils/networkConfigOps';
+import { assignNodeToSubnet, removeNodeFromConfig } from './utils/networkConfigOps';
 
 interface CanvasPageProps {
   projectId: string;
@@ -105,8 +94,6 @@ export default function CanvasPage({ projectId, projectName, onBackToProjects, o
   const dropPositionsRef = useRef<Record<string, { x: number; y: number }>>({});
   const dropSubnetsRef = useRef<Record<string, string>>({});
   const pendingSubnetIdRef = useRef<string | null>(null);
-  const dragStartPositionsRef = useRef<Record<string, { x: number; y: number; parentId?: string }>>({});
-  const draggingNodeIdRef = useRef<string | null>(null);
 
   // React Flow managed nodes state
   const [nodes, setNodes, onNodesChange] = useNodesState<Node>([]);
@@ -116,6 +103,28 @@ export default function CanvasPage({ projectId, projectName, onBackToProjects, o
 
   const { networkConfig, saveNetworkConfig, fetchNetworkConfig, triggerArchitectureAudit } =
     useNetworkConfig({ projectId, containers, showNotification });
+
+  // A service was dropped inside a subnet: stash the drop context and open the create modal
+  const onRequestCreateNode = useCallback((drop: { position: { x: number; y: number }; type: string; subnetId: string }) => {
+    setDropState({ position: drop.position, type: drop.type });
+    pendingSubnetIdRef.current = drop.subnetId;
+    setShowCreateModal(true);
+  }, []);
+
+  const { onNodeDragStart, onNodeDrag, onNodeDragStop, onNodesDelete, onDragOver, onDrop, draggingNodeIdRef } =
+    useCanvasDragDrop({
+      reactFlowInstance,
+      networkConfig,
+      containers,
+      positionsRef,
+      setNodes,
+      projectId,
+      saveNetworkConfig,
+      triggerArchitectureAudit,
+      showNotification,
+      fetchContainers,
+      onRequestCreateNode,
+    });
 
   const [showVpcSettings, setShowVpcSettings] = useState(false);
   const [showTrafficSimulator, setShowTrafficSimulator] = useState(false);
@@ -448,265 +457,9 @@ export default function CanvasPage({ projectId, projectName, onBackToProjects, o
 
     // Save current positions (including auto-placed new nodes) to localStorage
     localStorage.setItem(`akal-lab-graph-layout-${projectId}`, JSON.stringify(positionsRef.current));
-  }, [projectId, containers, opErrors, startContainer, stopContainer, onTerminalOpen, setNodes, networkConfig, saveNetworkConfig, handleDeleteSubnet, handleSubnetResize]);
+  }, [projectId, containers, opErrors, startContainer, stopContainer, onTerminalOpen, setNodes, networkConfig, saveNetworkConfig, handleDeleteSubnet, handleSubnetResize, draggingNodeIdRef, showNotification]);
 
 
-
-  // Track start position on drag start to allow rollback/reversion if drop is invalid
-  const onNodeDragStart = useCallback((_event: any, node: Node) => {
-    draggingNodeIdRef.current = node.id;
-    dragStartPositionsRef.current[node.id] = {
-      x: node.position.x,
-      y: node.position.y,
-      parentId: node.parentId
-    };
-  }, []);
-
-  const onNodeDrag = useCallback((_event: any, draggedNode: Node) => {
-    if (!reactFlowInstance) return;
-
-    const currentNodes = reactFlowInstance.getNodes();
-
-    // Calculate absolute coordinates of dragged node center
-    let absX = draggedNode.position.x;
-    let absY = draggedNode.position.y;
-    if (draggedNode.parentId) {
-      const parentPos = getAbsoluteCoordinates(draggedNode.parentId, currentNodes);
-      absX += parentPos.x;
-      absY += parentPos.y;
-    }
-
-    const nodeWidth = draggedNode.width || (draggedNode.type === 'subnet' ? 260 : 220);
-    const nodeHeight = draggedNode.height || (draggedNode.type === 'subnet' ? 180 : 140);
-    const centerX = absX + nodeWidth / 2;
-    const centerY = absY + nodeHeight / 2;
-
-    // Check intersection with subnets: hovering one is valid for a service
-    // node, invalid for a subnet (no nesting).
-    const center = { x: centerX, y: centerY };
-    const hoveredSubnet = draggedNode.type !== 'subnet'
-      ? findSubnetAtPoint(center, networkConfig.subnets)
-      : findSubnetAtPoint(center, networkConfig.subnets, draggedNode.id);
-    const hoveredId = hoveredSubnet?.id ?? null;
-    const isValid = !!hoveredSubnet && draggedNode.type !== 'subnet';
-
-    // Update real-time position in coordinates map for auto-growing calculations
-    const tempNodeSubnetMap = { ...networkConfig.nodeSubnetMap };
-
-    // If we are hovering a valid container, assume it's parented temporarily for sizing check
-    if (hoveredId && isValid) {
-      tempNodeSubnetMap[draggedNode.id] = hoveredId;
-    } else if (draggedNode.type !== 'subnet') {
-      // Dragging service node outside of any container
-      delete tempNodeSubnetMap[draggedNode.id];
-    }
-
-
-
-
-
-    const tempConfig = {
-      ...networkConfig,
-      nodeSubnetMap: tempNodeSubnetMap
-    };
-
-    const grownConfig = autoGrowContainers(tempConfig);
-
-    setNodes(prev => prev.map(n => {
-      // Apply grew sizes to subnets
-      if (n.type === 'subnet') {
-        const subnet = grownConfig.subnets.find(s => s.id === n.id);
-        const isHoverTarget = n.id === hoveredId;
-        return {
-          ...n,
-          style: { ...n.style, width: subnet?.width, height: subnet?.height },
-          data: {
-            ...n.data,
-            hoverStatus: isHoverTarget ? (isValid ? 'valid' : 'invalid') : null
-          }
-        };
-      }
-      return n;
-    }));
-
-  }, [reactFlowInstance, networkConfig, containers, setNodes]);
-
-  // Save position to ref and localStorage when drag ends (auto-save with overlapping logic)
-  const onNodeDragStop = useCallback((_event: any, draggedNode: Node) => {
-    draggingNodeIdRef.current = null;
-    if (!reactFlowInstance) return;
-
-    const currentNodes = reactFlowInstance.getNodes();
-
-    // Reset all hoverStatus
-    setNodes(prev => prev.map(n => {
-      if (n.data && n.data.hoverStatus) {
-        return { ...n, data: { ...n.data, hoverStatus: null } };
-      }
-      return n;
-    }));
-
-    // Calculate final absolute coordinates of dragged node
-    let absX = draggedNode.position.x;
-    let absY = draggedNode.position.y;
-    if (draggedNode.parentId) {
-      const parentPos = getAbsoluteCoordinates(draggedNode.parentId, currentNodes);
-      absX += parentPos.x;
-      absY += parentPos.y;
-    }
-
-    const revertNode = (message: string) => {
-      showNotification({ type: 'error', message });
-      const original = dragStartPositionsRef.current[draggedNode.id];
-      if (original) {
-        setNodes(prev => prev.map(n => {
-          if (n.id === draggedNode.id) {
-            return {
-              ...n,
-              position: { x: original.x, y: original.y },
-              parentId: original.parentId
-            };
-          }
-          return n;
-        }));
-      }
-    };
-
-    if (draggedNode.type === 'subnet') {
-      const subnetWidth = 260;
-      const subnetHeight = 180;
-      const subnetCenter = { x: absX + subnetWidth / 2, y: absY + subnetHeight / 2 };
-
-      // Check if dropped inside another subnet
-      const insideAnotherSubnet = !!findSubnetAtPoint(subnetCenter, networkConfig.subnets, draggedNode.id);
-
-      if (insideAnotherSubnet) {
-        revertNode('Invalid placement: Subnets cannot be nested inside other subnets.');
-        return;
-      }
-
-      const updatedSubnets = networkConfig.subnets.map(s => {
-        if (s.id === draggedNode.id) {
-          return {
-            ...s,
-            position: { x: absX, y: absY }
-          };
-        }
-        return s;
-      });
-
-      const newConfig = { ...networkConfig, subnets: updatedSubnets };
-      saveNetworkConfig(newConfig);
-      triggerArchitectureAudit(newConfig);
-    }
-    else {
-      // Container/Service node
-      const nodeCenter = { x: absX + 110, y: absY + 70 };
-      const targetSubnet = findSubnetAtPoint(nodeCenter, networkConfig.subnets);
-      const targetSubnetId = targetSubnet?.id ?? null;
-
-      const original = dragStartPositionsRef.current[draggedNode.id];
-      const oldParentId = original?.parentId;
-      const newParentId = targetSubnetId || undefined;
-
-      if (oldParentId !== newParentId) {
-        const oldSubnet = networkConfig.subnets.find(s => s.id === oldParentId);
-        const newSubnet = networkConfig.subnets.find(s => s.id === newParentId);
-
-        if (oldParentId && oldParentId.startsWith('subnet-')) {
-          showNotification({ type: 'warning', message: `Node "${draggedNode.data.name}" removed from Subnet "${oldSubnet?.name || 'Subnet'}"` });
-        }
-
-        if (newParentId && newParentId.startsWith('subnet-')) {
-          showNotification({ type: 'success', message: `Node "${draggedNode.data.name}" added to Subnet "${newSubnet?.name || 'Subnet'}"` });
-        }
-      }
-
-      if (!targetSubnet) {
-        // Revert container node drag to its original subnet position
-        showNotification({ type: 'warning', message: 'Nodes must reside within a subnet.' });
-        const original = dragStartPositionsRef.current[draggedNode.id];
-        if (original) {
-          setNodes(prev => prev.map(n => {
-            if (n.id === draggedNode.id) {
-              return {
-                ...n,
-                position: { x: original.x, y: original.y },
-                parentId: original.parentId
-              };
-            }
-            return n;
-          }));
-        }
-        return;
-      }
-
-      positionsRef.current[draggedNode.id] = clampToCell(
-        { x: absX - targetSubnet.position.x, y: absY - targetSubnet.position.y },
-        targetSubnet.columns || 2,
-        targetSubnet.rows || 1
-      );
-      localStorage.setItem(`akal-lab-graph-layout-${projectId}`, JSON.stringify(positionsRef.current));
-
-      const newConfig = assignNodeToSubnet(networkConfig, draggedNode.id, targetSubnet.id);
-      saveNetworkConfig(newConfig);
-      triggerArchitectureAudit(newConfig);
-    }
-  }, [reactFlowInstance, networkConfig, projectId, saveNetworkConfig, setNodes, triggerArchitectureAudit, showNotification]);
-
-  const onNodesDelete = useCallback((deleted: Node[]) => {
-    const blockedNode = deleted.find(node => {
-      const usingAsgs = Object.keys(networkConfig?.asgs || {}).filter(asgId => networkConfig?.asgs?.[asgId]?.parentId === node.id);
-      return usingAsgs.some(asgId => {
-        const container = containers.find(c => c.id === asgId);
-        return container && container.state === 'running';
-      });
-    });
-
-    if (blockedNode) {
-      showNotification({
-        type: 'error',
-        message: `Cannot delete node "${blockedNode.data?.name || 'Node'}": it is used as a template by an active Auto Scaling Group. Please stop the ASG first.`
-      });
-      fetchContainers();
-      return;
-    }
-
-    let updatedSubnets = [...networkConfig.subnets];
-    const updatedNodeSubnetMap = { ...networkConfig.nodeSubnetMap };
-    const updatedSecurityGroups = { ...networkConfig.nodeSecurityGroups };
-    const updatedNodeIpMap = { ...networkConfig.nodeIpMap || {} };
-    let configChanged = false;
-
-    deleted.forEach(node => {
-      if (node.type === 'subnet') {
-        updatedSubnets = updatedSubnets.filter(s => s.id !== node.id);
-        Object.keys(updatedNodeSubnetMap).forEach(nodeId => {
-          if (updatedNodeSubnetMap[nodeId] === node.id) {
-            delete updatedNodeSubnetMap[nodeId];
-            delete updatedNodeIpMap[nodeId];
-          }
-        });
-        configChanged = true;
-      }
-      // If it's a node being deleted directly
-      if (updatedNodeSubnetMap[node.id]) {
-        delete updatedNodeSubnetMap[node.id];
-        delete updatedNodeIpMap[node.id];
-        configChanged = true;
-      }
-    });
-
-    if (configChanged || deleted.length > 0) {
-      saveNetworkConfig({
-        ...networkConfig,
-        subnets: updatedSubnets,
-        nodeSubnetMap: updatedNodeSubnetMap,
-        nodeSecurityGroups: updatedSecurityGroups,
-        nodeIpMap: updatedNodeIpMap
-      });
-    }
-  }, [networkConfig, saveNetworkConfig, containers, fetchContainers, showNotification]);
 
   const saveGraphLocally = () => {
     const currentPositions: Record<string, { x: number; y: number }> = {};
@@ -824,72 +577,6 @@ export default function CanvasPage({ projectId, projectName, onBackToProjects, o
       setDeleteTarget(null);
     }
   };
-
-  // React Flow Drag-and-Drop handlers
-  const onDragOver = useCallback((event: React.DragEvent) => {
-    event.preventDefault();
-    event.dataTransfer.dropEffect = 'move';
-  }, []);
-
-  const onDrop = useCallback(
-    (event: React.DragEvent) => {
-      event.preventDefault();
-
-      if (!reactFlowInstance) return;
-
-      const type = event.dataTransfer.getData('application/reactflow');
-      if (!type) return;
-
-      const position = reactFlowInstance.screenToFlowPosition({
-        x: event.clientX,
-        y: event.clientY,
-      });
-
-      if (type === 'subnet-public' || type === 'subnet-private') {
-        const newSubnet = createSubnet(
-          type === 'subnet-public' ? 'public' : 'private',
-          position,
-          networkConfig.vpcConfig.cidr,
-          networkConfig.subnets.length
-        );
-
-        // Check if dropped inside another subnet
-        const subnetCenter = { x: position.x + newSubnet.width / 2, y: position.y + newSubnet.height / 2 };
-        if (findSubnetAtPoint(subnetCenter, networkConfig.subnets)) {
-          showNotification({ type: 'error', message: 'Invalid placement: Subnets cannot be nested inside other subnets.' });
-          return;
-        }
-
-        const newConfig = {
-          ...networkConfig,
-          subnets: [...networkConfig.subnets, newSubnet]
-        };
-        saveNetworkConfig(newConfig);
-        triggerArchitectureAudit(newConfig);
-      } else {
-        const nodeCenter = { x: position.x + 110, y: position.y + 70 };
-        const targetSubnet = findSubnetAtPoint(nodeCenter, networkConfig.subnets);
-
-        if (!targetSubnet) {
-          showNotification({ type: 'error', message: 'Nodes must reside within a subnet.' });
-          return;
-        }
-
-        const finalDropPos = clampToCell(
-          { x: position.x - targetSubnet.position.x, y: position.y - targetSubnet.position.y },
-          targetSubnet.columns || 2,
-          targetSubnet.rows || 1
-        );
-
-        setDropState({ position: finalDropPos, type });
-        pendingSubnetIdRef.current = targetSubnet.id;
-        setShowCreateModal(true);
-      }
-    },
-    [reactFlowInstance, networkConfig, saveNetworkConfig, showNotification, triggerArchitectureAudit]
-  );
-
-
 
   return (
     <div style={styles.wrapper}>
