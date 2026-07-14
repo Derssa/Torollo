@@ -1,0 +1,114 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://raw.githubusercontent.com/Derssa/Torollo/main/backend/src/modules/learning/format/roadmap.schema.json",
+  "title": "Torollo Roadmap",
+  "description": "A guided, auto-corrected learning roadmap. Purely declarative data: validators are { type, params } objects interpreted by the Torollo engine — a roadmap never contains executable code. See docs/roadmap-format.md.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schemaVersion", "id", "title", "description", "language", "steps"],
+  "properties": {
+    "$schema": {
+      "type": "string",
+      "description": "Optional reference to this schema's URL, for editor autocompletion."
+    },
+    "schemaVersion": {
+      "const": 1,
+      "description": "Format version. This schema describes version 1. Readers must reject files with an unsupported version."
+    },
+    "id": {
+      "$ref": "#/$defs/slug",
+      "description": "Stable roadmap identifier. Progression is keyed on it — never change it once published."
+    },
+    "title": {
+      "type": "string",
+      "minLength": 1,
+      "description": "Human-readable roadmap title, in the roadmap's language."
+    },
+    "description": {
+      "type": "string",
+      "minLength": 1,
+      "description": "Short summary shown in the catalog and player."
+    },
+    "language": {
+      "type": "string",
+      "pattern": "^[a-z]{2,3}(-[A-Z]{2})?$",
+      "description": "Language of all texts in this file (e.g. \"en\", \"fr\", \"pt-BR\"). One language per file; a translation is a separate file with the same id."
+    },
+    "estimatedMinutes": {
+      "type": "integer",
+      "minimum": 1,
+      "description": "Rough total completion time, in minutes."
+    },
+    "difficulty": {
+      "enum": ["beginner", "intermediate", "advanced"]
+    },
+    "prerequisites": {
+      "type": "array",
+      "items": { "type": "string", "minLength": 1 },
+      "description": "Free-form human prerequisites (e.g. \"Docker installed\"). Not machine-resolved references."
+    },
+    "steps": {
+      "type": "array",
+      "minItems": 1,
+      "items": { "$ref": "#/$defs/step" }
+    }
+  },
+  "$defs": {
+    "slug": {
+      "type": "string",
+      "pattern": "^[a-z0-9]+(-[a-z0-9]+)*$",
+      "maxLength": 64
+    },
+    "step": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "title", "instruction", "validators"],
+      "properties": {
+        "id": {
+          "$ref": "#/$defs/slug",
+          "description": "Stable step identifier, unique within the roadmap and independent of the step's position. Progression is keyed on it."
+        },
+        "title": {
+          "type": "string",
+          "minLength": 1
+        },
+        "instruction": {
+          "type": "string",
+          "minLength": 1,
+          "description": "What the learner must do. Markdown is allowed."
+        },
+        "hints": {
+          "type": "array",
+          "items": { "type": "string", "minLength": 1 },
+          "description": "Ordered progressive hints, revealed one at a time (hint 1 first)."
+        },
+        "solution": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Full solution, revealed only after all hints. Always explicit — never encoded as the last hint."
+        },
+        "validators": {
+          "type": "array",
+          "minItems": 1,
+          "items": { "$ref": "#/$defs/validator" }
+        }
+      }
+    },
+    "validator": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["type", "params"],
+      "properties": {
+        "type": {
+          "type": "string",
+          "pattern": "^[a-z][a-z0-9_]*$",
+          "description": "Validator type name, dispatched by the engine (e.g. \"container_running\"). Unknown types are reported by the engine, not by this schema."
+        },
+        "params": {
+          "type": "object",
+          "description": "Inert JSON data interpreted by the validator implementation shipped with Torollo. Per-type shape is documented in docs/roadmap-format.md."
+        }
+      }
+    }
+  }
+}

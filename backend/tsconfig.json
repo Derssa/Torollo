@@ -11,7 +11,8 @@
     "outDir": "./dist",
     "rootDir": "./src",
     "types": ["jest", "node"],
-    "isolatedModules": true
+    "isolatedModules": true,
+    "resolveJsonModule": true
   },
   "include": ["src/**/*"]
 }
