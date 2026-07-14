@@ -39,6 +39,7 @@
     "backend/package.json",
     "backend/projects.json",
     "frontend/dist/**/*",
-    "frontend/package.json"
+    "frontend/package.json",
+    "roadmaps/**/*"
   ]
 }

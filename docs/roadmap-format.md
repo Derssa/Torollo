@@ -6,6 +6,7 @@ This document is the reference for authoring roadmap files. You should be able t
 
 - JSON Schema: [`backend/src/modules/learning/format/roadmap.schema.json`](../backend/src/modules/learning/format/roadmap.schema.json)
 - Reference example: [`roadmaps/example-first-architecture.json`](../roadmaps/example-first-architecture.json)
+- API that loads and runs roadmaps: [`learning-api.md`](./learning-api.md)
 
 ## Philosophy
 
@@ -117,4 +118,4 @@ A translation is a **separate file with the same `id` and a different `language`
 - **Newer players keep reading older files:** a Torollo that understands v2 must still read every valid v1 roadmap.
 - **New validator `type` values are *not* format changes.** The palette can grow within v1; an engine that meets a type it doesn't implement reports it as unknown at run time.
 
-> Note: the `roadmaps/` directory is reference content in the repository; it is not yet shipped inside the published npm package. How roadmap content is distributed is decided with the roadmap loader (V-2/R-1), not by the format.
+> Note: the `roadmaps/` directory at the repository root is where the engine loads roadmaps from, and it is shipped inside the published npm package. See [`learning-api.md`](./learning-api.md) for how roadmaps are listed and validated at run time.

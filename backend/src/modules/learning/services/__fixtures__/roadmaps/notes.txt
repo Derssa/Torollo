@@ -1,0 +1,1 @@
+Non-JSON files in the roadmaps directory must be ignored by the loader.
