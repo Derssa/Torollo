@@ -54,6 +54,26 @@ interface CanvasPageProps {
   onTerminalOpen: (id: string, name: string) => void;
 }
 
+/** Which inspector modal is open. They are mutually exclusive, hence one state. */
+interface InspectorState {
+  kind: 'postgres' | 'nosql' | 'redis' | 'nat' | 'loadbalancer' | 'asg' | 'subnet-routes' | 'security-group';
+  id: string;
+  name: string;
+  /** Only set for kind 'security-group' (the modal displays the node type). */
+  nodeType?: string;
+}
+
+/** Inspector opened by each node type's magnifier action ('sql' shares the Postgres modal). */
+const INSPECTOR_KIND_BY_NODE_TYPE: Record<string, InspectorState['kind']> = {
+  postgres: 'postgres',
+  sql: 'postgres',
+  nosql: 'nosql',
+  redis: 'redis',
+  nat: 'nat',
+  loadbalancer: 'loadbalancer',
+  autoscalinggroup: 'asg',
+};
+
 export default function CanvasPage({ projectId, projectName, onBackToProjects, onTerminalOpen }: CanvasPageProps) {
   const { toast, showNotification, showToast, dismissToast } = useToast();
 
@@ -73,17 +93,8 @@ export default function CanvasPage({ projectId, projectName, onBackToProjects, o
   // Modal and inspector states
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [deleteTarget, setDeleteTarget] = useState<string | null>(null);
-  const [inspectingPostgres, setInspectingPostgres] = useState<{ id: string; name: string } | null>(null);
-  const [inspectingNosql, setInspectingNosql] = useState<{ id: string; name: string } | null>(null);
-  const [inspectingRedis, setInspectingRedis] = useState<{ id: string; name: string } | null>(null);
-
-  const [inspectingNat, setInspectingNat] = useState<{ id: string; name: string } | null>(null);
-  const [inspectingLoadBalancer, setInspectingLoadBalancer] = useState<{ id: string; name: string } | null>(null);
-  const [inspectingAsg, setInspectingAsg] = useState<{ id: string; name: string } | null>(null);
-
-  // Phase 3 Modal states
-  const [inspectingSubnet, setInspectingSubnet] = useState<{ id: string; name: string } | null>(null);
-  const [inspectingSecurityGroup, setInspectingSecurityGroup] = useState<{ id: string; name: string; type: string } | null>(null);
+  const [inspector, setInspector] = useState<InspectorState | null>(null);
+  const closeInspector = () => setInspector(null);
 
   // Rename modal state
   const [renamingNode, setRenamingNode] = useState<{ id: string; currentName: string } | null>(null);
@@ -325,7 +336,7 @@ export default function CanvasPage({ projectId, projectName, onBackToProjects, o
             columns: subnet.columns || 2,
             rows: subnet.rows || 1,
             onManageRoutes: (id: string, name: string) => {
-              setInspectingSubnet({ id, name });
+              setInspector({ kind: 'subnet-routes', id, name });
             },
             onDelete: handleDeleteSubnet,
             onResize: handleSubnetResize
@@ -428,22 +439,11 @@ export default function CanvasPage({ projectId, projectName, onBackToProjects, o
             },
             onTerminalOpen: (nodeType === 'loadbalancer' || nodeType === 'autoscalinggroup') ? () => {} : onTerminalOpen,
             onInspect: (id: string, name: string) => {
-              if (nodeType === 'postgres' || nodeType === 'sql') {
-                setInspectingPostgres({ id, name });
-              } else if (nodeType === 'nosql') {
-                setInspectingNosql({ id, name });
-              } else if (nodeType === 'redis') {
-                setInspectingRedis({ id, name });
-              } else if (nodeType === 'nat') {
-                setInspectingNat({ id, name });
-              } else if (nodeType === 'loadbalancer') {
-                setInspectingLoadBalancer({ id, name });
-              } else if (nodeType === 'autoscalinggroup') {
-                setInspectingAsg({ id, name });
-              }
+              const kind = INSPECTOR_KIND_BY_NODE_TYPE[nodeType];
+              if (kind) setInspector({ kind, id, name });
             },
             onSecurityGroupOpen: (id: string, name: string) => {
-              setInspectingSecurityGroup({ id, name, type: nodeType });
+              setInspector({ kind: 'security-group', id, name, nodeType });
             },
             onRename: (id: string, currentName: string) => {
               setRenamingNode({ id, currentName });
@@ -729,80 +729,64 @@ export default function CanvasPage({ projectId, projectName, onBackToProjects, o
         />
       )}
 
-      {inspectingPostgres && (
+      {inspector?.kind === 'postgres' && (
         <PostgresModal
-          containerId={inspectingPostgres.id}
-          nodeName={inspectingPostgres.name}
+          containerId={inspector.id}
+          nodeName={inspector.name}
           projectId={projectId}
-          onClose={() => setInspectingPostgres(null)}
+          onClose={closeInspector}
         />
       )}
 
-      {inspectingNosql && (
+      {inspector?.kind === 'nosql' && (
         <NoSqlModal
-          containerId={inspectingNosql.id}
-          nodeName={inspectingNosql.name}
+          containerId={inspector.id}
+          nodeName={inspector.name}
           projectId={projectId}
-          onClose={() => setInspectingNosql(null)}
+          onClose={closeInspector}
         />
       )}
 
-      {inspectingRedis && (
+      {inspector?.kind === 'redis' && (
         <RedisModal
-          containerId={inspectingRedis.id}
-          nodeName={inspectingRedis.name}
+          containerId={inspector.id}
+          nodeName={inspector.name}
           projectId={projectId}
-          onClose={() => setInspectingRedis(null)}
+          onClose={closeInspector}
         />
       )}
 
-      {inspectingNat && (
+      {inspector?.kind === 'nat' && (
         <NatGatewayModal
-          nodeName={inspectingNat.name}
-          ipAddress={containers.find(c => c.id === inspectingNat.id)?.ip || networkConfig.nodeIpMap?.[inspectingNat.id]}
-          state={containers.find(c => c.id === inspectingNat.id)?.state || 'stopped'}
-          onClose={() => setInspectingNat(null)}
+          nodeName={inspector.name}
+          ipAddress={containers.find(c => c.id === inspector.id)?.ip || networkConfig.nodeIpMap?.[inspector.id]}
+          state={containers.find(c => c.id === inspector.id)?.state || 'stopped'}
+          onClose={closeInspector}
         />
       )}
 
-       {inspectingLoadBalancer && (
+      {inspector?.kind === 'loadbalancer' && (
         <LoadBalancerModal
-          containerId={inspectingLoadBalancer.id}
-          nodeName={inspectingLoadBalancer.name}
-          ipAddress={containers.find(c => c.id === inspectingLoadBalancer.id)?.ip || networkConfig.nodeIpMap?.[inspectingLoadBalancer.id]}
-          port={containers.find(c => c.id === inspectingLoadBalancer.id)?.port}
-          state={containers.find(c => c.id === inspectingLoadBalancer.id)?.state || 'stopped'}
+          containerId={inspector.id}
+          nodeName={inspector.name}
+          ipAddress={containers.find(c => c.id === inspector.id)?.ip || networkConfig.nodeIpMap?.[inspector.id]}
+          port={containers.find(c => c.id === inspector.id)?.port}
+          state={containers.find(c => c.id === inspector.id)?.state || 'stopped'}
           config={{
-            loadBalancerAlgorithm: networkConfig.loadBalancerAlgorithms?.[inspectingLoadBalancer.id],
-            loadBalancerTargets: networkConfig.loadBalancerTargets?.[inspectingLoadBalancer.id],
-            loadBalancerTargetPort: networkConfig.loadBalancerTargetPorts?.[inspectingLoadBalancer.id],
-            loadBalancerRoutingRules: networkConfig.loadBalancerRoutingRules?.[inspectingLoadBalancer.id]
+            loadBalancerAlgorithm: networkConfig.loadBalancerAlgorithms?.[inspector.id],
+            loadBalancerTargets: networkConfig.loadBalancerTargets?.[inspector.id],
+            loadBalancerTargetPort: networkConfig.loadBalancerTargetPorts?.[inspector.id],
+            loadBalancerRoutingRules: networkConfig.loadBalancerRoutingRules?.[inspector.id]
           }}
           allNodes={containers}
-          onClose={() => setInspectingLoadBalancer(null)}
+          onClose={closeInspector}
           onSaveConfig={async (algorithm, targets, targetPort, routingRules) => {
-            const updatedAlgorithms = {
-              ...(networkConfig.loadBalancerAlgorithms || {}),
-              [inspectingLoadBalancer.id]: algorithm
-            };
-            const updatedTargets = {
-              ...(networkConfig.loadBalancerTargets || {}),
-              [inspectingLoadBalancer.id]: targets
-            };
-            const updatedTargetPorts = {
-              ...(networkConfig.loadBalancerTargetPorts || {}),
-              [inspectingLoadBalancer.id]: targetPort
-            };
-            const updatedRoutingRules = {
-              ...(networkConfig.loadBalancerRoutingRules || {}),
-              [inspectingLoadBalancer.id]: routingRules
-            };
             const newConfig = {
               ...networkConfig,
-              loadBalancerAlgorithms: updatedAlgorithms,
-              loadBalancerTargets: updatedTargets,
-              loadBalancerTargetPorts: updatedTargetPorts,
-              loadBalancerRoutingRules: updatedRoutingRules
+              loadBalancerAlgorithms: { ...(networkConfig.loadBalancerAlgorithms || {}), [inspector.id]: algorithm },
+              loadBalancerTargets: { ...(networkConfig.loadBalancerTargets || {}), [inspector.id]: targets },
+              loadBalancerTargetPorts: { ...(networkConfig.loadBalancerTargetPorts || {}), [inspector.id]: targetPort },
+              loadBalancerRoutingRules: { ...(networkConfig.loadBalancerRoutingRules || {}), [inspector.id]: routingRules }
             };
             await saveNetworkConfig(newConfig);
             showToast("Load Balancer configuration applied");
@@ -811,22 +795,18 @@ export default function CanvasPage({ projectId, projectName, onBackToProjects, o
         />
       )}
 
-      {inspectingAsg && (
+      {inspector?.kind === 'asg' && (
         <AsgModal
-          asgId={inspectingAsg.id}
-          nodeName={inspectingAsg.name}
+          asgId={inspector.id}
+          nodeName={inspector.name}
           projectId={projectId}
           config={networkConfig}
           containers={containers}
-          onClose={() => setInspectingAsg(null)}
+          onClose={closeInspector}
           onSaveConfig={async (asgConfig) => {
-            const updatedAsgs = {
-              ...(networkConfig.asgs || {}),
-              [inspectingAsg.id]: asgConfig
-            };
             const newConfig = {
               ...networkConfig,
-              asgs: updatedAsgs
+              asgs: { ...(networkConfig.asgs || {}), [inspector.id]: asgConfig }
             };
             await saveNetworkConfig(newConfig);
             showToast("Auto Scaling Group configuration saved");
@@ -836,17 +816,16 @@ export default function CanvasPage({ projectId, projectName, onBackToProjects, o
         />
       )}
 
-      {/* Phase 3 Modals */}
-      {inspectingSubnet && (
+      {inspector?.kind === 'subnet-routes' && (
         <RoutingTableModal
-          subnetId={inspectingSubnet.id}
-          subnetName={inspectingSubnet.name}
-          routes={networkConfig.subnets.find(s => s.id === inspectingSubnet.id)?.routes || []}
+          subnetId={inspector.id}
+          subnetName={inspector.name}
+          routes={networkConfig.subnets.find(s => s.id === inspector.id)?.routes || []}
           natGateways={containers.filter(c => c.type === 'nat').map(c => c.name)}
-          onClose={() => setInspectingSubnet(null)}
+          onClose={closeInspector}
           onSave={async (updatedRoutes) => {
             const updatedSubnets = networkConfig.subnets.map(s => {
-              if (s.id === inspectingSubnet.id) {
+              if (s.id === inspector.id) {
                 return { ...s, routes: updatedRoutes };
               }
               return s;
@@ -856,21 +835,20 @@ export default function CanvasPage({ projectId, projectName, onBackToProjects, o
         />
       )}
 
-      {inspectingSecurityGroup && (
+      {inspector?.kind === 'security-group' && (
         <SecurityGroupsModal
-          nodeId={inspectingSecurityGroup.id}
-          nodeName={inspectingSecurityGroup.name}
-          nodeType={inspectingSecurityGroup.type}
+          nodeId={inspector.id}
+          nodeName={inspector.name}
+          nodeType={inspector.nodeType || 'ubuntu'}
           allNodes={containers}
           allSubnets={networkConfig.subnets.map(s => ({ id: s.id, name: s.name }))}
-          rules={networkConfig.nodeSecurityGroups[inspectingSecurityGroup.id] || []}
-          onClose={() => setInspectingSecurityGroup(null)}
+          rules={networkConfig.nodeSecurityGroups[inspector.id] || []}
+          onClose={closeInspector}
           onSaveRules={(rules) => {
-            const updatedSecurityGroups = {
-              ...networkConfig.nodeSecurityGroups,
-              [inspectingSecurityGroup.id]: rules
+            const newConfig = {
+              ...networkConfig,
+              nodeSecurityGroups: { ...networkConfig.nodeSecurityGroups, [inspector.id]: rules }
             };
-            const newConfig = { ...networkConfig, nodeSecurityGroups: updatedSecurityGroups };
             saveNetworkConfig(newConfig);
             triggerArchitectureAudit(newConfig);
           }}
