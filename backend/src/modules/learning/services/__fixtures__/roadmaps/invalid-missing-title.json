@@ -1,0 +1,19 @@
+{
+  "schemaVersion": 1,
+  "id": "broken-roadmap",
+  "description": "This roadmap is missing its title and must be skipped by the loader.",
+  "language": "en",
+  "steps": [
+    {
+      "id": "only-step",
+      "title": "Only step",
+      "instruction": "Nothing to do.",
+      "validators": [
+        {
+          "type": "container_running",
+          "params": { "node": "web" }
+        }
+      ]
+    }
+  ]
+}
