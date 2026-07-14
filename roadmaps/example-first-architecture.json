@@ -1,0 +1,78 @@
+{
+  "$schema": "https://raw.githubusercontent.com/Derssa/Torollo/main/backend/src/modules/learning/format/roadmap.schema.json",
+  "schemaVersion": 1,
+  "id": "example-first-architecture",
+  "title": "Your first architecture: a web server and its database",
+  "description": "Build a minimal two-tier architecture on the canvas: a web server, a PostgreSQL database, an authorized connection between them, and a locked-down network path. Every step is checked against your real containers.",
+  "language": "en",
+  "estimatedMinutes": 30,
+  "difficulty": "beginner",
+  "prerequisites": [
+    "Docker installed and running",
+    "A Torollo project created and open on the canvas"
+  ],
+  "steps": [
+    {
+      "id": "create-web-server",
+      "title": "Create the web server",
+      "instruction": "From the node library, drag an **Ubuntu** node onto the canvas and name it `web`. Start it and wait until it is running.",
+      "hints": [
+        "Nodes are created by dragging them from the library panel on the left side of the canvas."
+      ],
+      "validators": [
+        {
+          "type": "container_running",
+          "params": { "node": "web" }
+        }
+      ]
+    },
+    {
+      "id": "add-database",
+      "title": "Add a PostgreSQL database with a users table",
+      "instruction": "Add a **PostgreSQL** node named `db` and start it. Then open its explorer and create a table named `users` (any columns you like).",
+      "hints": [
+        "Double-click the PostgreSQL node to open its modal — the explorer tab lets you run SQL against the real container.",
+        "A table needs at least one column, for example: `CREATE TABLE users (id SERIAL PRIMARY KEY);`"
+      ],
+      "solution": "Create the node, start it, open its modal and run:\n\n```sql\nCREATE TABLE users (\n  id SERIAL PRIMARY KEY,\n  email TEXT NOT NULL\n);\n```",
+      "validators": [
+        {
+          "type": "container_running",
+          "params": { "node": "db" }
+        },
+        {
+          "type": "table_exists",
+          "params": { "node": "db", "table": "users" }
+        }
+      ]
+    },
+    {
+      "id": "connect-web-to-db",
+      "title": "Connect the web server to the database",
+      "instruction": "Allow `web` to reach `db` on port **5432** by adding an inbound ALLOW rule on `db`. A connection edge should appear on the canvas.",
+      "hints": [
+        "Security group rules are edited from the node's Security Groups panel: add an inbound rule on `db` with `web` as the source and 5432 as the port."
+      ],
+      "validators": [
+        {
+          "type": "edge_exists",
+          "params": { "source": "web", "target": "db", "port": 5432 }
+        }
+      ]
+    },
+    {
+      "id": "lock-down-database",
+      "title": "Lock down the database",
+      "instruction": "A database should only ever be reachable on its own port. Make sure `web` **cannot** reach `db` on port **80**.",
+      "hints": [
+        "Check the inbound rules on `db`: is there anything broader than port 5432, like an ALLOW on all ports or on 0.0.0.0/0?"
+      ],
+      "validators": [
+        {
+          "type": "port_denied",
+          "params": { "source": "web", "target": "db", "port": 80 }
+        }
+      ]
+    }
+  ]
+}
