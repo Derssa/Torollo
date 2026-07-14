@@ -5,34 +5,22 @@ import '@xyflow/react/dist/style.css';
 
 import UbuntuNode from '../../features/nodes/UbuntuNode/UbuntuNode';
 import NatNode from '../../features/nodes/NatNode/NatNode';
-import NatGatewayModal from '../../features/nodes/NatNode/NatGatewayModal';
 import PostgresNode from '../../features/nodes/PostgresNode/PostgresNode';
-import PostgresModal from '../../features/nodes/PostgresNode/PostgresModal';
 import NoSqlNode from '../../features/nodes/NoSqlNode/NoSqlNode';
-import NoSqlModal from '../../features/nodes/NoSqlNode/NoSqlModal';
 import RedisNode from '../../features/nodes/RedisNode/RedisNode';
-import RedisModal from '../../features/nodes/RedisNode/RedisModal';
-
 import LoadBalancerNode from '../../features/nodes/LoadBalancerNode/LoadBalancerNode';
-import LoadBalancerModal from '../../features/nodes/LoadBalancerNode/LoadBalancerModal';
 import AsgNode from '../../features/nodes/AsgNode/AsgNode';
-import AsgModal from '../../features/nodes/AsgNode/AsgModal';
+import VpcNode from '../../features/nodes/VpcNode/VpcNode';
+import SubnetNode from '../../features/nodes/SubnetNode/SubnetNode';
 import NodeLibrary from './components/NodeLibrary';
 import { useContainers } from '../../shared/hooks/useContainers';
 import { useToast } from '../../shared/hooks/useToast';
 import { ToastNotification } from '../../shared/components/Toast';
 import { DockerUnavailableBanner } from '../../shared/components/DockerUnavailableBanner';
-import InputModal from '../../shared/components/InputModal';
-import ConfirmModal from '../../shared/components/ConfirmModal';
 import CanvasTopbar from './components/CanvasTopbar';
 import CanvasFooter from './components/CanvasFooter';
-
-// Phase 3 Imports
-import VpcNode from '../../features/nodes/VpcNode/VpcNode';
-import SubnetNode from '../../features/nodes/SubnetNode/SubnetNode';
-import RoutingTableModal from '../../features/nodes/SubnetNode/RoutingTableModal';
-import SecurityGroupsModal from '../../features/nodes/SecurityGroups/SecurityGroupsModal';
-import VpcModal from '../../features/nodes/VpcNode/VpcModal';
+import CanvasModals from './components/CanvasModals';
+import type { InspectorState } from './components/CanvasModals';
 import ButtonEdge from './components/ButtonEdge';
 import { API_BASE } from '../../shared/types';
 import { useNetworkConfig } from './hooks/useNetworkConfig';
@@ -52,15 +40,6 @@ interface CanvasPageProps {
   projectName: string;
   onBackToProjects: () => void;
   onTerminalOpen: (id: string, name: string) => void;
-}
-
-/** Which inspector modal is open. They are mutually exclusive, hence one state. */
-interface InspectorState {
-  kind: 'postgres' | 'nosql' | 'redis' | 'nat' | 'loadbalancer' | 'asg' | 'subnet-routes' | 'security-group';
-  id: string;
-  name: string;
-  /** Only set for kind 'security-group' (the modal displays the node type). */
-  nodeType?: string;
 }
 
 /** Inspector opened by each node type's magnifier action ('sql' shares the Postgres modal). */
@@ -638,260 +617,33 @@ export default function CanvasPage({ projectId, projectName, onBackToProjects, o
 
       <CanvasFooter containers={containers} />
 
-      {/* Modals */}
-      {showCreateModal && (
-        <InputModal
-          title={
-            (dropState?.type === 'postgres' || dropState?.type === 'sql')
-              ? "Create SQL Database Node"
-              : dropState?.type === 'nosql'
-                ? "Create NoSQL Database Node"
-                : dropState?.type === 'redis'
-                  ? "Create Cache Store Node"
-                : dropState?.type === 'nat'
-                  ? "Create NAT Gateway Node"
-                  : dropState?.type === 'loadbalancer'
-                    ? "Create Load Balancer Node"
-                    : dropState?.type === 'autoscalinggroup'
-                      ? "Create Auto Scaling Group Node"
-                      : "Create Ubuntu Node"
-          }
-          label="Give your new container a descriptive name."
-          placeholder={
-            (dropState?.type === 'postgres' || dropState?.type === 'sql')
-              ? "e.g. sql-1"
-              : dropState?.type === 'nosql'
-                ? "e.g. nosql-1"
-                : dropState?.type === 'redis'
-                  ? "e.g. redis-1"
-                : dropState?.type === 'nat'
-                  ? "e.g. nat-1"
-                  : dropState?.type === 'loadbalancer'
-                    ? "e.g. alb-1"
-                    : dropState?.type === 'autoscalinggroup'
-                      ? "e.g. asg-1"
-                      : "e.g. server-1"
-          }
-          maxLength={20}
-          restrictPattern={/[^a-zA-Z0-9-]/g}
-          defaultValue={
-            (() => {
-              const type = dropState?.type || 'ubuntu';
-              const prefix =
-                (type === 'postgres' || type === 'sql')
-                  ? 'sql-'
-                  : type === 'nosql'
-                    ? 'nosql-'
-                    : type === 'redis'
-                      ? 'redis-'
-                    : type === 'nat'
-                      ? 'nat-'
-                      : type === 'loadbalancer'
-                        ? 'alb-'
-                        : type === 'autoscalinggroup'
-                          ? 'asg-'
-                          : 'srv-';
-              let suffix = 1;
-              while (containers.some(c => c.name === `${prefix}${suffix}`)) {
-                suffix++;
-              }
-              return `${prefix}${suffix}`;
-            })()
-          }
-          submitText="Create Node"
-          onSubmit={handleCreateNode}
-          onCancel={handleCancelCreate}
-        />
-      )}
-
-      {deleteTarget && (
-        <ConfirmModal
-          title="Delete Container"
-          message="This will permanently stop and remove this container. This action cannot be undone."
-          confirmText="Delete"
-          variant="danger"
-          onConfirm={handleDeleteConfirmed}
-          onCancel={() => setDeleteTarget(null)}
-        />
-      )}
-
-      {renamingNode && (
-        <InputModal
-          title="Rename Node"
-          label="Enter a new name for this node."
-          placeholder="e.g. api-gateway"
-          maxLength={20}
-          restrictPattern={/[^a-zA-Z0-9-]/g}
-          defaultValue={renamingNode.currentName}
-          submitText="Rename"
-          onSubmit={handleRenameNode}
-          onCancel={() => setRenamingNode(null)}
-        />
-      )}
-
-      {inspector?.kind === 'postgres' && (
-        <PostgresModal
-          containerId={inspector.id}
-          nodeName={inspector.name}
-          projectId={projectId}
-          onClose={closeInspector}
-        />
-      )}
-
-      {inspector?.kind === 'nosql' && (
-        <NoSqlModal
-          containerId={inspector.id}
-          nodeName={inspector.name}
-          projectId={projectId}
-          onClose={closeInspector}
-        />
-      )}
-
-      {inspector?.kind === 'redis' && (
-        <RedisModal
-          containerId={inspector.id}
-          nodeName={inspector.name}
-          projectId={projectId}
-          onClose={closeInspector}
-        />
-      )}
-
-      {inspector?.kind === 'nat' && (
-        <NatGatewayModal
-          nodeName={inspector.name}
-          ipAddress={containers.find(c => c.id === inspector.id)?.ip || networkConfig.nodeIpMap?.[inspector.id]}
-          state={containers.find(c => c.id === inspector.id)?.state || 'stopped'}
-          onClose={closeInspector}
-        />
-      )}
-
-      {inspector?.kind === 'loadbalancer' && (
-        <LoadBalancerModal
-          containerId={inspector.id}
-          nodeName={inspector.name}
-          ipAddress={containers.find(c => c.id === inspector.id)?.ip || networkConfig.nodeIpMap?.[inspector.id]}
-          port={containers.find(c => c.id === inspector.id)?.port}
-          state={containers.find(c => c.id === inspector.id)?.state || 'stopped'}
-          config={{
-            loadBalancerAlgorithm: networkConfig.loadBalancerAlgorithms?.[inspector.id],
-            loadBalancerTargets: networkConfig.loadBalancerTargets?.[inspector.id],
-            loadBalancerTargetPort: networkConfig.loadBalancerTargetPorts?.[inspector.id],
-            loadBalancerRoutingRules: networkConfig.loadBalancerRoutingRules?.[inspector.id]
-          }}
-          allNodes={containers}
-          onClose={closeInspector}
-          onSaveConfig={async (algorithm, targets, targetPort, routingRules) => {
-            const newConfig = {
-              ...networkConfig,
-              loadBalancerAlgorithms: { ...(networkConfig.loadBalancerAlgorithms || {}), [inspector.id]: algorithm },
-              loadBalancerTargets: { ...(networkConfig.loadBalancerTargets || {}), [inspector.id]: targets },
-              loadBalancerTargetPorts: { ...(networkConfig.loadBalancerTargetPorts || {}), [inspector.id]: targetPort },
-              loadBalancerRoutingRules: { ...(networkConfig.loadBalancerRoutingRules || {}), [inspector.id]: routingRules }
-            };
-            await saveNetworkConfig(newConfig);
-            showToast("Load Balancer configuration applied");
-            triggerArchitectureAudit(newConfig);
-          }}
-        />
-      )}
-
-      {inspector?.kind === 'asg' && (
-        <AsgModal
-          asgId={inspector.id}
-          nodeName={inspector.name}
-          projectId={projectId}
-          config={networkConfig}
-          containers={containers}
-          onClose={closeInspector}
-          onSaveConfig={async (asgConfig) => {
-            const newConfig = {
-              ...networkConfig,
-              asgs: { ...(networkConfig.asgs || {}), [inspector.id]: asgConfig }
-            };
-            await saveNetworkConfig(newConfig);
-            showToast("Auto Scaling Group configuration saved");
-            triggerArchitectureAudit(newConfig);
-          }}
-          onRefreshContainers={fetchContainers}
-        />
-      )}
-
-      {inspector?.kind === 'subnet-routes' && (
-        <RoutingTableModal
-          subnetId={inspector.id}
-          subnetName={inspector.name}
-          routes={networkConfig.subnets.find(s => s.id === inspector.id)?.routes || []}
-          natGateways={containers.filter(c => c.type === 'nat').map(c => c.name)}
-          onClose={closeInspector}
-          onSave={async (updatedRoutes) => {
-            const updatedSubnets = networkConfig.subnets.map(s => {
-              if (s.id === inspector.id) {
-                return { ...s, routes: updatedRoutes };
-              }
-              return s;
-            });
-            await saveNetworkConfig({ ...networkConfig, subnets: updatedSubnets });
-          }}
-        />
-      )}
-
-      {inspector?.kind === 'security-group' && (
-        <SecurityGroupsModal
-          nodeId={inspector.id}
-          nodeName={inspector.name}
-          nodeType={inspector.nodeType || 'ubuntu'}
-          allNodes={containers}
-          allSubnets={networkConfig.subnets.map(s => ({ id: s.id, name: s.name }))}
-          rules={networkConfig.nodeSecurityGroups[inspector.id] || []}
-          onClose={closeInspector}
-          onSaveRules={(rules) => {
-            const newConfig = {
-              ...networkConfig,
-              nodeSecurityGroups: { ...networkConfig.nodeSecurityGroups, [inspector.id]: rules }
-            };
-            saveNetworkConfig(newConfig);
-            triggerArchitectureAudit(newConfig);
-          }}
-        />
-      )}
-
-      {showVpcSettings && (
-        <VpcModal
-          vpcConfig={networkConfig.vpcConfig}
-          subnets={networkConfig.subnets}
-          nodes={containers}
-          nodeSecurityGroups={networkConfig.nodeSecurityGroups}
-          nodeSubnetMap={networkConfig.nodeSubnetMap}
-          onClose={() => setShowVpcSettings(false)}
-          onSaveVpcConfig={(config) => {
-            const newConfig = { ...networkConfig, vpcConfig: config };
-            saveNetworkConfig(newConfig);
-            setShowVpcSettings(false);
-            showToast("VPC configuration saved");
-            triggerArchitectureAudit(newConfig);
-          }}
-          initialTab="info"
-        />
-      )}
-
-      {showTrafficSimulator && (
-        <VpcModal
-          vpcConfig={networkConfig.vpcConfig}
-          subnets={networkConfig.subnets}
-          nodes={containers}
-          nodeSecurityGroups={networkConfig.nodeSecurityGroups}
-          nodeSubnetMap={networkConfig.nodeSubnetMap}
-          onClose={() => setShowTrafficSimulator(false)}
-          onSaveVpcConfig={(config) => {
-            const newConfig = { ...networkConfig, vpcConfig: config };
-            saveNetworkConfig(newConfig);
-            setShowTrafficSimulator(false);
-            showToast("VPC configuration saved");
-            triggerArchitectureAudit(newConfig);
-          }}
-          initialTab="simulator"
-        />
-      )}
+      <CanvasModals
+        projectId={projectId}
+        containers={containers}
+        networkConfig={networkConfig}
+        saveNetworkConfig={saveNetworkConfig}
+        triggerArchitectureAudit={triggerArchitectureAudit}
+        showToast={showToast}
+        fetchContainers={fetchContainers}
+        createNode={showCreateModal ? {
+          type: dropState?.type || 'ubuntu',
+          onSubmit: handleCreateNode,
+          onCancel: handleCancelCreate,
+        } : null}
+        deleteNode={deleteTarget ? {
+          onConfirm: handleDeleteConfirmed,
+          onCancel: () => setDeleteTarget(null),
+        } : null}
+        renameNode={renamingNode ? {
+          currentName: renamingNode.currentName,
+          onSubmit: handleRenameNode,
+          onCancel: () => setRenamingNode(null),
+        } : null}
+        inspector={inspector}
+        onCloseInspector={closeInspector}
+        vpcSettings={showVpcSettings ? { onClose: () => setShowVpcSettings(false) } : null}
+        trafficSimulator={showTrafficSimulator ? { onClose: () => setShowTrafficSimulator(false) } : null}
+      />
 
       {dockerUnavailable && <DockerUnavailableBanner />}
 
