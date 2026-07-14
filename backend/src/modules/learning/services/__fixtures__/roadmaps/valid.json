@@ -1,0 +1,33 @@
+{
+  "schemaVersion": 1,
+  "id": "fixture-roadmap",
+  "title": "Fixture roadmap",
+  "description": "A minimal valid roadmap used by roadmapService tests.",
+  "language": "en",
+  "estimatedMinutes": 10,
+  "difficulty": "beginner",
+  "steps": [
+    {
+      "id": "start-web",
+      "title": "Start the web server",
+      "instruction": "Create a node named `web` and start it.",
+      "validators": [
+        {
+          "type": "container_running",
+          "params": { "node": "web" }
+        }
+      ]
+    },
+    {
+      "id": "start-db",
+      "title": "Start the database",
+      "instruction": "Create a node named `db` and start it.",
+      "validators": [
+        {
+          "type": "container_running",
+          "params": { "node": "db" }
+        }
+      ]
+    }
+  ]
+}

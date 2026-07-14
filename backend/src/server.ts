@@ -6,6 +6,7 @@ import { ENV } from './config/env';
 import projectRouter from './modules/projects/routes/projectRoutes';
 import containerRouter from './modules/containers/routes/containerRoutes';
 import healthRouter from './modules/health/routes/healthRoutes';
+import learningRouter from './modules/learning/routes/learningRoutes';
 import { TerminalGateway } from './modules/terminal/gateway/terminalGateway';
 import { DockerInitializer } from './infrastructure/docker/DockerInitializer';
 
@@ -24,6 +25,7 @@ app.use('/health', healthRouter);
 // Scoped APIs
 app.use('/api/projects', projectRouter);
 app.use('/api/projects/:projectId/containers', containerRouter);
+app.use('/api/learning', learningRouter);
 
 // Socket.IO Setup
 const io = new Server(server, {
