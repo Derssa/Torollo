@@ -36,7 +36,7 @@ import VpcModal from '../../features/nodes/VpcNode/VpcModal';
 import ButtonEdge from './components/ButtonEdge';
 import { validateArchitecture } from '../../shared/utils/architectureValidator';
 import { API_BASE } from '../../shared/types';
-import type { Subnet, NetworkConfig, SecurityGroupRule } from '../../shared/types/network';
+import type { Subnet, NetworkConfig } from '../../shared/types/network';
 import {
   getAbsoluteCoordinates,
   findSubnetAtPoint,
@@ -45,6 +45,14 @@ import {
   resolveSubnetChildPosition,
   subnetSize,
 } from './utils/canvasGeometry';
+import {
+  createDefaultRules,
+  addConnectionRule,
+  parseEdgeId,
+  removeEdgeRule,
+  removeRulesForConnections,
+  buildFirewallEdges,
+} from './utils/securityRules';
 
 interface CanvasPageProps {
   projectId: string;
@@ -297,82 +305,22 @@ export default function CanvasPage({ projectId, projectName, onBackToProjects, o
   }, [networkConfig, containers, saveNetworkConfig, triggerArchitectureAudit, showNotification]);
 
   const handleDeleteEdge = useCallback((edgeId: string) => {
-    const match = edgeId.match(/^edge-([^-]+)-([^-]+)-(.+)$/);
-    if (!match) return;
-    const [, sourceId, targetId, port] = match;
+    const parsed = parseEdgeId(edgeId);
+    if (!parsed) return;
 
-    const updatedSecurityGroups = { ...networkConfig.nodeSecurityGroups };
-    if (updatedSecurityGroups[targetId]) {
-      updatedSecurityGroups[targetId] = updatedSecurityGroups[targetId].filter(rule => {
-        return !(rule.type === 'inbound' && rule.action === 'ALLOW' && rule.port === port && (rule.source === sourceId || rule.source === '0.0.0.0/0'));
-      });
-      const newConfig = { ...networkConfig, nodeSecurityGroups: updatedSecurityGroups };
-      saveNetworkConfig(newConfig);
-      showToast("Firewall connection removed");
-      triggerArchitectureAudit(newConfig);
-    }
+    const newConfig = removeEdgeRule(networkConfig, parsed.sourceId, parsed.targetId, parsed.port);
+    if (!newConfig) return;
+
+    saveNetworkConfig(newConfig);
+    showToast("Firewall connection removed");
+    triggerArchitectureAudit(newConfig);
   }, [networkConfig, saveNetworkConfig, showToast, triggerArchitectureAudit]);
 
-  // Dynamic Edges builder representing firewall rules
-  const edges = useMemo(() => {
-    const edgesList: Edge[] = [];
-
-    containers.forEach(destNode => {
-      if (destNode.type === 'nat') return;
-      const destRules = networkConfig.nodeSecurityGroups[destNode.id] || [];
-      const destSubnetId = networkConfig.nodeSubnetMap[destNode.id];
-      if (!destSubnetId) return;
-      const destSubnet = networkConfig.subnets.find(s => s.id === destSubnetId);
-      const destVpcId = destSubnet?.vpcId;
-      if (!destVpcId) return;
-
-      const inboundAllowRules = destRules.filter(r => r.type === 'inbound' && r.action === 'ALLOW');
-
-      inboundAllowRules.forEach(rule => {
-        containers.forEach(srcNode => {
-          if (srcNode.id === destNode.id) return;
-          if (srcNode.type === 'nat') return;
-
-          const srcSubnetId = networkConfig.nodeSubnetMap[srcNode.id];
-          if (!srcSubnetId) return;
-          const srcSubnet = networkConfig.subnets.find(s => s.id === srcSubnetId);
-          const srcVpcId = srcSubnet?.vpcId;
-
-          // Must be in the same VPC
-          if (srcVpcId !== destVpcId) return;
-
-          // Check if source matches rule
-          let isMatch = false;
-          if (rule.source === '0.0.0.0/0') {
-            isMatch = true;
-          } else if (rule.source === srcSubnetId) {
-            isMatch = true;
-          } else if (rule.source === srcNode.id) {
-            isMatch = true;
-          }
-
-          if (isMatch) {
-            const edgeId = `edge-${srcNode.id}-${destNode.id}-${rule.port}`;
-            if (!edgesList.some(e => e.id === edgeId)) {
-              edgesList.push({
-                id: edgeId,
-                source: srcNode.id,
-                target: destNode.id,
-                type: 'buttonEdge',
-                data: { onDelete: handleDeleteEdge },
-                animated: true,
-                label: `Port ${rule.port}`,
-                style: { stroke: '#10B981', strokeWidth: 2 },
-                labelStyle: { fill: '#374151', fontSize: 9, fontWeight: 700 }
-              });
-            }
-          }
-        });
-      });
-    });
-
-    return edgesList;
-  }, [containers, networkConfig, handleDeleteEdge]);
+  // Dynamic edges representing firewall rules
+  const edges = useMemo(
+    () => buildFirewallEdges(containers, networkConfig, handleDeleteEdge),
+    [containers, networkConfig, handleDeleteEdge]
+  );
 
   // Handle manual connection line draws (automatically updates security group)
   const onConnect = useCallback((connection: Connection) => {
@@ -381,60 +329,27 @@ export default function CanvasPage({ projectId, projectName, onBackToProjects, o
     const targetNode = containers.find(n => n.id === target);
     const sourceNode = containers.find(n => n.id === source);
     if (!targetNode) return;
-    const targetType = targetNode.type || 'ubuntu';
-    
-    const isDb = ['postgres', 'sql', 'nosql', 'mysql', 'redis'].includes(targetType);
-    const defaultProtocol = isDb ? 'TCP' : 'ALL';
-    const defaultPort = (targetType === 'postgres' || targetType === 'sql') ? '5432' : (targetType === 'nosql') ? '27017' : (targetType === 'mysql') ? '3306' : (targetType === 'redis') ? '6379' : 'ALL';
 
-    const currentRules = networkConfig.nodeSecurityGroups[target] || [];
-    const alreadyExists = currentRules.some(r => r.type === 'inbound' && r.action === 'ALLOW' && r.port === defaultPort && r.source === source);
-    if (alreadyExists) return;
+    const result = addConnectionRule(networkConfig, source, target, targetNode.type || 'ubuntu');
+    if (!result) return;
 
-    const newRule: SecurityGroupRule = {
-      id: `rule-${Math.random().toString(36).substr(2, 9)}`,
-      type: 'inbound',
-      action: 'ALLOW',
-      protocol: defaultProtocol,
-      port: defaultPort,
-      source: source
-    };
-
-    const updatedSecurityGroups = {
-      ...networkConfig.nodeSecurityGroups,
-      [target]: [newRule, ...currentRules]
-    };
-    const newConfig = { ...networkConfig, nodeSecurityGroups: updatedSecurityGroups };
-    saveNetworkConfig(newConfig);
+    saveNetworkConfig(result.config);
     const sourceName = sourceNode?.name || source;
-    showToast(`Security Group: Allowed ${defaultPort === 'ALL' ? 'all traffic' : `Port ${defaultPort}`} inbound from ${sourceName}`);
-    triggerArchitectureAudit(newConfig);
+    showToast(`Security Group: Allowed ${result.port === 'ALL' ? 'all traffic' : `Port ${result.port}`} inbound from ${sourceName}`);
+    triggerArchitectureAudit(result.config);
   }, [containers, networkConfig, saveNetworkConfig, showToast, triggerArchitectureAudit]);
 
   // Handle connection line deletion (removes matching firewall rule)
   const onEdgesDelete = useCallback((deletedEdges: Edge[]) => {
-    const updatedSecurityGroups = { ...networkConfig.nodeSecurityGroups };
-    let changed = false;
+    const newConfig = removeRulesForConnections(
+      networkConfig,
+      deletedEdges.map(edge => ({ source: edge.source, target: edge.target }))
+    );
+    if (!newConfig) return;
 
-    deletedEdges.forEach(edge => {
-      const targetId = edge.target;
-      const sourceId = edge.source;
-
-      if (updatedSecurityGroups[targetId]) {
-        updatedSecurityGroups[targetId] = updatedSecurityGroups[targetId].filter(rule => {
-          const isMatch = rule.type === 'inbound' && rule.action === 'ALLOW' && (rule.source === sourceId || rule.source === '0.0.0.0/0');
-          if (isMatch) changed = true;
-          return !isMatch;
-        });
-      }
-    });
-
-    if (changed) {
-      const newConfig = { ...networkConfig, nodeSecurityGroups: updatedSecurityGroups };
-      saveNetworkConfig(newConfig);
-      showToast("Firewall rule removed");
-      triggerArchitectureAudit(newConfig);
-    }
+    saveNetworkConfig(newConfig);
+    showToast("Firewall rule removed");
+    triggerArchitectureAudit(newConfig);
   }, [networkConfig, saveNetworkConfig, showToast, triggerArchitectureAudit]);
 
   const allocateIpForNode = (nodeId: string, subnetId: string, currentConfig: NetworkConfig): string => {
@@ -463,28 +378,6 @@ export default function CanvasPage({ projectId, projectName, onBackToProjects, o
     }
 
     return `${prefix}${suffix}`;
-  };
-
-  // Helper to generate default security group rules for network nodes (deny all inbound by default)
-  const initDefaultRules = () => {
-    return [
-      {
-        id: `rule-${Math.random().toString(36).substr(2, 9)}`,
-        type: 'inbound' as const,
-        action: 'DENY' as const,
-        protocol: 'ALL' as const,
-        port: 'ALL',
-        source: '0.0.0.0/0'
-      },
-      {
-        id: `rule-${Math.random().toString(36).substr(2, 9)}`,
-        type: 'outbound' as const,
-        action: 'ALLOW' as const,
-        protocol: 'ALL' as const,
-        port: 'ALL',
-        source: '0.0.0.0/0'
-      }
-    ];
   };
 
   const fetchNetworkConfig = useCallback(() => {
@@ -565,7 +458,7 @@ export default function CanvasPage({ projectId, projectName, onBackToProjects, o
 
         // Auto-configure default security rules on drop
         if (!updatedSecurityGroups[c.id] || updatedSecurityGroups[c.id].length === 0) {
-          updatedSecurityGroups[c.id] = initDefaultRules();
+          updatedSecurityGroups[c.id] = createDefaultRules();
         }
 
         const tempConfig = { ...networkConfig, nodeSubnetMap: updatedNodeSubnetMap, nodeIpMap: updatedNodeIpMap };
@@ -928,7 +821,7 @@ export default function CanvasPage({ projectId, projectName, onBackToProjects, o
 
         // Automatically setup default firewall connections when dragged into subnet
         if (!updatedSecurityGroups[draggedNode.id] || updatedSecurityGroups[draggedNode.id].length === 0) {
-          updatedSecurityGroups[draggedNode.id] = initDefaultRules();
+          updatedSecurityGroups[draggedNode.id] = createDefaultRules();
         }
 
         const tempConfig = {
