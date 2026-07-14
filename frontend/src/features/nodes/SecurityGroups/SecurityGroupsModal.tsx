@@ -1,15 +1,9 @@
 import { X, ShieldAlert, Plus, Trash, ChevronUp, ChevronDown } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import type { ContainerData } from '../../../shared/types';
+import type { SecurityGroupRule } from '../../../shared/types/network';
 
-export interface SecurityGroupRule {
-  id: string;
-  type: 'inbound' | 'outbound';
-  action: 'ALLOW' | 'DENY';
-  protocol: 'ALL' | 'TCP' | 'UDP' | 'ICMP';
-  port: string; // e.g. "80", "5432", "ALL"
-  source: string; // e.g. "0.0.0.0/0", "subnet-id", "node-id"
-}
+export type { SecurityGroupRule };
 
 interface SecurityGroupsModalProps {
   nodeId: string;

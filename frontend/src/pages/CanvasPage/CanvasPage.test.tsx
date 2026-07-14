@@ -3,20 +3,10 @@ import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { render, screen, fireEvent, createEvent, waitFor, within, act } from '@testing-library/react';
 import CanvasPage from './CanvasPage';
 
-// KNOWN COVERAGE GAPS (accepted, see the frontend test safety net plan):
-// - onNodeDragStart/onNodeDrag/onNodeDragStop (~300 lines): drag-based nesting/
-//   reparenting/overlap logic is not exercised here. jsdom has no real layout
-//   engine, and RTL/fireEvent cannot simulate pointer-based drag sequences
-//   realistically enough to drive this logic meaningfully. Deep coverage of this
-//   logic is deferred to the CanvasPage split-up refactor, which should extract
-//   it into a testable pure function/hook first.
-// - onConnect (drawing a connection creates a default inbound ALLOW rule) and
-//   the edges-derived-from-security-rules rendering (incl. handleDeleteEdge):
-//   both require React Flow handles/edges to be laid out and hit-testable,
-//   which jsdom cannot provide (nodes are never measured — the ResizeObserver
-//   polyfill in setupTests.ts is an intentional no-op). The refactor should
-//   extract the rule<->edge mapping into pure functions so it can be
-//   unit-tested directly.
+// Drag geometry, security-rule creation and rule->edge derivation cannot be
+// driven through jsdom (no layout engine, no measurable React Flow handles).
+// They are unit-tested directly in utils/canvasGeometry.test.ts,
+// utils/securityRules.test.ts and utils/networkConfigOps.test.ts.
 
 function jsonResponse(ok: boolean, body: unknown) {
   return Promise.resolve({ ok, json: () => Promise.resolve(body) } as Response);
