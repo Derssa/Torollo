@@ -34,9 +34,8 @@ import RoutingTableModal from '../../features/nodes/SubnetNode/RoutingTableModal
 import SecurityGroupsModal from '../../features/nodes/SecurityGroups/SecurityGroupsModal';
 import VpcModal from '../../features/nodes/VpcNode/VpcModal';
 import ButtonEdge from './components/ButtonEdge';
-import { validateArchitecture } from '../../shared/utils/architectureValidator';
 import { API_BASE } from '../../shared/types';
-import type { NetworkConfig } from '../../shared/types/network';
+import { useNetworkConfig } from './hooks/useNetworkConfig';
 import {
   getAbsoluteCoordinates,
   findSubnetAtPoint,
@@ -107,8 +106,6 @@ export default function CanvasPage({ projectId, projectName, onBackToProjects, o
   const dropSubnetsRef = useRef<Record<string, string>>({});
   const pendingSubnetIdRef = useRef<string | null>(null);
   const dragStartPositionsRef = useRef<Record<string, { x: number; y: number; parentId?: string }>>({});
-  const prevDbCountRef = useRef(0);
-  const hasShownCacheWarningRef = useRef(false);
   const draggingNodeIdRef = useRef<string | null>(null);
 
   // React Flow managed nodes state
@@ -117,22 +114,8 @@ export default function CanvasPage({ projectId, projectName, onBackToProjects, o
   // Ref to track saved positions (avoids re-render loops)
   const positionsRef = useRef<Record<string, { x: number; y: number }>>({});
 
-  const defaultVpcConfig = useMemo(() => ({
-    name: 'Main Network',
-    cidr: '10.0.0.0/16',
-    dnsEnabled: true,
-    igwEnabled: true,
-    description: 'Project-wide Virtual Private Cloud'
-  }), []);
-
-  // Network Simulation state
-  const [networkConfig, setNetworkConfig] = useState<NetworkConfig>({
-    vpcConfig: defaultVpcConfig,
-    subnets: [],
-    nodeSubnetMap: {},
-    nodeSecurityGroups: {},
-    nodeIpMap: {}
-  });
+  const { networkConfig, saveNetworkConfig, fetchNetworkConfig, triggerArchitectureAudit } =
+    useNetworkConfig({ projectId, containers, showNotification });
 
   const [showVpcSettings, setShowVpcSettings] = useState(false);
   const [showTrafficSimulator, setShowTrafficSimulator] = useState(false);
@@ -153,74 +136,6 @@ export default function CanvasPage({ projectId, projectName, onBackToProjects, o
   const edgeTypes = useMemo(() => ({
     buttonEdge: ButtonEdge
   }), []);
-
-  // Save/load network config helper
-  const saveNetworkConfig = useCallback((newConfig: NetworkConfig) => {
-    const grownConfig = autoGrowContainers(newConfig);
-    setNetworkConfig(grownConfig);
-    localStorage.setItem(`akal-lab-network-config-${projectId}`, JSON.stringify(grownConfig));
-
-    // Sync to backend to trigger runtime enforcement
-    return fetch(`${API_BASE}/api/projects/${projectId}/network-config`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json'
-      },
-      body: JSON.stringify({ networkConfig: grownConfig })
-    })
-    .then(res => {
-      if (!res.ok) {
-        throw new Error(`Failed to save network config (HTTP ${res.status})`);
-      }
-      return res.json();
-    })
-    .then(data => {
-      if (data && data.vpcConfig) {
-        setNetworkConfig(data);
-        localStorage.setItem(`akal-lab-network-config-${projectId}`, JSON.stringify(data));
-      }
-    })
-    .catch(err => {
-      console.error('Failed to sync network configuration to backend:', err);
-      throw err;
-    });
-  }, [projectId]);
-
-  const triggerArchitectureAudit = useCallback((configToValidate: NetworkConfig) => {
-    const result = validateArchitecture(configToValidate, containers);
-
-    // Detect DB nodes count
-    const currentDbCount = containers.filter(c => ['postgres', 'sql', 'nosql'].includes(c.type || '')).length;
-    if (currentDbCount > prevDbCountRef.current) {
-      hasShownCacheWarningRef.current = false;
-    }
-    prevDbCountRef.current = currentDbCount;
-
-    let warnings = result.warnings;
-    const hasCacheWarning = warnings.some(w => w.includes('No caching tier'));
-
-    if (hasCacheWarning) {
-      if (hasShownCacheWarningRef.current) {
-        // Filter it out so it doesn't toast again
-        warnings = warnings.filter(w => !w.includes('No caching tier'));
-      } else {
-        // Mark as shown so subsequent non-add actions don't trigger it
-        hasShownCacheWarningRef.current = true;
-      }
-    } else {
-      if (currentDbCount === 0) {
-        hasShownCacheWarningRef.current = false;
-      }
-    }
-
-    if (result.errors.length > 0) {
-      showNotification({ type: 'error', message: result.errors[0] });
-    } else if (warnings.length > 0) {
-      showNotification({ type: 'warning', message: warnings[0] });
-    } else if (result.successes.length > 0) {
-      showNotification({ type: 'success', message: result.successes[0] });
-    }
-  }, [containers, showNotification]);
 
   const handleDeleteSubnet = useCallback((subnetId: string) => {
     const hasNodes = Object.values(networkConfig.nodeSubnetMap).some(sid => sid === subnetId);
@@ -342,49 +257,6 @@ export default function CanvasPage({ projectId, projectName, onBackToProjects, o
     showToast("Firewall rule removed");
     triggerArchitectureAudit(newConfig);
   }, [networkConfig, saveNetworkConfig, showToast, triggerArchitectureAudit]);
-
-  const fetchNetworkConfig = useCallback(() => {
-    fetch(`${API_BASE}/api/projects/${projectId}/network-config`)
-      .then(res => res.json())
-      .then(data => {
-        if (data && data.vpcConfig) {
-          setNetworkConfig(data);
-          localStorage.setItem(`akal-lab-network-config-${projectId}`, JSON.stringify(data));
-        } else {
-          const savedConfig = localStorage.getItem(`akal-lab-network-config-${projectId}`);
-          if (savedConfig) {
-            const parsed = JSON.parse(savedConfig);
-            if (!parsed.vpcConfig) {
-              parsed.vpcConfig = defaultVpcConfig;
-            }
-            setNetworkConfig(parsed);
-          } else {
-            setNetworkConfig({
-              vpcConfig: defaultVpcConfig,
-              subnets: [],
-              nodeSubnetMap: {},
-              nodeSecurityGroups: {},
-              nodeIpMap: {}
-            });
-          }
-        }
-      })
-      .catch(err => {
-        console.error('Failed to fetch network config from backend, using localStorage:', err);
-        const savedConfig = localStorage.getItem(`akal-lab-network-config-${projectId}`);
-        if (savedConfig) {
-          try {
-            const parsed = JSON.parse(savedConfig);
-            if (!parsed.vpcConfig) {
-              parsed.vpcConfig = defaultVpcConfig;
-            }
-            setNetworkConfig(parsed);
-          } catch (e) {
-            console.error(e);
-          }
-        }
-      });
-  }, [projectId, defaultVpcConfig]);
 
   // Load saved positions, network configurations and start polling
   useEffect(() => {
