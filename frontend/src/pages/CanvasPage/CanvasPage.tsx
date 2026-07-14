@@ -36,7 +36,7 @@ import VpcModal from '../../features/nodes/VpcNode/VpcModal';
 import ButtonEdge from './components/ButtonEdge';
 import { validateArchitecture } from '../../shared/utils/architectureValidator';
 import { API_BASE } from '../../shared/types';
-import type { Subnet, NetworkConfig } from '../../shared/types/network';
+import type { NetworkConfig } from '../../shared/types/network';
 import {
   getAbsoluteCoordinates,
   findSubnetAtPoint,
@@ -46,33 +46,24 @@ import {
   subnetSize,
 } from './utils/canvasGeometry';
 import {
-  createDefaultRules,
   addConnectionRule,
   parseEdgeId,
   removeEdgeRule,
   removeRulesForConnections,
   buildFirewallEdges,
 } from './utils/securityRules';
+import {
+  autoGrowContainers,
+  assignNodeToSubnet,
+  removeNodeFromConfig,
+  createSubnet,
+} from './utils/networkConfigOps';
 
 interface CanvasPageProps {
   projectId: string;
   projectName: string;
   onBackToProjects: () => void;
   onTerminalOpen: (id: string, name: string) => void;
-}
-
-function autoGrowContainers(
-  config: NetworkConfig
-): NetworkConfig {
-  const updatedSubnets = config.subnets.map(subnet => ({
-    ...subnet,
-    ...subnetSize(subnet.columns || 2, subnet.rows || 1)
-  }));
-
-  return {
-    ...config,
-    subnets: updatedSubnets
-  };
 }
 
 export default function CanvasPage({ projectId, projectName, onBackToProjects, onTerminalOpen }: CanvasPageProps) {
@@ -352,34 +343,6 @@ export default function CanvasPage({ projectId, projectName, onBackToProjects, o
     triggerArchitectureAudit(newConfig);
   }, [networkConfig, saveNetworkConfig, showToast, triggerArchitectureAudit]);
 
-  const allocateIpForNode = (nodeId: string, subnetId: string, currentConfig: NetworkConfig): string => {
-    const subnet = currentConfig.subnets.find(s => s.id === subnetId);
-    if (!subnet) return '';
-    const cidr = subnet.cidr || '10.99.1.0/24';
-    const match = cidr.match(/^(\d+\.\d+\.\d+)\./);
-    if (!match) return '';
-    const prefix = match[1] + '.';
-
-    const existingIp = currentConfig.nodeIpMap?.[nodeId];
-    if (existingIp && existingIp.startsWith(prefix)) {
-      return existingIp;
-    }
-
-    const assignedIps = Object.entries(currentConfig.nodeIpMap || {})
-      .filter(([nid, ip]) => currentConfig.nodeSubnetMap[nid] === subnetId && ip.startsWith(prefix))
-      .map(([, ip]) => {
-        const parts = ip.split('.');
-        return parseInt(parts[3], 10);
-      });
-
-    let suffix = 2;
-    while (assignedIps.includes(suffix)) {
-      suffix++;
-    }
-
-    return `${prefix}${suffix}`;
-  };
-
   const fetchNetworkConfig = useCallback(() => {
     fetch(`${API_BASE}/api/projects/${projectId}/network-config`)
       .then(res => res.json())
@@ -445,39 +408,20 @@ export default function CanvasPage({ projectId, projectName, onBackToProjects, o
 
   // Sync container data into React Flow nodes when containers change
   useEffect(() => {
-    let configChanged = false;
-    const updatedNodeSubnetMap = { ...networkConfig.nodeSubnetMap };
-    const updatedSecurityGroups = { ...networkConfig.nodeSecurityGroups };
-    const updatedNodeIpMap = { ...networkConfig.nodeIpMap || {} };
-
-    // Map dropped container positions or subnets if pending
+    // Assign freshly created containers to the subnet they were dropped in
+    let workingConfig = networkConfig;
     containers.forEach(c => {
-      if (dropSubnetsRef.current[c.name]) {
-        const subnetId = dropSubnetsRef.current[c.name];
-        updatedNodeSubnetMap[c.id] = subnetId;
-
-        // Auto-configure default security rules on drop
-        if (!updatedSecurityGroups[c.id] || updatedSecurityGroups[c.id].length === 0) {
-          updatedSecurityGroups[c.id] = createDefaultRules();
-        }
-
-        const tempConfig = { ...networkConfig, nodeSubnetMap: updatedNodeSubnetMap, nodeIpMap: updatedNodeIpMap };
-        const allocatedIp = allocateIpForNode(c.id, subnetId, tempConfig);
-        updatedNodeIpMap[c.id] = allocatedIp;
-
+      const subnetId = dropSubnetsRef.current[c.name];
+      if (subnetId) {
+        workingConfig = assignNodeToSubnet(workingConfig, c.id, subnetId);
         delete dropSubnetsRef.current[c.name];
-        configChanged = true;
       }
     });
 
-    if (configChanged) {
-      saveNetworkConfig({
-        ...networkConfig,
-        nodeSubnetMap: updatedNodeSubnetMap,
-        nodeSecurityGroups: updatedSecurityGroups,
-        nodeIpMap: updatedNodeIpMap
-      });
+    if (workingConfig !== networkConfig) {
+      saveNetworkConfig(workingConfig);
     }
+    const nodeSubnetMap = workingConfig.nodeSubnetMap;
 
     setNodes(prevNodes => {
       // 1. Map Subnet nodes
@@ -524,7 +468,7 @@ export default function CanvasPage({ projectId, projectName, onBackToProjects, o
           delete dropPositionsRef.current[c.name];
         }
 
-        const parentId = updatedNodeSubnetMap[c.id] || undefined;
+        const parentId = nodeSubnetMap[c.id] || undefined;
         const isDragging = draggingNodeIdRef.current === c.id;
 
         let position = dropPos || savedPos || existing?.position || { x: defaultX, y: defaultY };
@@ -534,7 +478,7 @@ export default function CanvasPage({ projectId, projectName, onBackToProjects, o
           const subnet = networkConfig.subnets.find(s => s.id === parentId);
 
           const occupiedCells = containers
-            .filter(node => !node.isAsgInstance && node.id !== c.id && updatedNodeSubnetMap[node.id] === parentId)
+            .filter(node => !node.isAsgInstance && node.id !== c.id && nodeSubnetMap[node.id] === parentId)
             .map(node => positionsRef.current[node.id])
             .filter((pos): pos is { x: number; y: number } => !!pos)
             .map(positionToCell);
@@ -806,32 +750,7 @@ export default function CanvasPage({ projectId, projectName, onBackToProjects, o
         }
       }
 
-      const updatedNodeSubnetMap = { ...networkConfig.nodeSubnetMap };
-      const updatedSecurityGroups = { ...networkConfig.nodeSecurityGroups };
-      const updatedNodeIpMap = { ...networkConfig.nodeIpMap || {} };
-
-      if (targetSubnet && targetSubnetId) {
-        updatedNodeSubnetMap[draggedNode.id] = targetSubnetId;
-
-        positionsRef.current[draggedNode.id] = clampToCell(
-          { x: absX - targetSubnet.position.x, y: absY - targetSubnet.position.y },
-          targetSubnet.columns || 2,
-          targetSubnet.rows || 1
-        );
-
-        // Automatically setup default firewall connections when dragged into subnet
-        if (!updatedSecurityGroups[draggedNode.id] || updatedSecurityGroups[draggedNode.id].length === 0) {
-          updatedSecurityGroups[draggedNode.id] = createDefaultRules();
-        }
-
-        const tempConfig = {
-          ...networkConfig,
-          nodeSubnetMap: updatedNodeSubnetMap,
-          nodeIpMap: updatedNodeIpMap
-        };
-        const allocatedIp = allocateIpForNode(draggedNode.id, targetSubnetId, tempConfig);
-        updatedNodeIpMap[draggedNode.id] = allocatedIp;
-      } else {
+      if (!targetSubnet) {
         // Revert container node drag to its original subnet position
         showNotification({ type: 'warning', message: 'Nodes must reside within a subnet.' });
         const original = dragStartPositionsRef.current[draggedNode.id];
@@ -850,13 +769,14 @@ export default function CanvasPage({ projectId, projectName, onBackToProjects, o
         return;
       }
 
+      positionsRef.current[draggedNode.id] = clampToCell(
+        { x: absX - targetSubnet.position.x, y: absY - targetSubnet.position.y },
+        targetSubnet.columns || 2,
+        targetSubnet.rows || 1
+      );
       localStorage.setItem(`akal-lab-graph-layout-${projectId}`, JSON.stringify(positionsRef.current));
-      const newConfig = {
-        ...networkConfig,
-        nodeSubnetMap: updatedNodeSubnetMap,
-        nodeSecurityGroups: updatedSecurityGroups,
-        nodeIpMap: updatedNodeIpMap
-      };
+
+      const newConfig = assignNodeToSubnet(networkConfig, draggedNode.id, targetSubnet.id);
       saveNetworkConfig(newConfig);
       triggerArchitectureAudit(newConfig);
     }
@@ -1026,27 +946,7 @@ export default function CanvasPage({ projectId, projectName, onBackToProjects, o
         delete positionsRef.current[id];
         localStorage.setItem(`akal-lab-graph-layout-${projectId}`, JSON.stringify(positionsRef.current));
 
-        const updatedNodeSubnetMap = { ...networkConfig.nodeSubnetMap };
-        delete updatedNodeSubnetMap[id];
-        
-        const updatedSecurityGroups = { ...networkConfig.nodeSecurityGroups };
-        delete updatedSecurityGroups[id];
-        
-        // Cascade delete: remove any rules in other nodes that target this deleted node
-        Object.keys(updatedSecurityGroups).forEach(nodeId => {
-          updatedSecurityGroups[nodeId] = updatedSecurityGroups[nodeId].filter(
-            rule => rule.source !== id
-          );
-        });
-
-        const updatedNodeIpMap = { ...networkConfig.nodeIpMap || {} };
-        delete updatedNodeIpMap[id];
-        saveNetworkConfig({
-          ...networkConfig,
-          nodeSubnetMap: updatedNodeSubnetMap,
-          nodeSecurityGroups: updatedSecurityGroups,
-          nodeIpMap: updatedNodeIpMap
-        });
+        saveNetworkConfig(removeNodeFromConfig(networkConfig, id));
       }
     } finally {
       setDeleteTarget(null);
@@ -1074,41 +974,19 @@ export default function CanvasPage({ projectId, projectName, onBackToProjects, o
       });
 
       if (type === 'subnet-public' || type === 'subnet-private') {
-        const isPublic = type === 'subnet-public';
-        const cols = 2;
-        const rows = 1;
-        const { width: subnetWidth, height: subnetHeight } = subnetSize(cols, rows);
-        const subnetCenter = { x: position.x + subnetWidth / 2, y: position.y + subnetHeight / 2 };
+        const newSubnet = createSubnet(
+          type === 'subnet-public' ? 'public' : 'private',
+          position,
+          networkConfig.vpcConfig.cidr,
+          networkConfig.subnets.length
+        );
 
         // Check if dropped inside another subnet
-        const insideAnotherSubnet = !!findSubnetAtPoint(subnetCenter, networkConfig.subnets);
-
-        if (insideAnotherSubnet) {
+        const subnetCenter = { x: position.x + newSubnet.width / 2, y: position.y + newSubnet.height / 2 };
+        if (findSubnetAtPoint(subnetCenter, networkConfig.subnets)) {
           showNotification({ type: 'error', message: 'Invalid placement: Subnets cannot be nested inside other subnets.' });
           return;
         }
-
-        // Derive the subnet CIDR and local route from the current VPC CIDR:
-        // it may have shifted from the default 10.0.0.0/16 when Docker's
-        // address pool overlapped the requested range.
-        const vpcCidr = networkConfig.vpcConfig.cidr;
-        const vpcPrefix = vpcCidr.split('.').slice(0, 2).join('.');
-        const newSubnet: Subnet = {
-          id: `subnet-${Math.random().toString(36).substr(2, 9)}`,
-          name: `${isPublic ? 'Public' : 'Private'} Subnet-${networkConfig.subnets.length + 1}`,
-          type: isPublic ? 'public' : 'private',
-          cidr: `${vpcPrefix}.${networkConfig.subnets.length + 1}.0/24`,
-          vpcId: 'root-vpc',
-          position: position,
-          width: subnetWidth,
-          height: subnetHeight,
-          columns: cols,
-          rows: rows,
-          routes: [
-            { destination: vpcCidr, target: 'local', description: 'Local VPC routing' },
-            ...(isPublic ? [{ destination: '0.0.0.0/0', target: 'igw', description: 'Internet access' }] : [])
-          ]
-        };
 
         const newConfig = {
           ...networkConfig,
