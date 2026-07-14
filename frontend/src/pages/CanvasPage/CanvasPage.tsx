@@ -37,18 +37,14 @@ import ButtonEdge from './components/ButtonEdge';
 import { validateArchitecture } from '../../shared/utils/architectureValidator';
 import { API_BASE } from '../../shared/types';
 import type { Subnet, NetworkConfig, SecurityGroupRule } from '../../shared/types/network';
-
-// Recursively calculate absolute coordinates of a node
-const getAbsoluteCoordinates = (nodeId: string, currentNodes: Node[]): { x: number; y: number } => {
-  const node = currentNodes.find(n => n.id === nodeId);
-  if (!node) return { x: 0, y: 0 };
-  if (!node.parentId) return node.position;
-  const parentPos = getAbsoluteCoordinates(node.parentId, currentNodes);
-  return {
-    x: parentPos.x + node.position.x,
-    y: parentPos.y + node.position.y
-  };
-};
+import {
+  getAbsoluteCoordinates,
+  findSubnetAtPoint,
+  positionToCell,
+  clampToCell,
+  resolveSubnetChildPosition,
+  subnetSize,
+} from './utils/canvasGeometry';
 
 interface CanvasPageProps {
   projectId: string;
@@ -60,15 +56,10 @@ interface CanvasPageProps {
 function autoGrowContainers(
   config: NetworkConfig
 ): NetworkConfig {
-  const updatedSubnets = config.subnets.map(subnet => {
-    const cols = subnet.columns || 2;
-    const rows = subnet.rows || 1;
-    return {
-      ...subnet,
-      width: cols * 340,
-      height: 70 + rows * 190
-    };
-  });
+  const updatedSubnets = config.subnets.map(subnet => ({
+    ...subnet,
+    ...subnetSize(subnet.columns || 2, subnet.rows || 1)
+  }));
 
   return {
     ...config,
@@ -274,8 +265,7 @@ export default function CanvasPage({ projectId, projectName, onBackToProjects, o
       for (const node of subnetNodes) {
         const pos = positionsRef.current[node.id];
         if (pos) {
-          const col = Math.round((pos.x - 60) / 340);
-          const row = Math.round((pos.y - 60) / 190);
+          const { col, row } = positionToCell(pos);
           if (col >= targetCols || row >= targetRows) {
             showNotification({
               type: 'error',
@@ -295,8 +285,7 @@ export default function CanvasPage({ projectId, projectName, onBackToProjects, o
           ...s,
           columns: cols,
           rows: rows,
-          width: cols * 340,
-          height: 70 + rows * 190
+          ...subnetSize(cols, rows)
         };
       }
       return s;
@@ -650,52 +639,19 @@ export default function CanvasPage({ projectId, projectName, onBackToProjects, o
         // Auto-layout grid for subnet children (if not currently dragging)
         if (parentId && parentId.startsWith('subnet-') && !isDragging) {
           const subnet = networkConfig.subnets.find(s => s.id === parentId);
-          const cols = subnet?.columns || 2;
-          const rows = subnet?.rows || 1;
 
-          const pos = positionsRef.current[c.id];
-          let col = -1;
-          let row = -1;
-          if (pos) {
-            col = Math.round((pos.x - 60) / 340);
-            row = Math.round((pos.y - 60) / 190);
-          }
+          const occupiedCells = containers
+            .filter(node => !node.isAsgInstance && node.id !== c.id && updatedNodeSubnetMap[node.id] === parentId)
+            .map(node => positionsRef.current[node.id])
+            .filter((pos): pos is { x: number; y: number } => !!pos)
+            .map(positionToCell);
 
-          const isOccupied = (colIdx: number, rowIdx: number, excludeId: string) => {
-            return containers.filter(node => !node.isAsgInstance).some(node => {
-              if (node.id === excludeId) return false;
-              if (updatedNodeSubnetMap[node.id] !== parentId) return false;
-              const nodePos = positionsRef.current[node.id];
-              if (!nodePos) return false;
-              const nCol = Math.round((nodePos.x - 60) / 340);
-              const nRow = Math.round((nodePos.y - 60) / 190);
-              return nCol === colIdx && nRow === rowIdx;
-            });
-          };
-
-          if (col < 0 || col >= cols || row < 0 || row >= rows) {
-            let found = false;
-            for (let r = 0; r < rows; r++) {
-              for (let cp = 0; cp < cols; cp++) {
-                if (!isOccupied(cp, r, c.id)) {
-                  col = cp;
-                  row = r;
-                  found = true;
-                  break;
-                }
-              }
-              if (found) break;
-            }
-            if (!found) {
-              col = 0;
-              row = 0;
-            }
-          }
-
-          position = {
-            x: 60 + col * 340,
-            y: 60 + row * 190
-          };
+          position = resolveSubnetChildPosition({
+            savedPos: positionsRef.current[c.id],
+            columns: subnet?.columns || 2,
+            rows: subnet?.rows || 1,
+            occupiedCells
+          });
           positionsRef.current[c.id] = position;
         }
 
@@ -816,44 +772,14 @@ export default function CanvasPage({ projectId, projectName, onBackToProjects, o
     const centerX = absX + nodeWidth / 2;
     const centerY = absY + nodeHeight / 2;
 
-    let hoveredId: string | null = null;
-    let isValid = false;
-
-    // Check intersection with subnets
-    if (draggedNode.type !== 'subnet') {
-      // Service node dragged
-      for (const subnet of networkConfig.subnets) {
-        const subnetAbsX = subnet.position.x;
-        const subnetAbsY = subnet.position.y;
-        if (
-          centerX >= subnetAbsX &&
-          centerX <= subnetAbsX + subnet.width &&
-          centerY >= subnetAbsY &&
-          centerY <= subnetAbsY + subnet.height
-        ) {
-          hoveredId = subnet.id;
-          isValid = true;
-          break;
-        }
-      }
-    } else if (draggedNode.type === 'subnet') {
-      // Subnet dragged: Check if dropped inside another subnet (invalid)
-      for (const subnet of networkConfig.subnets) {
-        if (subnet.id === draggedNode.id) continue;
-        const subnetAbsX = subnet.position.x;
-        const subnetAbsY = subnet.position.y;
-        if (
-          centerX >= subnetAbsX &&
-          centerX <= subnetAbsX + subnet.width &&
-          centerY >= subnetAbsY &&
-          centerY <= subnetAbsY + subnet.height
-        ) {
-          hoveredId = subnet.id;
-          isValid = false; // invalid!
-          break;
-        }
-      }
-    }
+    // Check intersection with subnets: hovering one is valid for a service
+    // node, invalid for a subnet (no nesting).
+    const center = { x: centerX, y: centerY };
+    const hoveredSubnet = draggedNode.type !== 'subnet'
+      ? findSubnetAtPoint(center, networkConfig.subnets)
+      : findSubnetAtPoint(center, networkConfig.subnets, draggedNode.id);
+    const hoveredId = hoveredSubnet?.id ?? null;
+    const isValid = !!hoveredSubnet && draggedNode.type !== 'subnet';
 
     // Update real-time position in coordinates map for auto-growing calculations
     const tempNodeSubnetMap = { ...networkConfig.nodeSubnetMap };
@@ -940,25 +866,10 @@ export default function CanvasPage({ projectId, projectName, onBackToProjects, o
     if (draggedNode.type === 'subnet') {
       const subnetWidth = 260;
       const subnetHeight = 180;
-      const subnetCenterX = absX + subnetWidth / 2;
-      const subnetCenterY = absY + subnetHeight / 2;
+      const subnetCenter = { x: absX + subnetWidth / 2, y: absY + subnetHeight / 2 };
 
       // Check if dropped inside another subnet
-      let insideAnotherSubnet = false;
-      for (const subnet of networkConfig.subnets) {
-        if (subnet.id === draggedNode.id) continue;
-        const subnetAbsX = subnet.position.x;
-        const subnetAbsY = subnet.position.y;
-        if (
-          subnetCenterX >= subnetAbsX &&
-          subnetCenterX <= subnetAbsX + subnet.width &&
-          subnetCenterY >= subnetAbsY &&
-          subnetCenterY <= subnetAbsY + subnet.height
-        ) {
-          insideAnotherSubnet = true;
-          break;
-        }
-      }
+      const insideAnotherSubnet = !!findSubnetAtPoint(subnetCenter, networkConfig.subnets, draggedNode.id);
 
       if (insideAnotherSubnet) {
         revertNode('Invalid placement: Subnets cannot be nested inside other subnets.');
@@ -981,27 +892,9 @@ export default function CanvasPage({ projectId, projectName, onBackToProjects, o
     }
     else {
       // Container/Service node
-      const nodeCenterX = absX + 110;
-      const nodeCenterY = absY + 70;
-
-      let targetSubnetId: string | null = null;
-      let targetSubnetAbsPos = { x: 0, y: 0 };
-
-      for (const subnet of networkConfig.subnets) {
-        const subnetAbsX = subnet.position.x;
-        const subnetAbsY = subnet.position.y;
-
-        if (
-          nodeCenterX >= subnetAbsX &&
-          nodeCenterX <= subnetAbsX + subnet.width &&
-          nodeCenterY >= subnetAbsY &&
-          nodeCenterY <= subnetAbsY + subnet.height
-        ) {
-          targetSubnetId = subnet.id;
-          targetSubnetAbsPos = { x: subnetAbsX, y: subnetAbsY };
-          break;
-        }
-      }
+      const nodeCenter = { x: absX + 110, y: absY + 70 };
+      const targetSubnet = findSubnetAtPoint(nodeCenter, networkConfig.subnets);
+      const targetSubnetId = targetSubnet?.id ?? null;
 
       const original = dragStartPositionsRef.current[draggedNode.id];
       const oldParentId = original?.parentId;
@@ -1024,23 +917,14 @@ export default function CanvasPage({ projectId, projectName, onBackToProjects, o
       const updatedSecurityGroups = { ...networkConfig.nodeSecurityGroups };
       const updatedNodeIpMap = { ...networkConfig.nodeIpMap || {} };
 
-      if (targetSubnetId) {
+      if (targetSubnet && targetSubnetId) {
         updatedNodeSubnetMap[draggedNode.id] = targetSubnetId;
 
-        const subnet = networkConfig.subnets.find(s => s.id === targetSubnetId);
-        const cols = subnet?.columns || 2;
-        const rows = subnet?.rows || 1;
-
-        const relX = absX - targetSubnetAbsPos.x;
-        const relY = absY - targetSubnetAbsPos.y;
-
-        const col = Math.max(0, Math.min(cols - 1, Math.round((relX - 60) / 340)));
-        const row = Math.max(0, Math.min(rows - 1, Math.round((relY - 60) / 190)));
-
-        positionsRef.current[draggedNode.id] = {
-          x: 60 + col * 340,
-          y: 60 + row * 190
-        };
+        positionsRef.current[draggedNode.id] = clampToCell(
+          { x: absX - targetSubnet.position.x, y: absY - targetSubnet.position.y },
+          targetSubnet.columns || 2,
+          targetSubnet.rows || 1
+        );
 
         // Automatically setup default firewall connections when dragged into subnet
         if (!updatedSecurityGroups[draggedNode.id] || updatedSecurityGroups[draggedNode.id].length === 0) {
@@ -1300,26 +1184,11 @@ export default function CanvasPage({ projectId, projectName, onBackToProjects, o
         const isPublic = type === 'subnet-public';
         const cols = 2;
         const rows = 1;
-        const subnetWidth = cols * 340;
-        const subnetHeight = 70 + rows * 190;
-        const subnetCenterX = position.x + subnetWidth / 2;
-        const subnetCenterY = position.y + subnetHeight / 2;
+        const { width: subnetWidth, height: subnetHeight } = subnetSize(cols, rows);
+        const subnetCenter = { x: position.x + subnetWidth / 2, y: position.y + subnetHeight / 2 };
 
         // Check if dropped inside another subnet
-        let insideAnotherSubnet = false;
-        for (const subnet of networkConfig.subnets) {
-          const subnetAbsX = subnet.position.x;
-          const subnetAbsY = subnet.position.y;
-          if (
-            subnetCenterX >= subnetAbsX &&
-            subnetCenterX <= subnetAbsX + subnet.width &&
-            subnetCenterY >= subnetAbsY &&
-            subnetCenterY <= subnetAbsY + subnet.height
-          ) {
-            insideAnotherSubnet = true;
-            break;
-          }
-        }
+        const insideAnotherSubnet = !!findSubnetAtPoint(subnetCenter, networkConfig.subnets);
 
         if (insideAnotherSubnet) {
           showNotification({ type: 'error', message: 'Invalid placement: Subnets cannot be nested inside other subnets.' });
@@ -1355,53 +1224,22 @@ export default function CanvasPage({ projectId, projectName, onBackToProjects, o
         saveNetworkConfig(newConfig);
         triggerArchitectureAudit(newConfig);
       } else {
-        const nodeCenterX = position.x + 110;
-        const nodeCenterY = position.y + 70;
+        const nodeCenter = { x: position.x + 110, y: position.y + 70 };
+        const targetSubnet = findSubnetAtPoint(nodeCenter, networkConfig.subnets);
 
-        let targetSubnetId: string | null = null;
-        let targetSubnetAbsPos = { x: 0, y: 0 };
-
-        for (const subnet of networkConfig.subnets) {
-          const subnetAbsX = subnet.position.x;
-          const subnetAbsY = subnet.position.y;
-
-          if (
-            nodeCenterX >= subnetAbsX &&
-            nodeCenterX <= subnetAbsX + subnet.width &&
-            nodeCenterY >= subnetAbsY &&
-            nodeCenterY <= subnetAbsY + subnet.height
-          ) {
-            targetSubnetId = subnet.id;
-            targetSubnetAbsPos = { x: subnetAbsX, y: subnetAbsY };
-            break;
-          }
-        }
-
-        if (!targetSubnetId) {
+        if (!targetSubnet) {
           showNotification({ type: 'error', message: 'Nodes must reside within a subnet.' });
           return;
         }
 
-        let finalDropPos = position;
-        if (targetSubnetId) {
-          const subnet = networkConfig.subnets.find(s => s.id === targetSubnetId);
-          const cols = subnet?.columns || 2;
-          const rows = subnet?.rows || 1;
-
-          const relX = position.x - targetSubnetAbsPos.x;
-          const relY = position.y - targetSubnetAbsPos.y;
-
-          const col = Math.max(0, Math.min(cols - 1, Math.round((relX - 60) / 340)));
-          const row = Math.max(0, Math.min(rows - 1, Math.round((relY - 60) / 190)));
-
-          finalDropPos = {
-            x: 60 + col * 340,
-            y: 60 + row * 190
-          };
-        }
+        const finalDropPos = clampToCell(
+          { x: position.x - targetSubnet.position.x, y: position.y - targetSubnet.position.y },
+          targetSubnet.columns || 2,
+          targetSubnet.rows || 1
+        );
 
         setDropState({ position: finalDropPos, type });
-        pendingSubnetIdRef.current = targetSubnetId;
+        pendingSubnetIdRef.current = targetSubnet.id;
         setShowCreateModal(true);
       }
     },
