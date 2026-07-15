@@ -143,6 +143,21 @@ The engine dispatches on `validator.type` through a single extension point. To a
 
 Failure messages are half the product: always say what was observed and what was expected, in plain human language, never a raw Docker id.
 
+## Integration tests against real containers
+
+The engine's unit tests (co-located `*.test.ts` next to each validator) mock every Docker/DB call — they prove the logic, not the contact with reality. `backend/src/modules/learning/engine/engine.itest.ts` covers that gap: it stands up one disposable project with real containers (Postgres/Redis/Mongo seeded with real data, a load balancer, a running auto-scaling group) and runs all 8 validators, pass **and** fail, through `runStepValidators` with its default (real) dependencies.
+
+Run it locally with Docker started:
+
+```bash
+cd backend && npm run test:integration
+```
+
+Kept out of the default `npm test` run (see `jest.integration.config.js`) and off the main CI job — it runs in the dedicated `Integration` GitHub Actions workflow instead. Anti-flakiness choices worth knowing if you touch this suite:
+
+- Every pass/fail pair reads the **same static fixture** with different `params` — nothing is mutated between assertions, so ordering and retries can't corrupt state.
+- Setup polls Postgres/Redis/Mongo until they actually accept connections before seeding (DB startup lag is the classic source of flaky integration tests).
+
 ## Known limitation: message language
 
 Engine messages (`message`, `expected`, `observed`) are produced in **English**, regardless of the roadmap's `language` field. A French roadmap currently gets English correction messages. This is a known v1 limitation, to be revisited with the full validator palette (V-3) — options include message keys translated by the frontend.
