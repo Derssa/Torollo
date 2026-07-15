@@ -23,6 +23,19 @@ import { ValidatorResult } from './types';
  * with different params — nothing is mutated between assertions.
  */
 
+/**
+ * `containerProvider.createContainer` attaches every container to this network
+ * (`HostConfig.NetworkMode: 'akal-lab-network'`). In the running app it's created
+ * once at server startup (`DockerInitializer.ensureSharedNetwork`), but this suite
+ * never boots the server, so a fresh Docker daemon (e.g. a CI runner) won't have it.
+ */
+async function ensureSharedNetwork(): Promise<void> {
+  const networks = await docker.listNetworks();
+  if (!networks.some((n) => n.Name === 'akal-lab-network')) {
+    await docker.createNetwork({ Name: 'akal-lab-network', Driver: 'bridge' });
+  }
+}
+
 async function waitUntilReady(check: () => Promise<string>, label: string): Promise<void> {
   const deadline = Date.now() + 60000;
   let lastOutput = '';
@@ -57,6 +70,8 @@ describe('learning engine — real containers (V-4)', () => {
         'Docker daemon is not reachable. Integration tests require a running Docker daemon.'
       );
     }
+
+    await ensureSharedNetwork();
 
     const project = await ProjectService.createProject('v4-integration-fixture');
     projectId = project.id;
