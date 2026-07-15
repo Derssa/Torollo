@@ -64,7 +64,13 @@ export class NetworkService {
     delete this.policyHashes[projectId];
   }
 
-  private static async computeSemanticRules(projectId: string, config: any): Promise<SemanticRule[]> {
+  /**
+   * Expands security-group rules into pairwise semantic rules (real container
+   * ids, ASG replicas resolved). This is the single source of truth for "can
+   * X reach Y" — reused by the learning engine's `edge_exists`/`port_denied`
+   * validators so they never re-derive connectivity from raw security groups.
+   */
+  public static async computeSemanticRules(projectId: string, config: any): Promise<SemanticRule[]> {
     const rules: SemanticRule[] = [];
     const nodeIds = Object.keys(config.nodeSubnetMap || {});
     const sgs = config.nodeSecurityGroups || {};

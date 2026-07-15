@@ -1,28 +1,13 @@
 import { containerRunning } from './containerRunning';
-import { InvalidParamsError, ValidatorContext } from '../types';
-import { ContainerInfo } from '../../../../infrastructure/docker/providers/containerProvider';
-
-function makeContainer(overrides: Partial<ContainerInfo>): ContainerInfo {
-  return {
-    id: 'abc123',
-    name: 'web',
-    image: 'ubuntu:22.04',
-    state: 'running',
-    status: 'Up 2 minutes',
-    ...overrides,
-  };
-}
-
-function makeContext(containers: ContainerInfo[]): ValidatorContext {
-  return {
-    projectId: 'project-1',
-    getContainers: () => Promise.resolve(containers),
-  };
-}
+import { InvalidParamsError } from '../types';
+import { makeContainer, makeContext } from './testSupport';
 
 describe('containerRunning', () => {
   it('passes when the named container is running', async () => {
-    const outcome = await containerRunning({ node: 'web' }, makeContext([makeContainer({})]));
+    const outcome = await containerRunning(
+      { node: 'web' },
+      makeContext({ containers: [makeContainer({ name: 'web' })] })
+    );
 
     expect(outcome.status).toBe('pass');
     expect(outcome.message).toContain('"web"');
@@ -31,7 +16,7 @@ describe('containerRunning', () => {
   it('fails when no container has the given name', async () => {
     const outcome = await containerRunning(
       { node: 'web' },
-      makeContext([makeContainer({ name: 'db' })])
+      makeContext({ containers: [makeContainer({ name: 'db' })] })
     );
 
     expect(outcome.status).toBe('fail');
@@ -43,7 +28,7 @@ describe('containerRunning', () => {
   it('fails when the container exists but is not running', async () => {
     const outcome = await containerRunning(
       { node: 'web' },
-      makeContext([makeContainer({ state: 'exited' })])
+      makeContext({ containers: [makeContainer({ name: 'web', state: 'exited' })] })
     );
 
     expect(outcome.status).toBe('fail');
@@ -53,11 +38,11 @@ describe('containerRunning', () => {
   });
 
   it('throws InvalidParamsError when the "node" param is missing', async () => {
-    await expect(containerRunning({}, makeContext([]))).rejects.toThrow(InvalidParamsError);
+    await expect(containerRunning({}, makeContext())).rejects.toThrow(InvalidParamsError);
   });
 
   it('throws InvalidParamsError when the "node" param is not a string', async () => {
-    await expect(containerRunning({ node: 42 }, makeContext([]))).rejects.toThrow(
+    await expect(containerRunning({ node: 42 }, makeContext())).rejects.toThrow(
       InvalidParamsError
     );
   });

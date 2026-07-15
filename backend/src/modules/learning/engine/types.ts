@@ -1,5 +1,6 @@
 import { ContainerInfo } from '../../../infrastructure/docker/providers/containerProvider';
 import { DockerErrorCode } from '../../../infrastructure/docker/dockerErrors';
+import { SemanticRule } from '../../network/models/networkPolicy';
 
 export type ValidatorStatus = 'pass' | 'fail' | 'error';
 
@@ -42,11 +43,37 @@ export interface ValidatorOutcome {
   observed?: string;
 }
 
+/**
+ * Local view of a project's network config — only the fields validators read.
+ * The canonical shape lives in the frontend package (`shared/types/network.ts`);
+ * the backend never imports it (package boundary), so this mirrors just the
+ * subset needed here. `ProjectService.getNetworkConfig` remains untyped at
+ * its own boundary — this interface is where the engine starts trusting it.
+ */
+export interface ValidatorNetworkConfig {
+  nodeSubnetMap?: Record<string, string>;
+  nodeSecurityGroups?: Record<string, unknown[]>;
+  loadBalancerTargets?: Record<string, string[]>;
+  asgs?: Record<string, { parentId: string }>;
+}
+
 /** Per-run context shared by every validator of a step. */
 export interface ValidatorContext {
   projectId: string;
   /** Lazy and memoized: one Docker call per step run, shared by all validators. */
   getContainers(): Promise<ContainerInfo[]>;
+  /** Lazy and memoized: one project read per step run, shared by all validators. */
+  getNetworkConfig(): Promise<ValidatorNetworkConfig | null>;
+  /** Lazy and memoized: the security-group rules expanded to real container ids. */
+  getSemanticRules(): Promise<SemanticRule[]>;
+  executePsqlCommand(
+    containerId: string,
+    database: string,
+    sqlQuery: string,
+    extraArgs?: string[]
+  ): Promise<string>;
+  executeRedisCommand(containerId: string, args: string[]): Promise<string>;
+  executeMongoCommand(containerId: string, evalExpression: string): Promise<string>;
 }
 
 export type ValidatorHandler = (
@@ -57,4 +84,13 @@ export type ValidatorHandler = (
 /** Everything the engine needs from the outside world (defaults are the real singletons). */
 export interface EngineDeps {
   listContainersByProject(projectId: string): Promise<ContainerInfo[]>;
+  getNetworkConfig(projectId: string): Promise<ValidatorNetworkConfig | null>;
+  executePsqlCommand(
+    containerId: string,
+    database: string,
+    sqlQuery: string,
+    extraArgs?: string[]
+  ): Promise<string>;
+  executeRedisCommand(containerId: string, args: string[]): Promise<string>;
+  executeMongoCommand(containerId: string, evalExpression: string): Promise<string>;
 }
