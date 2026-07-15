@@ -3,10 +3,14 @@ import { GraduationCap, X } from 'lucide-react';
 import { useLearningPlayer } from '../hooks/useLearningPlayer';
 import RoadmapCatalog from './RoadmapCatalog';
 import RoadmapPlayer from './RoadmapPlayer';
+import type { ContainerData } from '../../../shared/types';
+import type { NetworkConfig } from '../../../shared/types/network';
 
 interface LearningPanelProps {
   projectId: string;
   onClose: () => void;
+  containers?: ContainerData[];
+  networkConfig?: NetworkConfig;
 }
 
 /**
@@ -14,7 +18,17 @@ interface LearningPanelProps {
  * owns the right) and is only mounted while open, so the free-canvas
  * experience is untouched when the learner is not in a roadmap.
  */
-export default function LearningPanel({ projectId, onClose }: LearningPanelProps) {
+export default function LearningPanel({
+  projectId,
+  onClose,
+  containers = [],
+  networkConfig = {
+    vpcConfig: { name: '', cidr: '' },
+    subnets: [],
+    nodeSubnetMap: {},
+    nodeSecurityGroups: {}
+  } as unknown as NetworkConfig
+}: LearningPanelProps) {
   const { t } = useTranslation();
   const player = useLearningPlayer({ projectId });
 
@@ -32,7 +46,11 @@ export default function LearningPanel({ projectId, onClose }: LearningPanelProps
 
       <div style={styles.content}>
         {player.roadmap ? (
-          <RoadmapPlayer player={player} />
+          <RoadmapPlayer
+            player={player}
+            containers={containers}
+            networkConfig={networkConfig}
+          />
         ) : player.roadmapLoading ? (
           <div style={styles.loading}>{t('learning.player.loading')}</div>
         ) : (

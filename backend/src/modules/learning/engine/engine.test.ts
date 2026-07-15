@@ -24,6 +24,7 @@ function makeDeps(impl?: EngineDeps['listContainersByProject']): EngineDeps & {
     executePsqlCommand: () => Promise.resolve(''),
     executeRedisCommand: () => Promise.resolve(''),
     executeMongoCommand: () => Promise.resolve(''),
+    executeCustomCommand: () => Promise.resolve(''),
   };
 }
 

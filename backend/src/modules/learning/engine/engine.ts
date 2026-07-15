@@ -23,6 +23,8 @@ export const defaultEngineDeps: EngineDeps = {
   executeRedisCommand: (containerId, args) => containerProvider.executeRedisCommand(containerId, args),
   executeMongoCommand: (containerId, evalExpression) =>
     containerProvider.executeMongoCommand(containerId, evalExpression),
+  executeCustomCommand: (containerId, cmd) =>
+    containerProvider.executeCustomCommand(containerId, cmd),
 };
 
 /**
@@ -67,6 +69,8 @@ export async function runStepValidators(
     executeRedisCommand: (containerId, args) => deps.executeRedisCommand(containerId, args),
     executeMongoCommand: (containerId, evalExpression) =>
       deps.executeMongoCommand(containerId, evalExpression),
+    executeCustomCommand: (containerId, cmd) =>
+      deps.executeCustomCommand(containerId, cmd),
   };
 
   const results: ValidatorResult[] = [];

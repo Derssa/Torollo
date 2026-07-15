@@ -575,7 +575,12 @@ export default function CanvasPage({ projectId, projectName, onBackToProjects, o
 
       <div style={styles.bodyWrapper}>
         {showLearning && (
-          <LearningPanel projectId={projectId} onClose={() => setShowLearning(false)} />
+          <LearningPanel
+            projectId={projectId}
+            onClose={() => setShowLearning(false)}
+            containers={containers}
+            networkConfig={networkConfig}
+          />
         )}
 
         {/* Main React Flow Workspace */}

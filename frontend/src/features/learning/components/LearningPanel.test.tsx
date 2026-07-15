@@ -130,7 +130,7 @@ describe('LearningPanel', () => {
     expect(screen.getByText('Add the database')).toBeInTheDocument();
     expect(screen.getByText('Step 1 of 2')).toBeInTheDocument();
     expect(
-      screen.getByText('Drag an Ubuntu node named `web` onto the canvas and start it.')
+      screen.getByText((_, el) => el?.tagName === 'P' && el.textContent === 'Drag an Ubuntu node named web onto the canvas and start it.')
     ).toBeInTheDocument();
   });
 
@@ -141,7 +141,9 @@ describe('LearningPanel', () => {
 
     fireEvent.click(screen.getByRole('button', { name: 'Next' }));
     expect(screen.getByText('Step 2 of 2')).toBeInTheDocument();
-    expect(screen.getByText('Add a Postgres node named `db`.')).toBeInTheDocument();
+    expect(
+      screen.getByText((_, el) => el?.tagName === 'P' && el.textContent === 'Add a Postgres node named db.')
+    ).toBeInTheDocument();
 
     fireEvent.click(screen.getByRole('button', { name: 'Previous' }));
     expect(screen.getByText('Step 1 of 2')).toBeInTheDocument();

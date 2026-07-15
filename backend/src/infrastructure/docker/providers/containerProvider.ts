@@ -32,6 +32,7 @@ export interface ContainerProvider {
   executePsqlCommand(containerId: string, database: string, sqlQuery: string, extraArgs?: string[]): Promise<string>;
   executeRedisCommand(containerId: string, args: string[]): Promise<string>;
   executeMongoCommand(containerId: string, evalExpression: string): Promise<string>;
+  executeCustomCommand(containerId: string, cmd: string[]): Promise<string>;
   markAsCrashed(instanceId: string): void;
   clearCrashed(instanceId: string): void;
   clearAllCrashed(): void;
