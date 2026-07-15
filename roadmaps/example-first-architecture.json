@@ -15,9 +15,9 @@
     {
       "id": "create-web-server",
       "title": "Create the web server",
-      "instruction": "From the node library, drag an **Ubuntu** node onto the canvas and name it `web`. Start it and wait until it is running.",
+      "instruction": "From the node library, drag a **Server** node (Ubuntu) onto the canvas and name it `web`. Start it and wait until it is running.",
       "hints": [
-        "Nodes are created by dragging them from the library panel on the right side of the canvas."
+        "Nodes are created by dragging them from the library panel on the left side of the canvas."
       ],
       "validators": [
         {
@@ -29,7 +29,7 @@
     {
       "id": "add-database",
       "title": "Add a PostgreSQL database with a users table",
-      "instruction": "Add a **PostgreSQL** node named `db` and start it. Then open its explorer and create a table named `users` (any columns you like).",
+      "instruction": "Add a **SQL Database** node (PostgreSQL) named `db` and start it. Then open its explorer and create a table named `users` (any columns you like).",
       "hints": [
         "Double-click the PostgreSQL node to open its modal — the explorer tab lets you run SQL against the real container.",
         "A table needs at least one column, for example: `CREATE TABLE users (id SERIAL PRIMARY KEY);`"
