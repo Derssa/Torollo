@@ -34,14 +34,17 @@ export default function LearningPanel({ projectId, onClose }: LearningPanelProps
         {player.roadmap ? (
           <RoadmapPlayer player={player} />
         ) : player.roadmapLoading ? (
-          <div style={styles.status}>{t('learning.player.loading')}</div>
-        ) : player.roadmapError !== null ? (
-          <div style={styles.status}>
-            <span>{player.roadmapError || t('learning.player.loadError')}</span>
-            <RoadmapCatalog onOpen={player.openRoadmap} />
-          </div>
+          <div style={styles.loading}>{t('learning.player.loading')}</div>
         ) : (
-          <RoadmapCatalog onOpen={player.openRoadmap} />
+          <>
+            {player.roadmapError !== null && (
+              <div style={styles.status}>
+                {player.roadmapError || t('learning.player.loadError')}
+              </div>
+            )}
+            {/* Single JSX position: the catalog must not remount (and refetch) when a load error appears. */}
+            <RoadmapCatalog onOpen={player.openRoadmap} />
+          </>
         )}
       </div>
     </div>
@@ -92,12 +95,16 @@ const styles: Record<string, React.CSSProperties> = {
     overflowY: 'auto',
     padding: '16px',
   },
+  loading: {
+    fontSize: '12px',
+    color: 'var(--color-text-muted)',
+    textAlign: 'center',
+    padding: '24px 16px',
+  },
   status: {
-    display: 'flex',
-    flexDirection: 'column',
-    gap: '12px',
     fontSize: '12px',
     color: 'var(--color-danger)',
     lineHeight: 1.5,
+    marginBottom: '12px',
   },
 };

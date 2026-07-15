@@ -52,7 +52,7 @@ export default function RoadmapCatalog({ onOpen }: RoadmapCatalogProps) {
               <span>{t(`learning.catalog.difficulty.${summary.difficulty}`)}</span>
             )}
             <span>{t('learning.catalog.steps', { count: summary.stepCount })}</span>
-            {summary.estimatedMinutes && (
+            {summary.estimatedMinutes != null && (
               <span>{t('learning.catalog.minutes', { count: summary.estimatedMinutes })}</span>
             )}
           </div>

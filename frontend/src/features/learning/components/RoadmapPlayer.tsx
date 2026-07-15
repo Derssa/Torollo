@@ -23,6 +23,9 @@ export default function RoadmapPlayer({ player }: RoadmapPlayerProps) {
 
   if (!roadmap || !currentStep) return null;
 
+  const atFirstStep = currentStepIndex === 0;
+  const atLastStep = currentStepIndex === roadmap.steps.length - 1;
+
   return (
     <div style={styles.container}>
       <button onClick={closeRoadmap} style={styles.backLink}>
@@ -75,19 +78,16 @@ export default function RoadmapPlayer({ player }: RoadmapPlayerProps) {
       <div style={styles.navRow}>
         <button
           onClick={() => goToStep(currentStepIndex - 1)}
-          disabled={currentStepIndex === 0}
-          style={{ ...styles.navBtn, opacity: currentStepIndex === 0 ? 0.4 : 1 }}
+          disabled={atFirstStep}
+          style={{ ...styles.navBtn, opacity: atFirstStep ? 0.4 : 1 }}
         >
           <ChevronLeft size={13} />
           {t('learning.player.previous')}
         </button>
         <button
           onClick={() => goToStep(currentStepIndex + 1)}
-          disabled={currentStepIndex === roadmap.steps.length - 1}
-          style={{
-            ...styles.navBtn,
-            opacity: currentStepIndex === roadmap.steps.length - 1 ? 0.4 : 1,
-          }}
+          disabled={atLastStep}
+          style={{ ...styles.navBtn, opacity: atLastStep ? 0.4 : 1 }}
         >
           {t('learning.player.next')}
           <ChevronRight size={13} />

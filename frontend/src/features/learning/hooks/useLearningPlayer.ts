@@ -1,5 +1,6 @@
 import { useState, useCallback, useRef } from 'react';
 import { API_BASE } from '../../../shared/types';
+import { readErrorMessage } from '../../../shared/utils/readErrorMessage';
 import type {
   Roadmap,
   RoadmapStep,
@@ -9,15 +10,6 @@ import type {
 
 interface UseLearningPlayerOptions {
   projectId: string;
-}
-
-async function readErrorMessage(res: Response, fallback: string): Promise<string> {
-  try {
-    const body = await res.json();
-    return body?.error || fallback;
-  } catch {
-    return fallback;
-  }
 }
 
 /**
@@ -40,30 +32,41 @@ export function useLearningPlayer({ projectId }: UseLearningPlayerOptions) {
   // React state updates are async, so `validating` alone cannot stop two
   // synchronous clicks — the ref is the actual double-submit guard.
   const validatingRef = useRef(false);
+  // Two quick openRoadmap clicks race on fetch resolution order; only the
+  // latest request is allowed to commit its result.
+  const openSeqRef = useRef(0);
 
   const currentStep: RoadmapStep | null = roadmap?.steps[currentStepIndex] ?? null;
 
   const openRoadmap = useCallback(
     async ({ id, language }: Pick<RoadmapSummary, 'id' | 'language'>) => {
+      const seq = ++openSeqRef.current;
       try {
         setRoadmapLoading(true);
         setRoadmapError(null);
         const res = await fetch(
           `${API_BASE}/api/learning/roadmaps/${encodeURIComponent(id)}?language=${encodeURIComponent(language)}`
         );
+        if (seq !== openSeqRef.current) return;
         if (!res.ok) {
           setRoadmapError(await readErrorMessage(res, ''));
           return;
         }
-        setRoadmap(await res.json());
+        const data = await res.json();
+        if (seq !== openSeqRef.current) return;
+        if (!Array.isArray(data?.steps) || data.steps.length === 0) {
+          setRoadmapError('');
+          return;
+        }
+        setRoadmap(data);
         setCurrentStepIndex(0);
         setResultsByStepId({});
         setValidationError(null);
       } catch (err) {
         console.error('Failed to load roadmap:', err);
-        setRoadmapError('');
+        if (seq === openSeqRef.current) setRoadmapError('');
       } finally {
-        setRoadmapLoading(false);
+        if (seq === openSeqRef.current) setRoadmapLoading(false);
       }
     },
     []

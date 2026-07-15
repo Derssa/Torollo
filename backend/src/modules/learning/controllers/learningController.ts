@@ -26,13 +26,17 @@ export class LearningController {
   public static async getRoadmap(req: Request, res: Response): Promise<void> {
     try {
       const { language } = req.query;
+      const wantedLanguage =
+        typeof language === 'string' && language.length > 0 ? language : undefined;
       const roadmap = RoadmapService.getRoadmap(
         req.params.id as string,
-        typeof language === 'string' && language.length > 0 ? { language } : {}
+        wantedLanguage ? { language: wantedLanguage } : {}
       );
       if (!roadmap) {
         res.status(404).json({
-          error: `No roadmap found with id "${req.params.id}".`,
+          error: wantedLanguage
+            ? `No roadmap found with id "${req.params.id}" in language "${wantedLanguage}".`
+            : `No roadmap found with id "${req.params.id}".`,
           code: 'ROADMAP_NOT_FOUND',
         });
         return;

@@ -15,7 +15,8 @@
       "error": "Impossible de charger les roadmaps. Le backend est-il démarré ?",
       "retry": "Réessayer",
       "empty": "Aucune roadmap disponible.",
-      "steps": "{{count}} étapes",
+      "steps_one": "{{count}} étape",
+      "steps_other": "{{count}} étapes",
       "minutes": "~{{count}} min",
       "difficulty": {
         "beginner": "Débutant",

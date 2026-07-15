@@ -15,7 +15,8 @@
       "error": "Could not load roadmaps. Is the backend running?",
       "retry": "Retry",
       "empty": "No roadmaps available.",
-      "steps": "{{count}} steps",
+      "steps_one": "{{count}} step",
+      "steps_other": "{{count}} steps",
       "minutes": "~{{count}} min",
       "difficulty": {
         "beginner": "Beginner",
