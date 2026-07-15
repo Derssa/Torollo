@@ -118,8 +118,8 @@ describe('learning engine — real containers (V-4)', () => {
         [nosql.id]: 'private',
       },
       nodeSecurityGroups: {
-        [web.id]: [
-          { id: 'sg-web-to-db', type: 'outbound', action: 'ALLOW', protocol: 'TCP', port: '5432', source: db.id },
+        [db.id]: [
+          { id: 'sg-web-to-db', type: 'inbound', action: 'ALLOW', protocol: 'TCP', port: '5432', source: web.id },
         ],
       },
       loadBalancerTargets: {
