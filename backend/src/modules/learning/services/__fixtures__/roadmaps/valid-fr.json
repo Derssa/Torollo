@@ -1,0 +1,33 @@
+{
+  "schemaVersion": 1,
+  "id": "fixture-roadmap",
+  "title": "Roadmap de test",
+  "description": "Traduction française de la roadmap de test — même id, langue différente.",
+  "language": "fr",
+  "estimatedMinutes": 10,
+  "difficulty": "beginner",
+  "steps": [
+    {
+      "id": "start-web",
+      "title": "Démarrer le serveur web",
+      "instruction": "Créez un nœud nommé `web` et démarrez-le.",
+      "validators": [
+        {
+          "type": "container_running",
+          "params": { "node": "web" }
+        }
+      ]
+    },
+    {
+      "id": "start-db",
+      "title": "Démarrer la base de données",
+      "instruction": "Créez un nœud nommé `db` et démarrez-le.",
+      "validators": [
+        {
+          "type": "container_running",
+          "params": { "node": "db" }
+        }
+      ]
+    }
+  ]
+}

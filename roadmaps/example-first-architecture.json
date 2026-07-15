@@ -17,7 +17,7 @@
       "title": "Create the web server",
       "instruction": "From the node library, drag an **Ubuntu** node onto the canvas and name it `web`. Start it and wait until it is running.",
       "hints": [
-        "Nodes are created by dragging them from the library panel on the left side of the canvas."
+        "Nodes are created by dragging them from the library panel on the right side of the canvas."
       ],
       "validators": [
         {

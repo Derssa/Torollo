@@ -40,8 +40,22 @@ export class RoadmapService {
     }));
   }
 
-  public static getRoadmap(id: string, dir: string = ROADMAPS_DIR): Roadmap | null {
-    return this.readAll(dir).find(roadmap => roadmap.id === id) ?? null;
+  /**
+   * Translations share an id and differ by `language` (format v1 contract),
+   * so (id, language) is the real key. With `language`, the match is exact —
+   * no fallback: the caller only asks for pairs the catalogue advertised.
+   * Without it, the pick is deterministic (sorted by language) — used by
+   * /validate, where steps and validators are language-neutral.
+   */
+  public static getRoadmap(
+    id: string,
+    opts: { language?: string; dir?: string } = {}
+  ): Roadmap | null {
+    const candidates = this.readAll(opts.dir ?? ROADMAPS_DIR).filter(roadmap => roadmap.id === id);
+    if (opts.language) {
+      return candidates.find(roadmap => roadmap.language === opts.language) ?? null;
+    }
+    return candidates.sort((a, b) => a.language.localeCompare(b.language))[0] ?? null;
   }
 
   private static readAll(dir: string): Roadmap[] {
@@ -51,7 +65,9 @@ export class RoadmapService {
     }
 
     const roadmaps: Roadmap[] = [];
-    for (const file of fs.readdirSync(dir)) {
+    // Sorted: readdir order is filesystem-dependent, and both the catalogue
+    // order and the language-less getRoadmap pick must be stable.
+    for (const file of fs.readdirSync(dir).sort()) {
       if (!file.endsWith('.json')) {
         continue;
       }
