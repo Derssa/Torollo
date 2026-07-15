@@ -1,25 +1,13 @@
 import { useTranslation } from 'react-i18next';
 import { AlertTriangle, CheckCircle2, XCircle } from 'lucide-react';
-import { stepOutcome, STATUS_COLORS } from '../validationStatus';
-import type { StepValidationResponse, ValidatorResult, ValidatorStatus } from '../../../shared/types/roadmap';
+import { stepOutcome, isDockerUnavailable, STATUS_PRESETS } from '../validationStatus';
+import type { StepValidationResponse, ValidatorResult } from '../../../shared/types/roadmap';
 
 interface StepValidationResultsProps {
   response: StepValidationResponse;
   isLastStep: boolean;
   onNextStep: () => void;
 }
-
-const STATUS_ICONS: Record<ValidatorStatus, typeof CheckCircle2> = {
-  pass: CheckCircle2,
-  fail: XCircle,
-  error: AlertTriangle,
-};
-
-const MARKER_LABEL_KEYS: Record<ValidatorStatus, string> = {
-  pass: 'learning.player.markerPassed',
-  fail: 'learning.player.markerFailed',
-  error: 'learning.player.markerError',
-};
 
 export default function StepValidationResults({
   response,
@@ -59,7 +47,7 @@ function OutcomeBanner({ response, isLastStep, onNextStep }: StepValidationResul
   }
 
   if (outcome === 'error') {
-    const dockerDown = response.results.some(result => result.errorCode === 'DOCKER_UNAVAILABLE');
+    const dockerDown = isDockerUnavailable(response);
     return (
       <div style={{ ...styles.banner, ...styles.bannerError }}>
         <div style={styles.bannerHeader}>
@@ -84,25 +72,24 @@ function OutcomeBanner({ response, isLastStep, onNextStep }: StepValidationResul
 
 function ValidatorResultCard({ result }: { result: ValidatorResult }) {
   const { t } = useTranslation();
-  const Icon = STATUS_ICONS[result.status];
-  const color = STATUS_COLORS[result.status];
+  const { icon: Icon, color, labelKey } = STATUS_PRESETS[result.status];
 
   return (
     <div style={{ ...styles.card, borderLeft: `3px solid ${color}` }}>
       <div style={styles.cardHeader}>
-        <Icon size={14} color={color} style={styles.cardIcon} aria-label={t(MARKER_LABEL_KEYS[result.status])} />
+        <Icon size={14} color={color} style={styles.cardIcon} role="img" aria-label={t(labelKey)} />
         <span style={styles.cardMessage}>{result.message}</span>
       </div>
       {result.status === 'error' && (
         <span style={styles.checkNotRun}>{t('learning.player.checkNotRun')}</span>
       )}
-      {result.expected && (
+      {result.expected != null && (
         <div style={styles.detailLine}>
           <span style={styles.detailLabel}>{t('learning.player.expected')}:</span>{' '}
           <span style={styles.detailValue}>{result.expected}</span>
         </div>
       )}
-      {result.observed && (
+      {result.observed != null && (
         <div style={styles.detailLine}>
           <span style={styles.detailLabel}>{t('learning.player.observed')}:</span>{' '}
           <span style={styles.detailValue}>{result.observed}</span>

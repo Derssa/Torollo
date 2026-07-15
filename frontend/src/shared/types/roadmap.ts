@@ -76,7 +76,11 @@ export interface ValidatorResult {
   type: string;
   status: ValidatorStatus;
   message: string;
-  /** Set iff status is 'error'. Wider than the backend union: the frontend only displays it. */
+  /**
+   * Set iff status is 'error'. Wider than the backend union: the frontend matches
+   * the codes it knows (see features/learning/validationStatus.ts) and treats the
+   * rest generically, so new backend codes never break rendering.
+   */
   errorCode?: string;
   expected?: string;
   observed?: string;

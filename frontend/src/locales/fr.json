@@ -40,7 +40,7 @@
       "expected": "Attendu",
       "observed": "Observé",
       "stepError": "Certaines vérifications n'ont pas pu s'exécuter — ce n'est pas de votre faute. Corrigez le problème ci-dessous ou réessayez simplement.",
-      "stepErrorDocker": "Docker n'est pas démarré, les vérifications n'ont pas pu s'exécuter. Démarrez Docker puis validez à nouveau.",
+      "stepErrorDocker": "Docker n'était pas démarré, les vérifications n'ont pas pu s'exécuter. Démarrez Docker puis validez à nouveau.",
       "nextStep": "Étape suivante",
       "roadmapComplete": "Étape validée — c'était la dernière. Roadmap terminée !",
       "checkNotRun": "Vérification impossible",

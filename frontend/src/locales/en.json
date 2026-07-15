@@ -40,7 +40,7 @@
       "expected": "Expected",
       "observed": "Observed",
       "stepError": "Some checks couldn't run — that's on us, not you. Fix the issue below or just try again.",
-      "stepErrorDocker": "Docker isn't running, so the checks couldn't run. Start Docker and validate again.",
+      "stepErrorDocker": "Docker wasn't running, so the checks couldn't run. Start Docker and validate again.",
       "nextStep": "Next step",
       "roadmapComplete": "Step passed — that was the last one. Roadmap complete!",
       "checkNotRun": "Check couldn't run",

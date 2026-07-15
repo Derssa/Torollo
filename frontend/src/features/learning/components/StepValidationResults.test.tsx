@@ -103,7 +103,7 @@ describe('StepValidationResults', () => {
     );
 
     expect(
-      screen.getByText("Docker isn't running, so the checks couldn't run. Start Docker and validate again.")
+      screen.getByText("Docker wasn't running, so the checks couldn't run. Start Docker and validate again.")
     ).toBeInTheDocument();
   });
 });

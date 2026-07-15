@@ -1,8 +1,8 @@
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { AlertTriangle, ArrowLeft, CheckCircle2, ChevronLeft, ChevronRight, Globe, Copy, Check, XCircle } from 'lucide-react';
+import { ArrowLeft, ChevronLeft, ChevronRight, Globe, Copy, Check } from 'lucide-react';
 import StepValidationResults from './StepValidationResults';
-import { stepOutcome, type StepOutcome } from '../validationStatus';
+import { outcomePreset } from '../validationStatus';
 import type { StepValidationResponse } from '../../../shared/types/roadmap';
 import type { useLearningPlayer } from '../hooks/useLearningPlayer';
 import type { ContainerData } from '../../../shared/types';
@@ -51,18 +51,12 @@ function CodeBlock({ code }: { code: string }) {
   );
 }
 
-const MARKER_PRESETS: Record<StepOutcome, { icon: typeof CheckCircle2; color: string; labelKey: string }> = {
-  passed: { icon: CheckCircle2, color: 'var(--color-success)', labelKey: 'learning.player.markerPassed' },
-  failed: { icon: XCircle, color: 'var(--color-danger)', labelKey: 'learning.player.markerFailed' },
-  error: { icon: AlertTriangle, color: 'var(--color-warning)', labelKey: 'learning.player.markerError' },
-};
-
 function StepMarker({ response }: { response: StepValidationResponse }) {
   const { t } = useTranslation();
-  const { icon: Icon, color, labelKey } = MARKER_PRESETS[stepOutcome(response)];
+  const { icon: Icon, color, labelKey } = outcomePreset(response);
   return (
-    <span style={styles.stepMarker} title={t(labelKey)} aria-label={t(labelKey)}>
-      <Icon size={13} color={color} />
+    <span style={styles.stepMarker} title={t(labelKey)}>
+      <Icon size={13} color={color} role="img" aria-label={t(labelKey)} />
     </span>
   );
 }

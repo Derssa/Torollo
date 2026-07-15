@@ -176,7 +176,7 @@ describe('LearningPanel', () => {
       screen.getByText('No container named "web" exists in this project yet.')
     ).toBeInTheDocument();
     expect(screen.getByText(/a running container named "web"/)).toBeInTheDocument();
-    // The step list reflects the failure, and the raw P-1 rendering is gone.
+    // The step list reflects the failure, and the raw status/type strings are gone.
     expect(screen.getByTitle('Failed')).toBeInTheDocument();
     expect(screen.queryByText('[fail]')).not.toBeInTheDocument();
     expect(screen.queryByText('container_running')).not.toBeInTheDocument();
