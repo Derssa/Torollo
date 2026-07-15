@@ -2,6 +2,8 @@ import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { ArrowLeft, ChevronLeft, ChevronRight, Globe, Copy, Check } from 'lucide-react';
 import StepValidationResults from './StepValidationResults';
+import { outcomePreset } from '../validationStatus';
+import type { StepValidationResponse } from '../../../shared/types/roadmap';
 import type { useLearningPlayer } from '../hooks/useLearningPlayer';
 import type { ContainerData } from '../../../shared/types';
 import type { NetworkConfig } from '../../../shared/types/network';
@@ -46,6 +48,16 @@ function CodeBlock({ code }: { code: string }) {
         <code style={styles.codeBlock}>{code}</code>
       </pre>
     </div>
+  );
+}
+
+function StepMarker({ response }: { response: StepValidationResponse }) {
+  const { t } = useTranslation();
+  const { icon: Icon, color, labelKey } = outcomePreset(response);
+  return (
+    <span style={styles.stepMarker} title={t(labelKey)}>
+      <Icon size={13} color={color} role="img" aria-label={t(labelKey)} />
+    </span>
   );
 }
 
@@ -183,16 +195,7 @@ export default function RoadmapPlayer({
             >
               <span style={styles.stepIndex}>{index + 1}.</span>
               <span style={styles.stepItemTitle}>{step.title}</span>
-              {result && (
-                <span
-                  style={{
-                    ...styles.stepMarker,
-                    color: result.stepPassed ? 'var(--color-success)' : 'var(--color-danger)',
-                  }}
-                >
-                  {result.stepPassed ? '✓' : '✗'}
-                </span>
-              )}
+              {result && <StepMarker response={result} />}
             </button>
           );
         })}
@@ -291,7 +294,11 @@ export default function RoadmapPlayer({
       )}
 
       {resultsByStepId[currentStep.id] && (
-        <StepValidationResults response={resultsByStepId[currentStep.id]} />
+        <StepValidationResults
+          response={resultsByStepId[currentStep.id]}
+          isLastStep={atLastStep}
+          onNextStep={() => goToStep(currentStepIndex + 1)}
+        />
       )}
     </div>
   );
@@ -356,8 +363,8 @@ const styles: Record<string, React.CSSProperties> = {
     flex: 1,
   },
   stepMarker: {
-    fontSize: '12px',
-    fontWeight: 700,
+    display: 'flex',
+    alignItems: 'center',
   },
   currentStep: {
     display: 'flex',

@@ -59,6 +59,21 @@ const failResponse: StepValidationResponse = {
   checkedAt: '2026-07-15T10:00:00.000Z',
 };
 
+const passResponse: StepValidationResponse = {
+  roadmapId: roadmap.id,
+  stepId: 'create-web-server',
+  stepPassed: true,
+  results: [
+    {
+      index: 0,
+      type: 'container_running',
+      status: 'pass',
+      message: 'The container "web" is running.',
+    },
+  ],
+  checkedAt: '2026-07-15T10:01:00.000Z',
+};
+
 function jsonResponse(ok: boolean, body: unknown): Response {
   return { ok, json: () => Promise.resolve(body) } as Response;
 }
@@ -149,7 +164,7 @@ describe('LearningPanel', () => {
     expect(screen.getByText('Step 1 of 2')).toBeInTheDocument();
   });
 
-  it('validates the current step and renders the raw results', async () => {
+  it('validates the current step and renders pedagogical feedback', async () => {
     vi.stubGlobal('fetch', buildFetchMock({}));
     render(<LearningPanel projectId="p1" onClose={() => {}} />);
     await openRoadmapFromCatalog();
@@ -161,6 +176,50 @@ describe('LearningPanel', () => {
       screen.getByText('No container named "web" exists in this project yet.')
     ).toBeInTheDocument();
     expect(screen.getByText(/a running container named "web"/)).toBeInTheDocument();
+    // The step list reflects the failure, and the raw status/type strings are gone.
+    expect(screen.getByTitle('Failed')).toBeInTheDocument();
+    expect(screen.queryByText('[fail]')).not.toBeInTheDocument();
+    expect(screen.queryByText('container_running')).not.toBeInTheDocument();
+  });
+
+  it('replaces failure feedback cleanly when a revalidation passes', async () => {
+    let firstAttempt = true;
+    vi.stubGlobal(
+      'fetch',
+      buildFetchMock({
+        validate: () => {
+          const body = firstAttempt ? failResponse : passResponse;
+          firstAttempt = false;
+          return jsonResponse(true, body);
+        },
+      })
+    );
+    render(<LearningPanel projectId="p1" onClose={() => {}} />);
+    await openRoadmapFromCatalog();
+
+    fireEvent.click(screen.getByRole('button', { name: 'Validate' }));
+    expect(await screen.findByText('Not yet — see the results below')).toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole('button', { name: 'Validate' }));
+    expect(await screen.findByText('Step passed')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Next step' })).toBeInTheDocument();
+    expect(screen.getByTitle('Passed')).toBeInTheDocument();
+    // No artifacts from the failed attempt survive.
+    expect(screen.queryByText('Not yet — see the results below')).not.toBeInTheDocument();
+    expect(
+      screen.queryByText('No container named "web" exists in this project yet.')
+    ).not.toBeInTheDocument();
+  });
+
+  it('advances to the next step from the success banner', async () => {
+    vi.stubGlobal('fetch', buildFetchMock({ validate: () => jsonResponse(true, passResponse) }));
+    render(<LearningPanel projectId="p1" onClose={() => {}} />);
+    await openRoadmapFromCatalog();
+
+    fireEvent.click(screen.getByRole('button', { name: 'Validate' }));
+    fireEvent.click(await screen.findByRole('button', { name: 'Next step' }));
+
+    expect(screen.getByText('Step 2 of 2')).toBeInTheDocument();
   });
 
   it('shows an understandable error with retry when the backend is unreachable during validation', async () => {
