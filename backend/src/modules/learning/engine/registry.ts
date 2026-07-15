@@ -7,6 +7,7 @@ import { edgeExists } from './validators/edgeExists';
 import { lbUpstreams } from './validators/lbUpstreams';
 import { portDenied } from './validators/portDenied';
 import { asgReplicas } from './validators/asgReplicas';
+import { httpGetContains } from './validators/httpGetContains';
 
 /**
  * The single extension point for validator types: adding a type to the
@@ -22,4 +23,5 @@ export const validatorRegistry: Readonly<Record<string, ValidatorHandler>> = {
   lb_upstreams: lbUpstreams,
   port_denied: portDenied,
   asg_replicas: asgReplicas,
+  http_get_contains: httpGetContains,
 };

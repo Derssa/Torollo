@@ -341,6 +341,10 @@ export class DockerContainerProvider implements ContainerProvider {
     return output;
   }
 
+  public async executeCustomCommand(containerId: string, cmd: string[]): Promise<string> {
+    return this.execCapture(containerId, cmd);
+  }
+
   public async commitContainer(id: string, repoName: string, tag: string = 'latest'): Promise<string> {
     try {
       const container = docker.getContainer(id);

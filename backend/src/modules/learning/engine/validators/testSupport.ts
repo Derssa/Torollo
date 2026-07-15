@@ -21,6 +21,7 @@ interface ContextOverrides {
   executePsqlCommand?: ValidatorContext['executePsqlCommand'];
   executeRedisCommand?: ValidatorContext['executeRedisCommand'];
   executeMongoCommand?: ValidatorContext['executeMongoCommand'];
+  executeCustomCommand?: ValidatorContext['executeCustomCommand'];
 }
 
 export function makeContext(overrides: ContextOverrides = {}): ValidatorContext {
@@ -32,6 +33,7 @@ export function makeContext(overrides: ContextOverrides = {}): ValidatorContext 
     executePsqlCommand: overrides.executePsqlCommand ?? (() => Promise.resolve('')),
     executeRedisCommand: overrides.executeRedisCommand ?? (() => Promise.resolve('')),
     executeMongoCommand: overrides.executeMongoCommand ?? (() => Promise.resolve('')),
+    executeCustomCommand: overrides.executeCustomCommand ?? (() => Promise.resolve('')),
   };
 }
 

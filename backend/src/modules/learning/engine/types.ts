@@ -74,6 +74,7 @@ export interface ValidatorContext {
   ): Promise<string>;
   executeRedisCommand(containerId: string, args: string[]): Promise<string>;
   executeMongoCommand(containerId: string, evalExpression: string): Promise<string>;
+  executeCustomCommand(containerId: string, cmd: string[]): Promise<string>;
 }
 
 export type ValidatorHandler = (
@@ -93,4 +94,5 @@ export interface EngineDeps {
   ): Promise<string>;
   executeRedisCommand(containerId: string, args: string[]): Promise<string>;
   executeMongoCommand(containerId: string, evalExpression: string): Promise<string>;
+  executeCustomCommand(containerId: string, cmd: string[]): Promise<string>;
 }

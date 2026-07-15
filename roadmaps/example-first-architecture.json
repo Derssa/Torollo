@@ -29,10 +29,10 @@
     {
       "id": "add-database",
       "title": "Add a PostgreSQL database with a users table",
-      "instruction": "Add a **SQL Database** node (PostgreSQL) named `db` and start it. Then open its explorer and create a table named `users` (any columns you like).",
+      "instruction": "Add a **SQL Database** node (PostgreSQL) named `db` and start it. Then check by clicking inspector in db explorer if there is a `users` table.",
       "hints": [
-        "Double-click the PostgreSQL node to open its modal — the explorer tab lets you run SQL against the real container.",
-        "A table needs at least one column, for example: `CREATE TABLE users (id SERIAL PRIMARY KEY);`"
+        "Double-click the SQL Database node to open its modal — check by clicking inspector in db explorer if there is a `users` table.",
+        "If the table is missing, create it in the Query tab, for example: `CREATE TABLE users (id SERIAL PRIMARY KEY, email TEXT NOT NULL);`"
       ],
       "solution": "Create the node, start it, open its modal and run:\n\n```sql\nCREATE TABLE users (\n  id SERIAL PRIMARY KEY,\n  email TEXT NOT NULL\n);\n```",
       "validators": [
@@ -71,6 +71,28 @@
         {
           "type": "port_denied",
           "params": { "source": "web", "target": "db", "port": 80 }
+        }
+      ]
+    },
+    {
+      "id": "run-web-server",
+      "title": "Run a web server querying the database",
+      "instruction": "Connect to the terminal of your `web` node and run the following commands:\n\n1. Install PostgreSQL drivers:\n```bash\napt-get update && apt-get install -y python3-psycopg2\n```\n\n2. Write the server script (`server.py`):\n```bash\ncat << 'EOF' > server.py\nfrom http.server import SimpleHTTPRequestHandler, HTTPServer\nimport psycopg2\nclass DBHandler(SimpleHTTPRequestHandler):\n    def do_GET(self):\n        self.send_response(200)\n        self.send_header('Content-type', 'text/html')\n        self.end_headers()\n        try:\n            conn = psycopg2.connect(host='db', database='postgres', user='postgres', password='postgres')\n            cur = conn.cursor()\n            cur.execute('SELECT id, email FROM users;')\n            rows = cur.fetchall()\n            html = '<html><body><h1>Users List</h1><table border=1><tr><th>ID</th><th>Email</th></tr>'\n            for row in rows:\n                html += f'<tr><td>{row[0]}</td><td>{row[1]}</td></tr>'\n            html += '</table></body></html>'\n            cur.close(); conn.close()\n        except Exception as e:\n            html = f'<html><body><h1>Error</h1><p>{str(e)}</p></body></html>'\n        self.wfile.write(bytes(html, 'utf8'))\nHTTPServer(('', 80), DBHandler).serve_forever()\nEOF\n```\n\n3. Start the server in the background:\n```bash\npython3 server.py &\n```\n\n4. Finally, open port 80 in inbound rules for the `web` node security group allowing traffic from `0.0.0.0/0` (Anywhere).",
+      "hints": [
+        "Double-click 'web' and use the Terminal tab to run commands.",
+        "Write your Python web server script using Python's http.server and psycopg2. Connect using host='db', database='postgres', user='postgres', password='postgres'. Example script:\n\n```python\nfrom http.server import SimpleHTTPRequestHandler, HTTPServer\nimport psycopg2\nclass Handler(SimpleHTTPRequestHandler):\n    def do_GET(self):\n        self.send_response(200)\n        self.send_header('Content-type', 'text/html')\n        self.end_headers()\n        conn = psycopg2.connect(host='db', database='postgres', user='postgres', password='postgres')\n        cur = conn.cursor()\n        cur.execute('SELECT id, email FROM users;')\n        rows = cur.fetchall()\n        html = '<html><body><h1>Users List</h1><table border=1>'\n        for r in rows:\n            html += f'<tr><td>{r[0]}</td><td>{r[1]}</td></tr>'\n        html += '</table></body></html>'\n        self.wfile.write(bytes(html, 'utf8'))\n        cur.close(); conn.close()\nHTTPServer(('', 80), Handler).serve_forever()\n```",
+        "Don't forget to open port 80 in inbound rules for the 'web' security group!"
+      ],
+      "solution": "Write the Python script server.py, run 'python3 server.py &', and add an inbound security group rule on 'web' allowing TCP port 80 from 0.0.0.0/0.",
+      "validators": [
+        {
+          "type": "http_get_contains",
+          "params": {
+            "node": "web",
+            "port": 80,
+            "path": "/",
+            "expectedText": "Users List"
+          }
         }
       ]
     }
