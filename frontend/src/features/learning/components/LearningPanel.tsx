@@ -27,7 +27,7 @@ export default function LearningPanel({
     subnets: [],
     nodeSubnetMap: {},
     nodeSecurityGroups: {}
-  }
+  } as unknown as NetworkConfig
 }: LearningPanelProps) {
   const { t } = useTranslation();
   const player = useLearningPlayer({ projectId });

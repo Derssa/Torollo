@@ -140,7 +140,7 @@ export default function RoadmapPlayer({
     subnets: [],
     nodeSubnetMap: {},
     nodeSecurityGroups: {}
-  }
+  } as unknown as NetworkConfig
 }: RoadmapPlayerProps) {
   const { t } = useTranslation();
   const {
