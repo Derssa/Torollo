@@ -89,7 +89,7 @@ A *slug* is lowercase letters/digits separated by single hyphens: `^[a-z0-9]+(-[
 
 **Targeting convention (all validators):** nodes are designated by their **canvas node name** — the name your instruction tells the learner to use (`"node": "web"` matches the node the learner named `web`). Never target runtime identifiers: container and node ids are generated per-user at execution time and change when containers are recreated. Resolving a name to the learner's actual containers/rules is the engine's job.
 
-The 8 validator types of format v1:
+The 9 validator types of format v1:
 
 | `type` | Checks that… | `params` |
 |---|---|---|
@@ -101,8 +101,18 @@ The 8 validator types of format v1:
 | `lb_upstreams` | the load balancer node has **at least** `min` upstream targets | `{ "node": string, "min": number }` |
 | `port_denied` | traffic from `source` to `target` on `port` is **blocked** | `{ "source": string, "target": string, "port": number }` |
 | `asg_replicas` | the auto-scaling group node runs **exactly** `count` instances | `{ "node": string, "count": number }` |
+| `http_get_contains` | an HTTP GET request to localhost inside the container responds with a body containing the expected string | `{ "node": string, "port": number, "path": string, "expectedText": string }` |
 
 Ports and counts are JSON numbers.
+
+## UI Integrations & Localhost Access
+
+When a step references a target container, the Torollo learning player UI automatically exposes a clickable `http://localhost:<host_port>` link below the instruction if the target node meets realistic networking preconditions:
+1. The container is running.
+2. The node is located inside a **public subnet**.
+3. The node has an inbound rule `ALLOW` on port `80` (or `ALL`) from `0.0.0.0/0` (Anywhere) in its security group.
+
+This permits the learner to quickly access and visually verify their running web server directly from their browser.
 
 ## Languages (i18n)
 
