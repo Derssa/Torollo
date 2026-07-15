@@ -11,7 +11,7 @@ This document is the contract for API consumers (the roadmap player in the front
 
 ### `GET /api/learning/roadmaps`
 
-Lists the available roadmaps as summaries.
+Lists the available roadmaps as summaries — **one entry per file**. Translations of the same roadmap share an `id` and differ by `language` (see the format's language model), so they appear as separate catalogue entries; a selection UI should surface the `language` field.
 
 ```json
 [
@@ -31,7 +31,11 @@ Lists the available roadmaps as summaries.
 
 Returns the full roadmap file (format v1, see [`roadmap-format.md`](./roadmap-format.md)) — steps, instructions, hints, solutions, validators.
 
-- `404 { "error": "...", "code": "ROADMAP_NOT_FOUND" }` if no valid roadmap has this id.
+Because translations share an `id`, the real key is `(id, language)`:
+
+- `?language=<code>` (optional) — return exactly the translation with that `language`, or `404`. **No fallback**: the player only requests pairs the catalogue advertised.
+- Without `language`, the pick among translations is deterministic (sorted by language code), so repeated calls always return the same file.
+- `404 { "error": "...", "code": "ROADMAP_NOT_FOUND" }` if no valid roadmap matches.
 
 ### `POST /api/learning/validate`
 
@@ -48,6 +52,8 @@ Request body:
 ```
 
 `stepId` is the step's stable slug id, never its position — step ids are unique within a roadmap, which is why `roadmapId` is also required.
+
+There is no `language` field: step ids and validators are language-neutral by format contract, so validating against any translation of the roadmap is equivalent (the server uses the deterministic language-less pick).
 
 Error responses (request problems only, see [status semantics](#http-status-semantics)):
 

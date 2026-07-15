@@ -75,7 +75,16 @@ describe('LearningController', () => {
 
       expect(res.status).toBe(200);
       expect(res.body).toEqual(roadmap);
-      expect(RoadmapService.getRoadmap).toHaveBeenCalledWith('example-roadmap');
+      expect(RoadmapService.getRoadmap).toHaveBeenCalledWith('example-roadmap', {});
+    });
+
+    it('forwards the language query to the service', async () => {
+      const res = await request(app).get('/api/learning/roadmaps/example-roadmap?language=fr');
+
+      expect(res.status).toBe(200);
+      expect(RoadmapService.getRoadmap).toHaveBeenCalledWith('example-roadmap', {
+        language: 'fr',
+      });
     });
 
     it('returns 404 for an unknown id', async () => {
@@ -125,6 +134,16 @@ describe('LearningController', () => {
         expect(res.body.error).toContain(`"${field}"`);
       }
     );
+
+    it('returns 400 (not 500) when the request has no JSON body', async () => {
+      const res = await request(app)
+        .post('/api/learning/validate')
+        .set('Content-Type', 'text/plain')
+        .send('not json');
+
+      expect(res.status).toBe(400);
+      expect(res.body.error).toContain('"projectId"');
+    });
 
     it('returns 404 when the project does not exist', async () => {
       (ProjectService.listProjects as jest.Mock).mockResolvedValue([]);

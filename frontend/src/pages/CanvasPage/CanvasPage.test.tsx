@@ -560,4 +560,22 @@ describe('CanvasPage', () => {
     await waitFor(() => expect(screen.getByText('A node named "web-1" already exists in this project.')).toBeInTheDocument());
     expect(fetchMock.mock.calls.some(c => (c[0] as string).endsWith('/containers') && (c[1] as RequestInit | undefined)?.method === 'POST')).toBe(false);
   });
+
+  it('mounts the learning panel from the topbar button and unmounts it on close, touching /api/learning only while open', async () => {
+    const fetchMock = buildFetchMock({ containers: [], networkConfig: { vpcConfig: validVpcConfig, subnets: [], nodeSubnetMap: {}, nodeSecurityGroups: {}, nodeIpMap: {} } });
+    await renderCanvasPage(fetchMock);
+
+    // Closed panel = strictly unchanged canvas: not mounted, zero learning fetches.
+    expect(screen.queryByTitle('Close panel')).not.toBeInTheDocument();
+    expect(fetchMock.mock.calls.some(c => (c[0] as string).includes('/api/learning'))).toBe(false);
+
+    fireEvent.click(screen.getByRole('button', { name: /Learning/ }));
+    expect(screen.getByTitle('Close panel')).toBeInTheDocument();
+    await waitFor(() =>
+      expect(fetchMock.mock.calls.some(c => (c[0] as string).includes('/api/learning/roadmaps'))).toBe(true)
+    );
+
+    fireEvent.click(screen.getByTitle('Close panel'));
+    expect(screen.queryByTitle('Close panel')).not.toBeInTheDocument();
+  });
 });

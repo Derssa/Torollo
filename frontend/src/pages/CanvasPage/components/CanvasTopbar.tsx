@@ -1,4 +1,4 @@
-import { ArrowLeft, RefreshCw, Save, Network, Play } from 'lucide-react';
+import { ArrowLeft, RefreshCw, Save, Network, Play, GraduationCap } from 'lucide-react';
 import logo from '../../../assets/logo.png';
 import { useTranslation } from 'react-i18next';
 
@@ -11,6 +11,7 @@ interface CanvasTopbarProps {
   onSave: () => void;
   onConfigureVpc: () => void;
   onSimulateTraffic: () => void;
+  onToggleLearning: () => void;
 }
 
 declare const __APP_VERSION__: string;
@@ -23,6 +24,7 @@ export default function CanvasTopbar({
   onSave,
   onConfigureVpc,
   onSimulateTraffic,
+  onToggleLearning,
 }: CanvasTopbarProps) {
   const { t, i18n } = useTranslation();
 
@@ -61,6 +63,11 @@ export default function CanvasTopbar({
           title={t('topbar.refreshNodes')}
         >
           <RefreshCw size={16} className={loading ? 'spin' : ''} />
+        </button>
+
+        <button onClick={onToggleLearning} style={styles.saveBtn} title={t('topbar.learning')}>
+          <GraduationCap size={16} style={{ marginRight: 6 }} />
+          {t('topbar.learning')}
         </button>
 
         <button onClick={onConfigureVpc} style={styles.saveBtn} title={t('topbar.vpcSettings')}>

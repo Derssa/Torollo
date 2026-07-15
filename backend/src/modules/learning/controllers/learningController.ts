@@ -25,10 +25,18 @@ export class LearningController {
 
   public static async getRoadmap(req: Request, res: Response): Promise<void> {
     try {
-      const roadmap = RoadmapService.getRoadmap(req.params.id as string);
+      const { language } = req.query;
+      const wantedLanguage =
+        typeof language === 'string' && language.length > 0 ? language : undefined;
+      const roadmap = RoadmapService.getRoadmap(
+        req.params.id as string,
+        wantedLanguage ? { language: wantedLanguage } : {}
+      );
       if (!roadmap) {
         res.status(404).json({
-          error: `No roadmap found with id "${req.params.id}".`,
+          error: wantedLanguage
+            ? `No roadmap found with id "${req.params.id}" in language "${wantedLanguage}".`
+            : `No roadmap found with id "${req.params.id}".`,
           code: 'ROADMAP_NOT_FOUND',
         });
         return;
@@ -41,7 +49,9 @@ export class LearningController {
 
   public static async validate(req: Request, res: Response): Promise<void> {
     try {
-      const { projectId, roadmapId, stepId } = req.body as Record<string, unknown>;
+      // req.body is undefined when the request has no JSON Content-Type —
+      // fall through to the per-field 400s instead of throwing a 500.
+      const { projectId, roadmapId, stepId } = (req.body ?? {}) as Record<string, unknown>;
       for (const [name, value] of Object.entries({ projectId, roadmapId, stepId })) {
         if (typeof value !== 'string' || value.length === 0) {
           res.status(400).json({ error: `"${name}" is required and must be a string` });

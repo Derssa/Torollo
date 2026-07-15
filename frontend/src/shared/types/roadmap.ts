@@ -1,11 +1,16 @@
 /**
  * TypeScript types for the Torollo roadmap format, version 1.
  *
- * KEEP IN SYNC with backend/src/modules/learning/format/roadmapTypes.ts —
- * the duplication is deliberate: backend and frontend are separate npm
+ * KEEP IN SYNC with the backend sources —
+ * format types:  backend/src/modules/learning/format/roadmapTypes.ts
+ * API types:     backend/src/modules/learning/engine/types.ts (ValidatorResult),
+ *                controllers/learningController.ts (StepValidationResponse),
+ *                services/roadmapService.ts (RoadmapSummary).
+ * The duplication is deliberate: backend and frontend are separate npm
  * packages (same policy as the Project type in shared/types/index.ts).
  * Source of truth for the format is the JSON Schema:
  * backend/src/modules/learning/format/roadmap.schema.json
+ * API contract: docs/learning-api.md
  *
  * Format documentation: docs/roadmap-format.md
  */
@@ -45,4 +50,45 @@ export interface Roadmap {
   difficulty?: RoadmapDifficulty;
   prerequisites?: string[];
   steps: RoadmapStep[];
+}
+
+/** One catalogue entry of GET /api/learning/roadmaps — one per file, so translations are separate entries. */
+export interface RoadmapSummary {
+  id: string;
+  title: string;
+  description: string;
+  language: string;
+  difficulty?: RoadmapDifficulty;
+  estimatedMinutes?: number;
+  stepCount: number;
+}
+
+export type ValidatorStatus = 'pass' | 'fail' | 'error';
+
+/**
+ * Result of one validator, as returned by POST /api/learning/validate.
+ * `fail` is a pedagogical failure (normal state — the learner isn't done);
+ * `error` means the check itself could not run (never the learner's fault).
+ */
+export interface ValidatorResult {
+  /** Position in step.validators — the stable key of the result. */
+  index: number;
+  type: string;
+  status: ValidatorStatus;
+  message: string;
+  /** Set iff status is 'error'. Wider than the backend union: the frontend only displays it. */
+  errorCode?: string;
+  expected?: string;
+  observed?: string;
+}
+
+/** Response of POST /api/learning/validate. */
+export interface StepValidationResponse {
+  roadmapId: string;
+  stepId: string;
+  /** true iff every result is 'pass' — an 'error' never validates a step. */
+  stepPassed: boolean;
+  results: ValidatorResult[];
+  /** ISO timestamp of the evaluation. */
+  checkedAt: string;
 }

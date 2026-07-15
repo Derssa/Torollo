@@ -2,19 +2,11 @@ import { useState, useCallback, useRef } from 'react';
 import { API_BASE } from '../types';
 import type { ContainerData } from '../types';
 import type { NotificationData } from './useToast';
+import { readErrorMessage } from '../utils/readErrorMessage';
 
 interface UseContainersOptions {
   projectId: string;
   onNotify?: (notification: NotificationData) => void;
-}
-
-async function readErrorMessage(res: Response, fallback: string): Promise<string> {
-  try {
-    const body = await res.json();
-    return body?.error || fallback;
-  } catch {
-    return fallback;
-  }
 }
 
 /**
