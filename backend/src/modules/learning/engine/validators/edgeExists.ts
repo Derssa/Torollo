@@ -22,6 +22,7 @@ export const edgeExists: ValidatorHandler = async (params, ctx) => {
   const allowed = rules.some(
     (rule) =>
       rule.action === 'ALLOW' &&
+      rule.direction === 'inbound' &&
       rule.sourceNodeId === resolved.sourceContainer.id &&
       rule.targetNodeId === resolved.targetContainer.id &&
       (port === undefined || rule.port === 'ALL' || rule.port === String(port))

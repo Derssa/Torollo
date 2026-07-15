@@ -23,6 +23,7 @@ export const portDenied: ValidatorHandler = async (params, ctx) => {
   const openRule = rules.find(
     (rule) =>
       rule.action === 'ALLOW' &&
+      rule.direction === 'inbound' &&
       rule.sourceNodeId === resolved.sourceContainer.id &&
       rule.targetNodeId === resolved.targetContainer.id &&
       (rule.port === 'ALL' || rule.port === String(port))

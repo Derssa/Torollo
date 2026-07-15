@@ -42,7 +42,7 @@ export function makeSemanticRule(overrides: Partial<SemanticRule>): SemanticRule
     protocol: 'tcp',
     port: 'ALL',
     action: 'ALLOW',
-    direction: 'outbound',
+    direction: 'inbound',
     ownerNodeId: 'src',
     ...overrides,
   };
