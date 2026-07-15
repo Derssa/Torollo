@@ -49,6 +49,21 @@ You can drag and drop a wide range of infrastructure components onto the canvas.
 
 ---
 
+## 🎓 Interactive Roadmaps & Learning Paths
+
+Torollo includes a powerful, local-first **declarative learning and validation engine** that guides you through building complex architectures step-by-step.
+
+*   **Interactive Playlists:** Follow step-by-step blueprints on the sidebar player, complete with instructions, progressive hints, and copy-pasteable terminal blocks.
+*   **Automatic Live Validation:** Every step runs auto-checkers against your actual Docker environment:
+    *   *Container status* & *replication scale* (ASG checks).
+    *   *Database schema* & *data existence* (SQL & MongoDB collection checks).
+    *   *Network connectivity* & *firewall restrictions* (Inbound firewall checks).
+    *   *Web server availability* & *HTTP content* (Curl checks).
+*   **Dynamic UI Integrations:** Clickable `http://localhost:<mapped_port>` shortcuts are dynamically generated in the player sidebar when public subnet and port-80 firewall requirements are fulfilled.
+*   **JSON-only Contributions:** Create and customize learning paths with zero frontend or backend code! Simply author a JSON configuration file and drop it in the `roadmaps/` directory. See the [Roadmap Authoring Reference](docs/roadmap-format.md) for details.
+
+---
+
 ## Coming Very Soon
 
 *   **Terraform Generation:** Automatic Infrastructure-as-Code (IaC) generation for your visual architectures, supporting every major cloud provider (AWS, Azure, GCP).
