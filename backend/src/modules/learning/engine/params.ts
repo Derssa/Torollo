@@ -12,3 +12,36 @@ export function requireStringParam(params: Record<string, unknown>, name: string
   }
   return value;
 }
+
+export function requireNumberParam(params: Record<string, unknown>, name: string): number {
+  const value = params[name];
+  if (typeof value !== 'number' || !Number.isFinite(value)) {
+    throw new InvalidParamsError(`validator param "${name}" must be a number`);
+  }
+  return value;
+}
+
+export function optionalStringParam(
+  params: Record<string, unknown>,
+  name: string,
+  fallback: string
+): string {
+  const value = params[name];
+  if (value === undefined) return fallback;
+  if (typeof value !== 'string' || value.length === 0) {
+    throw new InvalidParamsError(`validator param "${name}" must be a non-empty string when present`);
+  }
+  return value;
+}
+
+export function optionalNumberParam(
+  params: Record<string, unknown>,
+  name: string
+): number | undefined {
+  const value = params[name];
+  if (value === undefined) return undefined;
+  if (typeof value !== 'number' || !Number.isFinite(value)) {
+    throw new InvalidParamsError(`validator param "${name}" must be a number when present`);
+  }
+  return value;
+}

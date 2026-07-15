@@ -2,17 +2,27 @@ import { RoadmapStep } from '../format/roadmapTypes';
 import { classifyDockerError } from '../../../infrastructure/docker/dockerErrors';
 import { containerProvider } from '../../../infrastructure/docker/providers/dockerContainerProvider';
 import { ContainerInfo } from '../../../infrastructure/docker/providers/containerProvider';
+import { ProjectService } from '../../projects/services/projectService';
+import { NetworkService } from '../../network/services/networkService';
+import { SemanticRule } from '../../network/models/networkPolicy';
 import { validatorRegistry } from './registry';
 import {
   EngineDeps,
   InvalidParamsError,
   ValidatorContext,
   ValidatorHandler,
+  ValidatorNetworkConfig,
   ValidatorResult,
 } from './types';
 
 export const defaultEngineDeps: EngineDeps = {
   listContainersByProject: (projectId) => containerProvider.listContainersByProject(projectId),
+  getNetworkConfig: (projectId) => ProjectService.getNetworkConfig(projectId),
+  executePsqlCommand: (containerId, database, sqlQuery, extraArgs) =>
+    containerProvider.executePsqlCommand(containerId, database, sqlQuery, extraArgs),
+  executeRedisCommand: (containerId, args) => containerProvider.executeRedisCommand(containerId, args),
+  executeMongoCommand: (containerId, evalExpression) =>
+    containerProvider.executeMongoCommand(containerId, evalExpression),
 };
 
 /**
@@ -29,16 +39,34 @@ export async function runStepValidators(
   deps: EngineDeps = defaultEngineDeps,
   registry: Readonly<Record<string, ValidatorHandler>> = validatorRegistry
 ): Promise<ValidatorResult[]> {
-  // Memoized on the promise: one Docker call per step run, shared by all
-  // validators — including a rejection, so every Docker-backed validator of
-  // the step reports the same infrastructure error from a single attempt.
+  // Memoized on the promise: one Docker/config call per step run, shared by
+  // all validators — including a rejection, so every backed validator of the
+  // step reports the same infrastructure error from a single attempt.
   let containersPromise: Promise<ContainerInfo[]> | undefined;
+  let networkConfigPromise: Promise<ValidatorNetworkConfig | null> | undefined;
+  let semanticRulesPromise: Promise<SemanticRule[]> | undefined;
   const ctx: ValidatorContext = {
     projectId,
     getContainers: () => {
       containersPromise ??= deps.listContainersByProject(projectId);
       return containersPromise;
     },
+    getNetworkConfig: () => {
+      networkConfigPromise ??= deps.getNetworkConfig(projectId);
+      return networkConfigPromise;
+    },
+    getSemanticRules: () => {
+      networkConfigPromise ??= deps.getNetworkConfig(projectId);
+      semanticRulesPromise ??= networkConfigPromise.then((config) =>
+        config ? NetworkService.computeSemanticRules(projectId, config) : []
+      );
+      return semanticRulesPromise;
+    },
+    executePsqlCommand: (containerId, database, sqlQuery, extraArgs) =>
+      deps.executePsqlCommand(containerId, database, sqlQuery, extraArgs),
+    executeRedisCommand: (containerId, args) => deps.executeRedisCommand(containerId, args),
+    executeMongoCommand: (containerId, evalExpression) =>
+      deps.executeMongoCommand(containerId, evalExpression),
   };
 
   const results: ValidatorResult[] = [];

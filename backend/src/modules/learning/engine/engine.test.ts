@@ -18,7 +18,13 @@ function makeStep(validators: RoadmapStep['validators']): RoadmapStep {
 function makeDeps(impl?: EngineDeps['listContainersByProject']): EngineDeps & {
   listContainersByProject: jest.Mock;
 } {
-  return { listContainersByProject: jest.fn(impl ?? (() => Promise.resolve([runningWeb]))) };
+  return {
+    listContainersByProject: jest.fn(impl ?? (() => Promise.resolve([runningWeb]))),
+    getNetworkConfig: () => Promise.resolve(null),
+    executePsqlCommand: () => Promise.resolve(''),
+    executeRedisCommand: () => Promise.resolve(''),
+    executeMongoCommand: () => Promise.resolve(''),
+  };
 }
 
 describe('runStepValidators', () => {
