@@ -38,7 +38,15 @@
       "stepPassed": "Étape validée",
       "stepFailed": "Pas encore — voir les résultats ci-dessous",
       "expected": "Attendu",
-      "observed": "Observé"
+      "observed": "Observé",
+      "stepError": "Certaines vérifications n'ont pas pu s'exécuter — ce n'est pas de votre faute. Corrigez le problème ci-dessous ou réessayez simplement.",
+      "stepErrorDocker": "Docker n'est pas démarré, les vérifications n'ont pas pu s'exécuter. Démarrez Docker puis validez à nouveau.",
+      "nextStep": "Étape suivante",
+      "roadmapComplete": "Étape validée — c'était la dernière. Roadmap terminée !",
+      "checkNotRun": "Vérification impossible",
+      "markerPassed": "Validée",
+      "markerFailed": "Échouée",
+      "markerError": "Erreur de vérification"
     }
   },
   "projects": {

@@ -18,7 +18,10 @@
   --color-success-glow: rgba(5, 150, 105, 0.1);
   --color-danger: #DC2626;
   --color-danger-glow: rgba(220, 38, 38, 0.1);
-  
+  --color-warning: #F59E0B;
+  --color-warning-glow: rgba(245, 158, 11, 0.1);
+  --color-warning-strong: #92400E;
+
   --font-sans: 'Plus Jakarta Sans', system-ui, -apple-system, sans-serif;
   --font-mono: 'JetBrains Mono', monospace;
   
