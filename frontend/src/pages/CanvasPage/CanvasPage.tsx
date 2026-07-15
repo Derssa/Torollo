@@ -13,6 +13,7 @@ import AsgNode from '../../features/nodes/AsgNode/AsgNode';
 import VpcNode from '../../features/nodes/VpcNode/VpcNode';
 import SubnetNode from '../../features/nodes/SubnetNode/SubnetNode';
 import NodeLibrary from './components/NodeLibrary';
+import LearningPanel from '../../features/learning/components/LearningPanel';
 import { useContainers } from '../../shared/hooks/useContainers';
 import { useToast } from '../../shared/hooks/useToast';
 import { ToastNotification } from '../../shared/components/Toast';
@@ -118,6 +119,7 @@ export default function CanvasPage({ projectId, projectName, onBackToProjects, o
 
   const [showVpcSettings, setShowVpcSettings] = useState(false);
   const [showTrafficSimulator, setShowTrafficSimulator] = useState(false);
+  const [showLearning, setShowLearning] = useState(false);
 
   const nodeTypes = useMemo(() => ({
     ubuntu: UbuntuNode,
@@ -568,9 +570,14 @@ export default function CanvasPage({ projectId, projectName, onBackToProjects, o
         onSave={saveGraphLocally}
         onConfigureVpc={() => setShowVpcSettings(true)}
         onSimulateTraffic={() => setShowTrafficSimulator(true)}
+        onToggleLearning={() => setShowLearning(v => !v)}
       />
 
       <div style={styles.bodyWrapper}>
+        {showLearning && (
+          <LearningPanel projectId={projectId} onClose={() => setShowLearning(false)} />
+        )}
+
         {/* Main React Flow Workspace */}
         <div
           style={styles.canvasContainer}

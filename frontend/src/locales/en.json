@@ -4,7 +4,41 @@
     "trafficSimulator": "Traffic Simulator",
     "saveGraph": "Save Graph",
     "backToProjects": "Back to Projects",
-    "refreshNodes": "Refresh Nodes"
+    "refreshNodes": "Refresh Nodes",
+    "learning": "Learning"
+  },
+  "learning": {
+    "panelTitle": "Learning",
+    "close": "Close panel",
+    "catalog": {
+      "loading": "Loading roadmaps...",
+      "error": "Could not load roadmaps. Is the backend running?",
+      "retry": "Retry",
+      "empty": "No roadmaps available.",
+      "steps": "{{count}} steps",
+      "minutes": "~{{count}} min",
+      "difficulty": {
+        "beginner": "Beginner",
+        "intermediate": "Intermediate",
+        "advanced": "Advanced"
+      }
+    },
+    "player": {
+      "backToCatalog": "All roadmaps",
+      "loading": "Loading roadmap...",
+      "loadError": "Could not load this roadmap. Pick one below to try again.",
+      "stepCounter": "Step {{current}} of {{total}}",
+      "previous": "Previous",
+      "next": "Next",
+      "validate": "Validate",
+      "validating": "Checking...",
+      "validationError": "Could not reach the server. Your work is untouched — try again.",
+      "retry": "Retry",
+      "stepPassed": "Step passed",
+      "stepFailed": "Not yet — see the results below",
+      "expected": "Expected",
+      "observed": "Observed"
+    }
   },
   "projects": {
     "title": "Torollo Projects",

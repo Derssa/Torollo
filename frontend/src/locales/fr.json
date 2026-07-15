@@ -4,7 +4,41 @@
     "trafficSimulator": "Simulateur de Trafic",
     "saveGraph": "Enregistrer le Graphe",
     "backToProjects": "Retour aux Projets",
-    "refreshNodes": "Actualiser les Nœuds"
+    "refreshNodes": "Actualiser les Nœuds",
+    "learning": "Apprentissage"
+  },
+  "learning": {
+    "panelTitle": "Apprentissage",
+    "close": "Fermer le panneau",
+    "catalog": {
+      "loading": "Chargement des roadmaps...",
+      "error": "Impossible de charger les roadmaps. Le backend est-il démarré ?",
+      "retry": "Réessayer",
+      "empty": "Aucune roadmap disponible.",
+      "steps": "{{count}} étapes",
+      "minutes": "~{{count}} min",
+      "difficulty": {
+        "beginner": "Débutant",
+        "intermediate": "Intermédiaire",
+        "advanced": "Avancé"
+      }
+    },
+    "player": {
+      "backToCatalog": "Toutes les roadmaps",
+      "loading": "Chargement de la roadmap...",
+      "loadError": "Impossible de charger cette roadmap. Choisissez-en une ci-dessous pour réessayer.",
+      "stepCounter": "Étape {{current}} sur {{total}}",
+      "previous": "Précédent",
+      "next": "Suivant",
+      "validate": "Valider",
+      "validating": "Vérification...",
+      "validationError": "Impossible de joindre le serveur. Votre travail est intact — réessayez.",
+      "retry": "Réessayer",
+      "stepPassed": "Étape validée",
+      "stepFailed": "Pas encore — voir les résultats ci-dessous",
+      "expected": "Attendu",
+      "observed": "Observé"
+    }
   },
   "projects": {
     "title": "Projets Torollo",
