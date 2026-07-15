@@ -1,7 +1,8 @@
-# Verifies that every node image ships iptables/iproute2 (required for Security
-# Group enforcement) — see docs/adding-a-node.md#required-tooling-inside-every-node-image.
+# Runs the backend's *.itest.ts suites against a real Docker daemon:
+# - node image requirements (iptables/iproute2 — docs/adding-a-node.md#required-tooling-inside-every-node-image)
+# - the learning engine's 8 validators, pass and fail, against real containers (V-4)
 #
-# This pulls the real images from Docker Hub, so it only runs when something that
+# This pulls real images from Docker Hub, so it only runs when something that
 # affects them changes. Image pushes to Docker Hub happen outside this repo and
 # can't trigger CI — use "Run workflow" (workflow_dispatch) after publishing one.
 name: Integration
@@ -12,6 +13,7 @@ on:
     paths:
       - 'backend/src/infrastructure/docker/nodeTypes.ts'
       - 'backend/src/infrastructure/docker/imageRequirements.itest.ts'
+      - 'backend/src/modules/learning/**'
       - 'backend/jest.integration.config.js'
       - 'backend/package.json'
       - 'backend/package-lock.json'
@@ -21,6 +23,7 @@ on:
     paths:
       - 'backend/src/infrastructure/docker/nodeTypes.ts'
       - 'backend/src/infrastructure/docker/imageRequirements.itest.ts'
+      - 'backend/src/modules/learning/**'
       - 'backend/jest.integration.config.js'
       - 'backend/package.json'
       - 'backend/package-lock.json'
