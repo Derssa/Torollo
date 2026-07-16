@@ -18,6 +18,8 @@ const roadmap: Roadmap = {
       id: 'create-web-server',
       title: 'Create the web server',
       instruction: 'Drag an Ubuntu node named `web` onto the canvas and start it.',
+      hints: ['Look at the node palette.', 'Drag the Ubuntu card.'],
+      solution: 'Drag an Ubuntu node, name it `web`, click start.',
       validators: [{ type: 'container_running', params: { node: 'web' } }],
     },
     {
@@ -224,6 +226,52 @@ describe('useLearningPlayer', () => {
     });
   });
 
+  describe('revealNextHint', () => {
+    it('reveals rungs one at a time for the current step and clamps at the ladder length', async () => {
+      const { result } = renderHook(() => useLearningPlayer({ projectId: 'p1' }));
+      await openExampleRoadmap(result, fetchMock);
+
+      act(() => result.current.revealNextHint());
+      expect(result.current.revealedHintsByStepId['create-web-server']).toBe(1);
+
+      // 2 hints + 1 solution = 3 rungs; extra calls must not go past the end.
+      act(() => result.current.revealNextHint());
+      act(() => result.current.revealNextHint());
+      act(() => result.current.revealNextHint());
+      expect(result.current.revealedHintsByStepId['create-web-server']).toBe(3);
+    });
+
+    it('does nothing on a step with neither hints nor solution', async () => {
+      const { result } = renderHook(() => useLearningPlayer({ projectId: 'p1' }));
+      await openExampleRoadmap(result, fetchMock);
+
+      act(() => result.current.goToStep(1));
+      act(() => result.current.revealNextHint());
+      expect(result.current.revealedHintsByStepId['add-database']).toBe(0);
+    });
+
+    it('keeps revealed hints per step when navigating away and back', async () => {
+      const { result } = renderHook(() => useLearningPlayer({ projectId: 'p1' }));
+      await openExampleRoadmap(result, fetchMock);
+
+      act(() => result.current.revealNextHint());
+      act(() => result.current.goToStep(1));
+      act(() => result.current.goToStep(0));
+
+      expect(result.current.revealedHintsByStepId['create-web-server']).toBe(1);
+    });
+
+    it('resets revealed hints when a roadmap is reopened', async () => {
+      const { result } = renderHook(() => useLearningPlayer({ projectId: 'p1' }));
+      await openExampleRoadmap(result, fetchMock);
+
+      act(() => result.current.revealNextHint());
+      await openExampleRoadmap(result, fetchMock);
+
+      expect(result.current.revealedHintsByStepId).toEqual({});
+    });
+  });
+
   describe('closeRoadmap', () => {
     it('returns to the catalogue state and drops in-memory results', async () => {
       const { result } = renderHook(() => useLearningPlayer({ projectId: 'p1' }));
@@ -234,10 +282,12 @@ describe('useLearningPlayer', () => {
         await result.current.validateCurrentStep();
       });
 
+      act(() => result.current.revealNextHint());
       act(() => result.current.closeRoadmap());
 
       expect(result.current.roadmap).toBeNull();
       expect(result.current.resultsByStepId).toEqual({});
+      expect(result.current.revealedHintsByStepId).toEqual({});
       expect(result.current.currentStepIndex).toBe(0);
     });
   });

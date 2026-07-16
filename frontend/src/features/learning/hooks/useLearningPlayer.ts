@@ -29,6 +29,11 @@ export function useLearningPlayer({ projectId }: UseLearningPlayerOptions) {
   const [validating, setValidating] = useState(false);
   const [validationError, setValidationError] = useState<string | null>(null);
   const [resultsByStepId, setResultsByStepId] = useState<Record<string, StepValidationResponse>>({});
+  // Count of revealed rungs on the step's hint ladder [...hints, solution?].
+  // Kept across step navigation (a revealed hint stays revealed for the whole
+  // session), reset when a roadmap is opened or closed — same lifecycle as
+  // resultsByStepId, and the natural seam for P-4 to persist later.
+  const [revealedHintsByStepId, setRevealedHintsByStepId] = useState<Record<string, number>>({});
   // React state updates are async, so `validating` alone cannot stop two
   // synchronous clicks — the ref is the actual double-submit guard.
   const validatingRef = useRef(false);
@@ -61,6 +66,7 @@ export function useLearningPlayer({ projectId }: UseLearningPlayerOptions) {
         setRoadmap(data);
         setCurrentStepIndex(0);
         setResultsByStepId({});
+        setRevealedHintsByStepId({});
         setValidationError(null);
       } catch (err) {
         console.error('Failed to load roadmap:', err);
@@ -77,6 +83,7 @@ export function useLearningPlayer({ projectId }: UseLearningPlayerOptions) {
     setRoadmapError(null);
     setCurrentStepIndex(0);
     setResultsByStepId({});
+    setRevealedHintsByStepId({});
     setValidationError(null);
   }, []);
 
@@ -89,6 +96,17 @@ export function useLearningPlayer({ projectId }: UseLearningPlayerOptions) {
     },
     [roadmap]
   );
+
+  const revealNextHint = useCallback(() => {
+    if (!currentStep) return;
+    // Sequential reveal only: one more rung per call, clamped to the ladder
+    // length so a stray extra click can never jump past the solution.
+    const totalRungs = (currentStep.hints?.length ?? 0) + (currentStep.solution ? 1 : 0);
+    setRevealedHintsByStepId(prev => ({
+      ...prev,
+      [currentStep.id]: Math.min((prev[currentStep.id] ?? 0) + 1, totalRungs),
+    }));
+  }, [currentStep]);
 
   const validateCurrentStep = useCallback(async () => {
     if (validatingRef.current || !roadmap || !currentStep) return;
@@ -131,5 +149,7 @@ export function useLearningPlayer({ projectId }: UseLearningPlayerOptions) {
     validationError,
     resultsByStepId,
     validateCurrentStep,
+    revealedHintsByStepId,
+    revealNextHint,
   };
 }

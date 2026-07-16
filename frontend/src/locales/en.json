@@ -46,7 +46,12 @@
       "checkNotRun": "Check couldn't run",
       "markerPassed": "Passed",
       "markerFailed": "Failed",
-      "markerError": "Check error"
+      "markerError": "Check error",
+      "hintLabel": "Hint {{n}} of {{total}}",
+      "showHint": "Show hint ({{n}}/{{total}})",
+      "solutionLabel": "Solution",
+      "showSolution": "Reveal the solution",
+      "confirmSolution": "Sure? Click again to reveal"
     }
   },
   "projects": {
