@@ -46,7 +46,12 @@
       "checkNotRun": "Vérification impossible",
       "markerPassed": "Validée",
       "markerFailed": "Échouée",
-      "markerError": "Erreur de vérification"
+      "markerError": "Erreur de vérification",
+      "hintLabel": "Indice {{n}} sur {{total}}",
+      "showHint": "Voir un indice ({{n}}/{{total}})",
+      "solutionLabel": "Solution",
+      "showSolution": "Révéler la solution",
+      "confirmSolution": "Sûr ? Cliquez à nouveau pour révéler"
     }
   },
   "projects": {
