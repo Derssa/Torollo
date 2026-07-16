@@ -4,6 +4,7 @@ import { render, screen, fireEvent } from '@testing-library/react';
 import LearningPanel from './LearningPanel';
 import type {
   Roadmap,
+  RoadmapProgressResponse,
   RoadmapSummary,
   StepValidationResponse,
 } from '../../../shared/types/roadmap';
@@ -74,19 +75,37 @@ const passResponse: StepValidationResponse = {
   checkedAt: '2026-07-15T10:01:00.000Z',
 };
 
+const emptyProgress: RoadmapProgressResponse = {
+  projectId: 'p1',
+  roadmapId: roadmap.id,
+  steps: {},
+};
+
 function jsonResponse(ok: boolean, body: unknown): Response {
   return { ok, json: () => Promise.resolve(body) } as Response;
 }
 
-/** Routes fetch calls by URL so the catalogue, roadmap and validate endpoints can be scripted independently. */
+/** Routes fetch calls by URL so the catalogue, roadmap, validate and progress endpoints can be scripted independently. */
 function buildFetchMock(handlers: {
   roadmaps?: () => Response;
   roadmap?: () => Response;
   validate?: () => Response;
+  progress?: () => Response;
+  hints?: () => Response;
+  reset?: () => Response;
 }) {
-  return vi.fn((url: string) => {
+  return vi.fn((url: string, options?: RequestInit) => {
     if (url.includes('/api/learning/validate')) {
       return Promise.resolve(handlers.validate?.() ?? jsonResponse(true, failResponse));
+    }
+    if (url.includes('/api/learning/progress/') && url.endsWith('/hints')) {
+      return Promise.resolve(handlers.hints?.() ?? jsonResponse(true, {}));
+    }
+    if (url.includes('/api/learning/progress/')) {
+      if (options?.method === 'DELETE') {
+        return Promise.resolve(handlers.reset?.() ?? jsonResponse(true, {}));
+      }
+      return Promise.resolve(handlers.progress?.() ?? jsonResponse(true, emptyProgress));
     }
     if (url.includes('/api/learning/roadmaps/')) {
       return Promise.resolve(handlers.roadmap?.() ?? jsonResponse(true, roadmap));
@@ -244,6 +263,72 @@ describe('LearningPanel', () => {
     validateFails = false;
     fireEvent.click(screen.getByRole('button', { name: 'Retry' }));
     expect(await screen.findByText('Not yet — see the results below')).toBeInTheDocument();
+  });
+
+  it('restores persisted progress: reopens on the first incomplete step with ✓ markers', async () => {
+    vi.stubGlobal(
+      'fetch',
+      buildFetchMock({
+        progress: () =>
+          jsonResponse(true, {
+            ...emptyProgress,
+            steps: { 'create-web-server': { passed: true, attempts: 2, revealedHints: 0 } },
+          }),
+      })
+    );
+    render(<LearningPanel projectId="p1" onClose={() => {}} />);
+
+    fireEvent.click(await screen.findByText('Your first architecture'));
+
+    expect(await screen.findByText('Step 2 of 2')).toBeInTheDocument();
+    expect(screen.getByTitle('Passed')).toBeInTheDocument();
+    // Only the verdict is restored — no stale validator results are replayed.
+    expect(screen.queryByText('Step passed')).not.toBeInTheDocument();
+  });
+
+  it('restarts the roadmap behind a two-click confirmation', async () => {
+    vi.stubGlobal(
+      'fetch',
+      buildFetchMock({
+        progress: () =>
+          jsonResponse(true, {
+            ...emptyProgress,
+            steps: { 'create-web-server': { passed: true, attempts: 1, revealedHints: 0 } },
+          }),
+      })
+    );
+    render(<LearningPanel projectId="p1" onClose={() => {}} />);
+    fireEvent.click(await screen.findByText('Your first architecture'));
+    expect(await screen.findByText('Step 2 of 2')).toBeInTheDocument();
+
+    // First click only arms the confirmation — nothing is deleted yet.
+    fireEvent.click(screen.getByRole('button', { name: 'Restart roadmap' }));
+    expect(screen.getByText('Step 2 of 2')).toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole('button', { name: 'Sure? Click again to restart' }));
+
+    expect(await screen.findByText('Step 1 of 2')).toBeInTheDocument();
+    expect(screen.queryByTitle('Passed')).not.toBeInTheDocument();
+  });
+
+  it('tells the user when an unreadable progress store was reset, dismissibly', async () => {
+    vi.stubGlobal(
+      'fetch',
+      buildFetchMock({
+        progress: () => jsonResponse(true, { ...emptyProgress, storeRecovered: true }),
+      })
+    );
+    render(<LearningPanel projectId="p1" onClose={() => {}} />);
+    await openRoadmapFromCatalog();
+
+    expect(
+      screen.getByText(/Your saved progress could not be read and had to be reset/)
+    ).toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole('button', { name: 'Dismiss' }));
+    expect(
+      screen.queryByText(/Your saved progress could not be read and had to be reset/)
+    ).not.toBeInTheDocument();
   });
 
   it('calls onClose from the header button', async () => {

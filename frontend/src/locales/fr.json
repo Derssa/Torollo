@@ -51,7 +51,12 @@
       "showHint": "Voir un indice ({{n}}/{{total}})",
       "solutionLabel": "Solution",
       "showSolution": "Révéler la solution",
-      "confirmSolution": "Sûr ? Cliquez à nouveau pour révéler"
+      "confirmSolution": "Sûr ? Cliquez à nouveau pour révéler",
+      "resetProgress": "Recommencer la roadmap",
+      "resetProgressConfirm": "Sûr ? Cliquez à nouveau pour recommencer",
+      "resetProgressError": "Impossible de réinitialiser la progression. Rien n'a été modifié — réessayez.",
+      "progressRecovered": "Votre progression sauvegardée était illisible et a dû être réinitialisée. Désolé — cette roadmap repart de zéro.",
+      "dismissNotice": "Fermer"
     }
   },
   "projects": {

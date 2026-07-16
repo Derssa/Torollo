@@ -51,7 +51,12 @@
       "showHint": "Show hint ({{n}}/{{total}})",
       "solutionLabel": "Solution",
       "showSolution": "Reveal the solution",
-      "confirmSolution": "Sure? Click again to reveal"
+      "confirmSolution": "Sure? Click again to reveal",
+      "resetProgress": "Restart roadmap",
+      "resetProgressConfirm": "Sure? Click again to restart",
+      "resetProgressError": "Could not reset the progress. Nothing was changed — try again.",
+      "progressRecovered": "Your saved progress could not be read and had to be reset. Sorry — this roadmap starts fresh.",
+      "dismissNotice": "Dismiss"
     }
   },
   "projects": {

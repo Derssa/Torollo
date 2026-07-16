@@ -3,6 +3,7 @@ import path from 'path';
 import os from 'os';
 import { containerProvider } from '../../../infrastructure/docker/providers/dockerContainerProvider';
 import { NetworkService } from '../../network/services/networkService';
+import { ProgressService } from '../../learning/services/progressService';
 
 export interface Project {
   id: string;
@@ -63,6 +64,14 @@ export class ProjectService {
 
     const filtered = db.filter(p => p.id !== id);
     this.writeDB(filtered);
+
+    // Learning progress is validated against this project's containers —
+    // without them it is meaningless, so it goes with the project.
+    try {
+      ProgressService.deleteProjectProgress(id);
+    } catch (err) {
+      console.error(`Failed to delete learning progress during project cleanup:`, err);
+    }
 
     // Stop and delete all containers belonging to this project
     const containers = await containerProvider.listContainersByProject(id);

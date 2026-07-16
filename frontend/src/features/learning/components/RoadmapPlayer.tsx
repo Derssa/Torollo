@@ -1,9 +1,10 @@
+import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { ArrowLeft, ChevronLeft, ChevronRight, Globe } from 'lucide-react';
+import { AlertTriangle, ArrowLeft, ChevronLeft, ChevronRight, Globe, RotateCcw, X } from 'lucide-react';
 import StepValidationResults from './StepValidationResults';
 import StepHints from './StepHints';
 import { renderInstruction } from './InstructionMarkdown';
-import { outcomePreset } from '../validationStatus';
+import { outcomePreset, STATUS_PRESETS } from '../validationStatus';
 import type { StepValidationResponse } from '../../../shared/types/roadmap';
 import type { useLearningPlayer } from '../hooks/useLearningPlayer';
 import type { ContainerData } from '../../../shared/types';
@@ -18,6 +19,21 @@ interface RoadmapPlayerProps {
 function StepMarker({ response }: { response: StepValidationResponse }) {
   const { t } = useTranslation();
   const { icon: Icon, color, labelKey } = outcomePreset(response);
+  return (
+    <span style={styles.stepMarker} title={t(labelKey)}>
+      <Icon size={13} color={color} role="img" aria-label={t(labelKey)} />
+    </span>
+  );
+}
+
+/**
+ * ✓ for a step whose recorded validation passed in a previous session. Only
+ * the verdict is persisted — validator results describe a past container
+ * state — so there is no response object and no results card behind it.
+ */
+function RestoredStepMarker() {
+  const { t } = useTranslation();
+  const { icon: Icon, color, labelKey } = STATUS_PRESETS.pass;
   return (
     <span style={styles.stepMarker} title={t(labelKey)}>
       <Icon size={13} color={color} role="img" aria-label={t(labelKey)} />
@@ -48,7 +64,26 @@ export default function RoadmapPlayer({
     revealedHintsByStepId,
     revealNextHint,
     closeRoadmap,
+    completedStepIds,
+    progressNotice,
+    dismissProgressNotice,
+    resetProgress,
+    resetting,
+    resetError,
   } = player;
+
+  // Restarting the roadmap forgets persisted progress, so it sits behind the
+  // same light two-click brake as the solution reveal: first click arms a
+  // confirmation label, second executes; leaving the button disarms.
+  const [resetArmed, setResetArmed] = useState(false);
+  const handleReset = () => {
+    if (!resetArmed) {
+      setResetArmed(true);
+      return;
+    }
+    setResetArmed(false);
+    resetProgress();
+  };
 
   if (!roadmap || !currentStep) return null;
 
@@ -57,11 +92,46 @@ export default function RoadmapPlayer({
 
   return (
     <div style={styles.container}>
-      <button onClick={closeRoadmap} style={styles.backLink}>
-        <ArrowLeft size={13} style={{ marginRight: 5 }} />
-        {t('learning.player.backToCatalog')}
-      </button>
+      <div style={styles.headerRow}>
+        <button onClick={closeRoadmap} style={styles.backLink}>
+          <ArrowLeft size={13} style={{ marginRight: 5 }} />
+          {t('learning.player.backToCatalog')}
+        </button>
+        <button
+          onClick={handleReset}
+          onBlur={() => setResetArmed(false)}
+          disabled={resetting}
+          style={{
+            ...styles.resetBtn,
+            ...(resetArmed ? styles.resetBtnArmed : {}),
+            opacity: resetting ? 0.5 : 1,
+          }}
+        >
+          <RotateCcw size={11} style={{ marginRight: 4, flexShrink: 0 }} />
+          {resetArmed ? t('learning.player.resetProgressConfirm') : t('learning.player.resetProgress')}
+        </button>
+      </div>
       <span style={styles.roadmapTitle}>{roadmap.title}</span>
+
+      {resetError !== null && (
+        <div style={styles.errorBox}>
+          <span>{resetError || t('learning.player.resetProgressError')}</span>
+        </div>
+      )}
+
+      {progressNotice && (
+        <div style={styles.noticeBox}>
+          <AlertTriangle size={13} color="var(--color-warning-strong)" style={{ flexShrink: 0 }} />
+          <span style={styles.noticeText}>{t('learning.player.progressRecovered')}</span>
+          <button
+            onClick={dismissProgressNotice}
+            style={styles.noticeDismiss}
+            aria-label={t('learning.player.dismissNotice')}
+          >
+            <X size={13} />
+          </button>
+        </div>
+      )}
 
       <div style={styles.stepList}>
         {roadmap.steps.map((step, index) => {
@@ -78,7 +148,11 @@ export default function RoadmapPlayer({
             >
               <span style={styles.stepIndex}>{index + 1}.</span>
               <span style={styles.stepItemTitle}>{step.title}</span>
-              {result && <StepMarker response={result} />}
+              {result ? (
+                <StepMarker response={result} />
+              ) : (
+                completedStepIds[step.id] && <RestoredStepMarker />
+              )}
             </button>
           );
         })}
@@ -200,6 +274,12 @@ const styles: Record<string, React.CSSProperties> = {
     flexDirection: 'column',
     gap: '14px',
   },
+  headerRow: {
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: '8px',
+  },
   backLink: {
     display: 'flex',
     alignItems: 'center',
@@ -212,6 +292,46 @@ const styles: Record<string, React.CSSProperties> = {
     fontWeight: 600,
     cursor: 'pointer',
     fontFamily: 'var(--font-sans)',
+  },
+  resetBtn: {
+    display: 'flex',
+    alignItems: 'center',
+    padding: '3px 8px',
+    border: '1px dashed var(--border-color)',
+    borderRadius: '6px',
+    background: 'none',
+    color: 'var(--color-text-muted)',
+    fontSize: '10px',
+    fontWeight: 600,
+    cursor: 'pointer',
+    fontFamily: 'var(--font-sans)',
+  },
+  resetBtnArmed: {
+    border: '1px dashed var(--color-danger)',
+    color: 'var(--color-danger)',
+  },
+  noticeBox: {
+    display: 'flex',
+    alignItems: 'flex-start',
+    gap: '6px',
+    padding: '8px 10px',
+    border: '1px solid var(--color-warning)',
+    borderRadius: '6px',
+    backgroundColor: 'var(--color-warning-glow)',
+  },
+  noticeText: {
+    flex: 1,
+    fontSize: '11px',
+    color: 'var(--color-warning-strong)',
+    lineHeight: 1.5,
+  },
+  noticeDismiss: {
+    display: 'flex',
+    padding: 0,
+    border: 'none',
+    background: 'none',
+    color: 'var(--color-warning-strong)',
+    cursor: 'pointer',
   },
   roadmapTitle: {
     fontSize: '14px',

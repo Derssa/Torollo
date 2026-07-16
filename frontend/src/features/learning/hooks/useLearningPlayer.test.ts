@@ -1,7 +1,11 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { renderHook, act } from '@testing-library/react';
 import { useLearningPlayer } from './useLearningPlayer';
-import type { Roadmap, StepValidationResponse } from '../../../shared/types/roadmap';
+import type {
+  Roadmap,
+  RoadmapProgressResponse,
+  StepValidationResponse,
+} from '../../../shared/types/roadmap';
 
 function jsonResponse(ok: boolean, body: unknown): Response {
   return { ok, json: () => Promise.resolve(body) } as Response;
@@ -39,11 +43,22 @@ const passResponse: StepValidationResponse = {
   checkedAt: '2026-07-15T10:00:00.000Z',
 };
 
+const emptyProgress: RoadmapProgressResponse = {
+  projectId: 'p1',
+  roadmapId: roadmap.id,
+  steps: {},
+};
+
 async function openExampleRoadmap(
   result: { current: ReturnType<typeof useLearningPlayer> },
-  fetchMock: ReturnType<typeof vi.fn>
+  fetchMock: ReturnType<typeof vi.fn>,
+  progress: RoadmapProgressResponse = emptyProgress
 ) {
   fetchMock.mockResolvedValueOnce(jsonResponse(true, roadmap));
+  fetchMock.mockResolvedValueOnce(jsonResponse(true, progress));
+  // Default for later untargeted calls (the fire-and-forget hints PUT);
+  // per-test mockResolvedValueOnce/mockRejectedValueOnce take precedence.
+  fetchMock.mockResolvedValue(jsonResponse(true, {}));
   await act(async () => {
     await result.current.openRoadmap({ id: roadmap.id, language: 'en' });
   });
@@ -261,7 +276,7 @@ describe('useLearningPlayer', () => {
       expect(result.current.revealedHintsByStepId['create-web-server']).toBe(1);
     });
 
-    it('resets revealed hints when a roadmap is reopened', async () => {
+    it('rehydrates revealed hints from the store on reopen — an empty store means none', async () => {
       const { result } = renderHook(() => useLearningPlayer({ projectId: 'p1' }));
       await openExampleRoadmap(result, fetchMock);
 
@@ -269,6 +284,154 @@ describe('useLearningPlayer', () => {
       await openExampleRoadmap(result, fetchMock);
 
       expect(result.current.revealedHintsByStepId).toEqual({});
+    });
+
+    it('pushes the absolute revealed count to the progress endpoint', async () => {
+      const { result } = renderHook(() => useLearningPlayer({ projectId: 'p1' }));
+      await openExampleRoadmap(result, fetchMock);
+
+      act(() => result.current.revealNextHint());
+      act(() => result.current.revealNextHint());
+
+      expect(fetchMock).toHaveBeenLastCalledWith(
+        expect.stringContaining(`/api/learning/progress/p1/${roadmap.id}/hints`),
+        expect.objectContaining({
+          method: 'PUT',
+          body: JSON.stringify({ stepId: 'create-web-server', revealedHints: 2 }),
+        })
+      );
+    });
+
+    it('never blocks a reveal on a failed push — the local count still advances', async () => {
+      const { result } = renderHook(() => useLearningPlayer({ projectId: 'p1' }));
+      await openExampleRoadmap(result, fetchMock);
+
+      fetchMock.mockRejectedValueOnce(new Error('network down'));
+      await act(async () => {
+        result.current.revealNextHint();
+      });
+
+      expect(result.current.revealedHintsByStepId['create-web-server']).toBe(1);
+    });
+  });
+
+  describe('progress hydration', () => {
+    it('restores completed steps and revealed hints, and opens on the first incomplete step', async () => {
+      const { result } = renderHook(() => useLearningPlayer({ projectId: 'p1' }));
+      await openExampleRoadmap(result, fetchMock, {
+        ...emptyProgress,
+        steps: {
+          'create-web-server': { passed: true, attempts: 2, revealedHints: 1 },
+        },
+      });
+
+      expect(fetchMock).toHaveBeenCalledWith(
+        expect.stringContaining(`/api/learning/progress/p1/${roadmap.id}`)
+      );
+      expect(result.current.completedStepIds).toEqual({ 'create-web-server': true });
+      expect(result.current.revealedHintsByStepId).toEqual({ 'create-web-server': 1 });
+      expect(result.current.currentStepIndex).toBe(1);
+      expect(result.current.resultsByStepId).toEqual({});
+    });
+
+    it('opens on the last step when every step is already completed', async () => {
+      const { result } = renderHook(() => useLearningPlayer({ projectId: 'p1' }));
+      await openExampleRoadmap(result, fetchMock, {
+        ...emptyProgress,
+        steps: {
+          'create-web-server': { passed: true, attempts: 1, revealedHints: 0 },
+          'add-database': { passed: true, attempts: 1, revealedHints: 0 },
+        },
+      });
+
+      expect(result.current.currentStepIndex).toBe(1);
+      expect(result.current.completedStepIds).toEqual({
+        'create-web-server': true,
+        'add-database': true,
+      });
+    });
+
+    it('ignores unknown step ids and clamps revealed hints to the ladder length', async () => {
+      const { result } = renderHook(() => useLearningPlayer({ projectId: 'p1' }));
+      await openExampleRoadmap(result, fetchMock, {
+        ...emptyProgress,
+        steps: {
+          'create-web-server': { passed: false, attempts: 1, revealedHints: 99 },
+          'no-such-step': { passed: true, attempts: 1, revealedHints: 2 },
+        },
+      });
+
+      // 2 hints + 1 solution = 3 rungs.
+      expect(result.current.revealedHintsByStepId).toEqual({ 'create-web-server': 3 });
+      expect(result.current.completedStepIds).toEqual({});
+      expect(result.current.currentStepIndex).toBe(0);
+    });
+
+    it('opens fresh on step 1 when the progress endpoint is unreachable', async () => {
+      fetchMock.mockResolvedValueOnce(jsonResponse(true, roadmap));
+      fetchMock.mockRejectedValueOnce(new Error('network down'));
+
+      const { result } = renderHook(() => useLearningPlayer({ projectId: 'p1' }));
+      await act(async () => {
+        await result.current.openRoadmap({ id: roadmap.id, language: 'en' });
+      });
+
+      expect(result.current.roadmap).toEqual(roadmap);
+      expect(result.current.currentStepIndex).toBe(0);
+      expect(result.current.completedStepIds).toEqual({});
+    });
+
+    it('raises the recovery notice when the store had to be discarded, dismissible', async () => {
+      const { result } = renderHook(() => useLearningPlayer({ projectId: 'p1' }));
+      await openExampleRoadmap(result, fetchMock, { ...emptyProgress, storeRecovered: true });
+
+      expect(result.current.progressNotice).toBe(true);
+
+      act(() => result.current.dismissProgressNotice());
+      expect(result.current.progressNotice).toBe(false);
+    });
+  });
+
+  describe('resetProgress', () => {
+    it('deletes the stored progress and restarts the roadmap from step 1', async () => {
+      const { result } = renderHook(() => useLearningPlayer({ projectId: 'p1' }));
+      await openExampleRoadmap(result, fetchMock, {
+        ...emptyProgress,
+        steps: { 'create-web-server': { passed: true, attempts: 1, revealedHints: 2 } },
+      });
+      expect(result.current.currentStepIndex).toBe(1);
+
+      fetchMock.mockResolvedValueOnce(jsonResponse(true, {}));
+      await act(async () => {
+        await result.current.resetProgress();
+      });
+
+      expect(fetchMock).toHaveBeenLastCalledWith(
+        expect.stringContaining(`/api/learning/progress/p1/${roadmap.id}`),
+        expect.objectContaining({ method: 'DELETE' })
+      );
+      expect(result.current.currentStepIndex).toBe(0);
+      expect(result.current.completedStepIds).toEqual({});
+      expect(result.current.revealedHintsByStepId).toEqual({});
+      expect(result.current.resultsByStepId).toEqual({});
+      expect(result.current.resetError).toBeNull();
+    });
+
+    it('keeps the state and surfaces an error when the reset fails', async () => {
+      const { result } = renderHook(() => useLearningPlayer({ projectId: 'p1' }));
+      await openExampleRoadmap(result, fetchMock, {
+        ...emptyProgress,
+        steps: { 'create-web-server': { passed: true, attempts: 1, revealedHints: 0 } },
+      });
+
+      fetchMock.mockRejectedValueOnce(new Error('network down'));
+      await act(async () => {
+        await result.current.resetProgress();
+      });
+
+      expect(result.current.resetError).toBe('');
+      expect(result.current.completedStepIds).toEqual({ 'create-web-server': true });
+      expect(result.current.resetting).toBe(false);
     });
   });
 
@@ -288,6 +451,8 @@ describe('useLearningPlayer', () => {
       expect(result.current.roadmap).toBeNull();
       expect(result.current.resultsByStepId).toEqual({});
       expect(result.current.revealedHintsByStepId).toEqual({});
+      expect(result.current.completedStepIds).toEqual({});
+      expect(result.current.progressNotice).toBe(false);
       expect(result.current.currentStepIndex).toBe(0);
     });
   });
