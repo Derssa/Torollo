@@ -1,5 +1,6 @@
 import { Request, Response } from 'express';
 import { RoadmapService } from '../services/roadmapService';
+import { ProgressService } from '../services/progressService';
 import { runStepValidators } from '../engine/engine';
 import { ValidatorResult } from '../engine/types';
 import { ProjectService } from '../../projects/services/projectService';
@@ -96,7 +97,66 @@ export class LearningController {
         results,
         checkedAt: new Date().toISOString(),
       };
+      try {
+        ProgressService.recordValidation(
+          projectId as string,
+          roadmap.id,
+          step.id,
+          response.stepPassed,
+          response.checkedAt
+        );
+      } catch (recordErr: unknown) {
+        // Recording is bookkeeping — the learner's verdict must still go out.
+        console.error('[learning] Failed to record validation progress:', recordErr);
+      }
       res.json(response);
+    } catch (err: unknown) {
+      res.status(500).json({ error: err instanceof Error ? err.message : String(err) });
+    }
+  }
+
+  public static async getProgress(req: Request, res: Response): Promise<void> {
+    try {
+      res.json(
+        ProgressService.getProgress(req.params.projectId as string, req.params.roadmapId as string)
+      );
+    } catch (err: unknown) {
+      res.status(500).json({ error: err instanceof Error ? err.message : String(err) });
+    }
+  }
+
+  public static async recordRevealedHints(req: Request, res: Response): Promise<void> {
+    try {
+      const { stepId, revealedHints } = (req.body ?? {}) as Record<string, unknown>;
+      if (typeof stepId !== 'string' || stepId.length === 0) {
+        res.status(400).json({ error: '"stepId" is required and must be a string' });
+        return;
+      }
+      if (typeof revealedHints !== 'number' || !Number.isInteger(revealedHints) || revealedHints < 0) {
+        res.status(400).json({ error: '"revealedHints" is required and must be a non-negative integer' });
+        return;
+      }
+      // No existence check against the roadmap: progress is local, non-sensitive
+      // data, and hint reveals must stay cheap fire-and-forget writes.
+      ProgressService.recordRevealedHints(
+        req.params.projectId as string,
+        req.params.roadmapId as string,
+        stepId,
+        revealedHints
+      );
+      res.status(204).end();
+    } catch (err: unknown) {
+      res.status(500).json({ error: err instanceof Error ? err.message : String(err) });
+    }
+  }
+
+  public static async resetProgress(req: Request, res: Response): Promise<void> {
+    try {
+      ProgressService.resetProgress(
+        req.params.projectId as string,
+        req.params.roadmapId as string
+      );
+      res.status(204).end();
     } catch (err: unknown) {
       res.status(500).json({ error: err instanceof Error ? err.message : String(err) });
     }

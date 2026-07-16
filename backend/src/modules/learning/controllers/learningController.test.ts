@@ -2,12 +2,14 @@ import request from 'supertest';
 import express from 'express';
 import learningRouter from '../routes/learningRoutes';
 import { RoadmapService } from '../services/roadmapService';
+import { ProgressService } from '../services/progressService';
 import { runStepValidators } from '../engine/engine';
 import { ValidatorResult } from '../engine/types';
 import { ProjectService } from '../../projects/services/projectService';
 import { Roadmap } from '../format/roadmapTypes';
 
 jest.mock('../services/roadmapService');
+jest.mock('../services/progressService');
 jest.mock('../engine/engine');
 jest.mock('../../projects/services/projectService');
 
@@ -179,6 +181,90 @@ describe('LearningController', () => {
 
       expect(res.status).toBe(500);
       expect(res.body).toEqual({ error: 'boom' });
+    });
+
+    it('records the attempt and verdict in the progress store', async () => {
+      const res = await request(app).post('/api/learning/validate').send(validBody);
+
+      expect(res.status).toBe(200);
+      expect(ProgressService.recordValidation).toHaveBeenCalledWith(
+        'project-1',
+        'example-roadmap',
+        'step-one',
+        true,
+        res.body.checkedAt
+      );
+    });
+
+    it('still returns the verdict when progress recording fails', async () => {
+      (ProgressService.recordValidation as jest.Mock).mockImplementation(() => {
+        throw new Error('disk full');
+      });
+      const errorSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
+
+      const res = await request(app).post('/api/learning/validate').send(validBody);
+
+      expect(res.status).toBe(200);
+      expect(res.body.stepPassed).toBe(true);
+      errorSpy.mockRestore();
+    });
+  });
+
+  describe('GET /api/learning/progress/:projectId/:roadmapId', () => {
+    it('returns the stored progress for the pair', async () => {
+      const progress = {
+        projectId: 'project-1',
+        roadmapId: 'example-roadmap',
+        steps: { 'step-one': { passed: true, attempts: 2, revealedHints: 1 } },
+      };
+      (ProgressService.getProgress as jest.Mock).mockReturnValue(progress);
+
+      const res = await request(app).get('/api/learning/progress/project-1/example-roadmap');
+
+      expect(res.status).toBe(200);
+      expect(res.body).toEqual(progress);
+      expect(ProgressService.getProgress).toHaveBeenCalledWith('project-1', 'example-roadmap');
+    });
+  });
+
+  describe('PUT /api/learning/progress/:projectId/:roadmapId/hints', () => {
+    it('stores the absolute revealed-hints count and returns 204', async () => {
+      const res = await request(app)
+        .put('/api/learning/progress/project-1/example-roadmap/hints')
+        .send({ stepId: 'step-one', revealedHints: 2 });
+
+      expect(res.status).toBe(204);
+      expect(ProgressService.recordRevealedHints).toHaveBeenCalledWith(
+        'project-1',
+        'example-roadmap',
+        'step-one',
+        2
+      );
+    });
+
+    it.each([
+      ['missing stepId', { revealedHints: 1 }, 'stepId'],
+      ['empty stepId', { stepId: '', revealedHints: 1 }, 'stepId'],
+      ['missing revealedHints', { stepId: 'step-one' }, 'revealedHints'],
+      ['negative revealedHints', { stepId: 'step-one', revealedHints: -1 }, 'revealedHints'],
+      ['non-integer revealedHints', { stepId: 'step-one', revealedHints: 1.5 }, 'revealedHints'],
+    ])('returns 400 on %s', async (_name, body, field) => {
+      const res = await request(app)
+        .put('/api/learning/progress/project-1/example-roadmap/hints')
+        .send(body);
+
+      expect(res.status).toBe(400);
+      expect(res.body.error).toContain(`"${field}"`);
+      expect(ProgressService.recordRevealedHints).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('DELETE /api/learning/progress/:projectId/:roadmapId', () => {
+    it('resets the pair and returns 204', async () => {
+      const res = await request(app).delete('/api/learning/progress/project-1/example-roadmap');
+
+      expect(res.status).toBe(204);
+      expect(ProgressService.resetProgress).toHaveBeenCalledWith('project-1', 'example-roadmap');
     });
   });
 });

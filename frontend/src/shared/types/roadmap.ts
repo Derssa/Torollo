@@ -5,7 +5,8 @@
  * format types:  backend/src/modules/learning/format/roadmapTypes.ts
  * API types:     backend/src/modules/learning/engine/types.ts (ValidatorResult),
  *                controllers/learningController.ts (StepValidationResponse),
- *                services/roadmapService.ts (RoadmapSummary).
+ *                services/roadmapService.ts (RoadmapSummary),
+ *                services/progressService.ts (StepProgress, RoadmapProgressResponse).
  * The duplication is deliberate: backend and frontend are separate npm
  * packages (same policy as the Project type in shared/types/index.ts).
  * Source of truth for the format is the JSON Schema:
@@ -95,4 +96,25 @@ export interface StepValidationResponse {
   results: ValidatorResult[];
   /** ISO timestamp of the evaluation. */
   checkedAt: string;
+}
+
+/** Persisted progress of one roadmap step, keyed by the step's stable id. */
+export interface StepProgress {
+  /** Verdict of the latest validation — same latest-wins semantics as the player. */
+  passed: boolean;
+  /** Number of validation runs that reached evaluation. */
+  attempts: number;
+  /** Revealed rungs on the step's hint ladder [...hints, solution?] — an absolute count. */
+  revealedHints: number;
+  /** ISO timestamp of the latest validation, absent until the first one. */
+  lastCheckedAt?: string;
+}
+
+/** Response of GET /api/learning/progress/:projectId/:roadmapId. */
+export interface RoadmapProgressResponse {
+  projectId: string;
+  roadmapId: string;
+  steps: Record<string, StepProgress>;
+  /** Present (true) once after an unreadable store was moved aside — tell the user. */
+  storeRecovered?: boolean;
 }
