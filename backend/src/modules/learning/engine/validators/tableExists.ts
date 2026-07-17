@@ -35,7 +35,9 @@ export const tableExists: ValidatorHandler = async (params, ctx) => {
     };
   }
 
-  if (output.trim().length === 0) {
+  // The query yields exactly `1` when the table exists — anything else (empty,
+  // or psql WARNING/NOTICE noise merged into the output) is not a proof.
+  if (output.trim() !== '1') {
     return {
       status: 'fail',
       message: `No table named "${table}" exists in PostgreSQL on "${node}" yet.`,

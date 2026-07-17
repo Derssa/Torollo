@@ -21,6 +21,17 @@ export function requireNumberParam(params: Record<string, unknown>, name: string
   return value;
 }
 
+export function requireNonNegativeIntegerParam(
+  params: Record<string, unknown>,
+  name: string
+): number {
+  const value = params[name];
+  if (typeof value !== 'number' || !Number.isInteger(value) || value < 0) {
+    throw new InvalidParamsError(`validator param "${name}" must be a non-negative integer`);
+  }
+  return value;
+}
+
 export function optionalStringParam(
   params: Record<string, unknown>,
   name: string,

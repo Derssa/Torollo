@@ -1,15 +1,20 @@
 import { ContainerInfo } from '../../../../infrastructure/docker/providers/containerProvider';
+import { SemanticRule } from '../../../network/models/networkPolicy';
 import { ValidatorOutcome } from '../types';
 
 export type ResolvedContainer = { container: ContainerInfo } | { outcome: ValidatorOutcome };
 
+const an = (label: string): string => (/^[aeiou]/i.test(label) ? `an ${label}` : `a ${label}`);
+
 /**
  * Resolves a canvas node name to its container, checking it is of one of the
- * expected node types and currently running. Never throws: a missing, wrong
- * type or stopped node is a pedagogical fail, not an infrastructure error —
- * callers check `'outcome' in result` and return it as-is on failure.
+ * expected node types — without requiring it to be running (`asg_replicas`
+ * targets the ASG boundary container, which never needs to run itself).
+ * Never throws: a missing or wrong-type node is a pedagogical fail, not an
+ * infrastructure error — callers check `'outcome' in result` and return it
+ * as-is on failure.
  */
-export function resolveRunningContainer(
+export function resolveContainerOfType(
   containers: ContainerInfo[],
   node: string,
   expectedTypes: string[],
@@ -22,8 +27,8 @@ export function resolveRunningContainer(
         status: 'fail',
         message:
           `No container named "${node}" exists in this project yet. ` +
-          `Create the node on the canvas, name it "${node}" and start it.`,
-        expected: `a running ${expectedLabel} node named "${node}"`,
+          `Create the node on the canvas and name it "${node}".`,
+        expected: `${an(expectedLabel)} node named "${node}"`,
         observed: 'no container with that name',
       },
     };
@@ -34,13 +39,30 @@ export function resolveRunningContainer(
     return {
       outcome: {
         status: 'fail',
-        message: `"${node}" is not a ${expectedLabel} node (it's a ${type} node). Point this check at your ${expectedLabel} node.`,
-        expected: `a ${expectedLabel} node named "${node}"`,
-        observed: `a ${type} node`,
+        message: `"${node}" is not ${an(expectedLabel)} node (it's ${an(type)} node). Point this check at your ${expectedLabel} node.`,
+        expected: `${an(expectedLabel)} node named "${node}"`,
+        observed: `${an(type)} node`,
       },
     };
   }
 
+  return { container };
+}
+
+/**
+ * Like `resolveContainerOfType`, but additionally requires the container to
+ * be currently running.
+ */
+export function resolveRunningContainer(
+  containers: ContainerInfo[],
+  node: string,
+  expectedTypes: string[],
+  expectedLabel: string
+): ResolvedContainer {
+  const resolved = resolveContainerOfType(containers, node, expectedTypes, expectedLabel);
+  if ('outcome' in resolved) return resolved;
+
+  const { container } = resolved;
   if (container.state !== 'running') {
     return {
       outcome: {
@@ -101,4 +123,62 @@ export function countRunningAsgReplicas(containers: ContainerInfo[], asgContaine
   return containers.filter(
     (c) => c.asgId === asgContainerId && c.isAsgInstance && c.state === 'running'
   ).length;
+}
+
+/**
+ * Connectivity semantics shared by `edge_exists` and `port_denied`, mirroring
+ * both the frontend Network Simulator and the real iptables enforcement
+ * (append-only rules + final zero-trust REJECT): only the destination's
+ * inbound rules matter, and the FIRST rule matching the pair and port wins —
+ * ALLOW opens the port, DENY (or no match at all) blocks it. Rules with
+ * `protocol: 'icmp'` are skipped: these checks are about TCP/UDP ports, and
+ * `computeSemanticRules` duplicates every ALL-protocol rule into an icmp
+ * twin that must not shadow the port decision.
+ */
+export function findMatchingInboundRule(
+  rules: SemanticRule[],
+  sourceId: string,
+  targetId: string,
+  port: number
+): SemanticRule | undefined {
+  return rules.find(
+    (rule) =>
+      rule.direction === 'inbound' &&
+      rule.protocol !== 'icmp' &&
+      rule.sourceNodeId === sourceId &&
+      rule.targetNodeId === targetId &&
+      (rule.port === 'ALL' || rule.port === String(port))
+  );
+}
+
+/**
+ * Port-agnostic form of the first-match-wins walk, for `edge_exists` without
+ * a `port` param: is there ANY port on which the pair's first matching rule
+ * is an ALLOW? An earlier `DENY ALL` shadows everything after it; an earlier
+ * DENY on a specific port only shadows later ALLOWs on that exact port.
+ */
+export function hasEffectiveInboundAllow(
+  rules: SemanticRule[],
+  sourceId: string,
+  targetId: string
+): boolean {
+  const deniedPorts = new Set<string>();
+  for (const rule of rules) {
+    if (
+      rule.direction !== 'inbound' ||
+      rule.protocol === 'icmp' ||
+      rule.sourceNodeId !== sourceId ||
+      rule.targetNodeId !== targetId
+    ) {
+      continue;
+    }
+    if (rule.action === 'ALLOW') {
+      if (rule.port === 'ALL' || !deniedPorts.has(rule.port)) return true;
+    } else if (rule.port === 'ALL') {
+      return false;
+    } else {
+      deniedPorts.add(rule.port);
+    }
+  }
+  return false;
 }

@@ -31,6 +31,20 @@ describe('tableExists', () => {
     expect(outcome.observed).toBe('no such table');
   });
 
+  it('fails when a psql WARNING pollutes the output of a missing table', async () => {
+    const outcome = await tableExists(
+      { node: 'db', table: 'users' },
+      makeContext({
+        containers: [postgresContainer],
+        executePsqlCommand: () =>
+          Promise.resolve('WARNING:  terminal is not fully functional\n'),
+      })
+    );
+
+    expect(outcome.status).toBe('fail');
+    expect(outcome.observed).toBe('no such table');
+  });
+
   it('fails pedagogically when the database is still starting up', async () => {
     const outcome = await tableExists(
       { node: 'db', table: 'users' },
