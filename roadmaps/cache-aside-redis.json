@@ -1,0 +1,136 @@
+{
+  "$schema": "https://raw.githubusercontent.com/Derssa/Torollo/main/backend/src/modules/learning/format/roadmap.schema.json",
+  "schemaVersion": 1,
+  "id": "cache-aside-redis",
+  "title": "Cache-aside with Redis",
+  "description": "Nimbus Books survived launch day — now success is the problem: every page load hammers PostgreSQL with the same expensive catalog query. Feel a slow store on real containers, then fix it the way the industry does: a Redis cache-aside layer. Watch a 1500 ms page drop to a few milliseconds, see your cache key appear in a real Redis, and meet the one problem every cache carries: stale data.",
+  "language": "en",
+  "estimatedMinutes": 30,
+  "difficulty": "intermediate",
+  "prerequisites": [
+    "Docker installed and running",
+    "A Torollo project created and open on the canvas (start from an empty one)",
+    "Comfortable running basic commands in a Linux terminal",
+    "Having played \"Deploy a resilient three-tier app\" helps, but this story stands on its own"
+  ],
+  "steps": [
+    {
+      "id": "reopen-the-store",
+      "title": "Reopen the store",
+      "instruction": "Welcome back to **Nimbus Books**. The launch went so well that the site has a brand-new problem: *success*. The catalog page gets slower every week, customers are complaining, and you — still employee #1 — are on the case. New lab, fresh canvas, same store.\n\n1. From the node library, drag a **Public Subnet** onto the canvas. Three machines will live here — grow it to about **2 columns × 2 rows** with the **C / R steppers** on the subnet header.\n2. Drag a **Server** node *into* the subnet (nodes can only live inside a subnet), name it `web`, and create it.\n3. The machine boots as soon as it is created — wait for its status dot to turn green.",
+      "hints": [
+        "The node library is the sidebar panel next to the canvas. Drag **Public Subnet** onto an empty spot first — if you drop a Server outside a subnet, Torollo refuses with \"Nodes must reside within a subnet.\"",
+        "Drop the **Server** tile onto one of the subnet's free cells. A dialog asks for a name: type exactly `web` (the checks in this roadmap find your machines by name). It starts on its own after creation; if you ever stop it, the play button brings it back."
+      ],
+      "solution": "Drag **Public Subnet** onto the canvas and grow it to about 2 × 2 with the C / R steppers. Drag **Server** into one of its cells, name it `web` in the creation dialog, click **Create Node**, and wait for the node's status dot to turn green.",
+      "validators": [
+        { "type": "container_running", "params": { "node": "web" } }
+      ]
+    },
+    {
+      "id": "the-catalog",
+      "title": "The catalog",
+      "instruction": "A bookstore sells books, and ours live in PostgreSQL.\n\n1. Drag a **SQL Database** node into the subnet and name it `db` — it starts on creation.\n2. Open it (**Inspect**), go to the **SQL Shell** tab, and load the catalog:\n\n```sql\nCREATE TABLE books (id SERIAL PRIMARY KEY, title TEXT NOT NULL, author TEXT NOT NULL);\nINSERT INTO books (title, author) VALUES\n  ('The Pragmatic Programmer', 'David Thomas and Andrew Hunt'),\n  ('Clean Code', 'Robert C. Martin'),\n  ('Designing Data-Intensive Applications', 'Martin Kleppmann'),\n  ('Site Reliability Engineering', 'Betsy Beyer and team'),\n  ('Release It!', 'Michael T. Nygard');\n```\n\nTip: switch to the **Database Explorer** tab afterwards — your five books are real rows in a real PostgreSQL container. (You may also spot a few demo tables like `users` or `products` that Torollo seeds for the explorer. Ignore them — our catalog is `books`.)",
+      "hints": [
+        "Drop the **SQL Database** tile onto a free cell of your subnet and name it `db`. No free cell? Grow the subnet with the C / R steppers on its header.",
+        "Click **Inspect** on the `db` node, open the **SQL Shell** tab, paste the SQL block from the instruction and press **Execute Query**.",
+        "If the shell complains about running both statements at once, run the `CREATE TABLE ...;` line first, then the whole `INSERT INTO ...;` block. Don't skip the INSERT — the store you build next reads exactly these rows."
+      ],
+      "solution": "Drop a **SQL Database** node named `db` into the subnet. Click **Inspect** → **SQL Shell**, paste and execute:\n\n```sql\nCREATE TABLE books (id SERIAL PRIMARY KEY, title TEXT NOT NULL, author TEXT NOT NULL);\nINSERT INTO books (title, author) VALUES\n  ('The Pragmatic Programmer', 'David Thomas and Andrew Hunt'),\n  ('Clean Code', 'Robert C. Martin'),\n  ('Designing Data-Intensive Applications', 'Martin Kleppmann'),\n  ('Site Reliability Engineering', 'Betsy Beyer and team'),\n  ('Release It!', 'Michael T. Nygard');\n```",
+      "validators": [
+        { "type": "container_running", "params": { "node": "db" } },
+        { "type": "table_exists", "params": { "node": "db", "table": "books" } }
+      ]
+    },
+    {
+      "id": "wire-web-to-db",
+      "title": "Least privilege, day one",
+      "instruction": "`web` must reach `db` on PostgreSQL's port **5432** — and *nothing else* should. In this lab, as in any real cloud, connectivity is governed by **security groups**: a virtual firewall in front of every node that denies everything not explicitly allowed.\n\nLast time, this store took the expedient route — *allow everyone, tighten later* — and spent a whole pre-launch day paying that debt back. You've grown since: this time the database opens to exactly one machine, from day one.\n\n1. Click the small shield icon in the title bar of the `db` node — it opens its **Security Group** rules.\n2. Add one inbound rule: Direction **Inbound**, Action **ALLOW**, Protocol **TCP**, Port **5432**, and for Source pick the node **`web`** from the dropdown — *not* Anywhere.\n3. Press **Add Rule**. A green edge appears from `web` to `db`: the visual echo of your rule.",
+      "hints": [
+        "The shield icon sits in the title bar of the `db` node card. Everything not explicitly allowed is denied by default — one precise ALLOW rule is all this step needs.",
+        "In the **Add Rule** form: Direction **Inbound**, Action **ALLOW**, Protocol **TCP**, Port **5432**. The Source dropdown has a **Nodes** group — pick `web` there instead of Anywhere (0.0.0.0/0).",
+        "If you ever delete and recreate the `web` node later, come back and re-add this rule: a Source-node rule points at the *machine* you picked, not at whatever machine now bears the name."
+      ],
+      "solution": "Open the shield icon on `db` and add this inbound rule: Direction **Inbound**, Action **ALLOW**, Protocol **TCP**, Port **5432**, Source **web** (from the Nodes group of the dropdown) → **Add Rule**.",
+      "validators": [
+        { "type": "edge_exists", "params": { "source": "web", "target": "db", "port": 5432 } }
+      ]
+    },
+    {
+      "id": "ship-the-slow-store",
+      "title": "The 1500 millisecond problem",
+      "instruction": "Time to see what customers are complaining about. Open the **Terminal** of `web` and build the store.\n\n1. Install the PostgreSQL driver:\n\n```bash\napt-get update && apt-get install -y python3-psycopg2\n```\n\n2. Write the app. One honest detail before you paste: the catalog page also runs the *recommendations engine* — a beast of a query that costs about **1.5 seconds of database time on every single request** (simulated with `pg_sleep`, so you can feel exactly what your customers feel):\n\n```bash\ncat << 'EOF' > /root/server.py\nfrom http.server import SimpleHTTPRequestHandler, HTTPServer\nimport time\nimport psycopg2\n\nclass Handler(SimpleHTTPRequestHandler):\n    def do_GET(self):\n        started = time.monotonic()\n        try:\n            conn = psycopg2.connect(host='db', database='postgres', user='postgres', password='postgres')\n            cur = conn.cursor()\n            cur.execute('SELECT pg_sleep(1.5);')\n            cur.execute('SELECT title, author FROM books ORDER BY id;')\n            rows = cur.fetchall()\n            cur.close(); conn.close()\n            body = '<ul>' + ''.join(f'<li><b>{row[0]}</b> by {row[1]}</li>' for row in rows) + '</ul>'\n            elapsed = int((time.monotonic() - started) * 1000)\n            badge = f'served from database in {elapsed} ms'\n        except Exception as e:\n            body = f'<p>We could not reach our database: {str(e)}</p>'\n            badge = 'catalog unavailable'\n        html = f'<html><body><h1>Nimbus Books</h1><p><i>{badge}</i></p><h2>Our catalog</h2>{body}</body></html>'\n        self.send_response(200)\n        self.send_header('Content-type', 'text/html')\n        self.end_headers()\n        self.wfile.write(bytes(html, 'utf8'))\n\nHTTPServer(('', 80), Handler).serve_forever()\nEOF\n```\n\n3. Make the server start whenever this machine boots, then start it now:\n\n```bash\necho '(python3 /root/server.py >/dev/null 2>&1 &)' >> /root/.bashrc\nnohup python3 /root/server.py >/dev/null 2>&1 &\n```\n\n4. Open the shop's door: on `web`, add an inbound **ALLOW TCP 80** rule from **Anywhere (0.0.0.0/0)**, and click the `http://localhost:...` link that appears below this instruction.\n5. Now *feel the problem*: refresh the page a few times. **About a second and a half, every single time.** The badge under the title tells you where the page came from and how long it took — every visitor pays the full recommendations-engine price for the same five books. (The checks below feel it too: each takes a couple of seconds.)",
+      "hints": [
+        "Click the **Terminal** button on the `web` node and paste the commands one block at a time (the `cat << 'EOF' ... EOF` block is a single paste, including the EOF lines).",
+        "Page shows \"We could not reach our database\"? Check the previous step's rule on `db`: inbound **ALLOW TCP 5432**, Source **web**. Page loads but the catalog is empty? Re-run the INSERT from step \"The catalog\" in the SQL Shell.",
+        "No `http://localhost:...` link under the instruction? Add the inbound **ALLOW TCP 80** from **Anywhere (0.0.0.0/0)** rule on `web` — without it the firewall keeps the shop closed."
+      ],
+      "solution": "In `web`'s terminal, paste this whole block:\n\n```bash\napt-get update && apt-get install -y python3-psycopg2\ncat << 'EOF' > /root/server.py\nfrom http.server import SimpleHTTPRequestHandler, HTTPServer\nimport time\nimport psycopg2\n\nclass Handler(SimpleHTTPRequestHandler):\n    def do_GET(self):\n        started = time.monotonic()\n        try:\n            conn = psycopg2.connect(host='db', database='postgres', user='postgres', password='postgres')\n            cur = conn.cursor()\n            cur.execute('SELECT pg_sleep(1.5);')\n            cur.execute('SELECT title, author FROM books ORDER BY id;')\n            rows = cur.fetchall()\n            cur.close(); conn.close()\n            body = '<ul>' + ''.join(f'<li><b>{row[0]}</b> by {row[1]}</li>' for row in rows) + '</ul>'\n            elapsed = int((time.monotonic() - started) * 1000)\n            badge = f'served from database in {elapsed} ms'\n        except Exception as e:\n            body = f'<p>We could not reach our database: {str(e)}</p>'\n            badge = 'catalog unavailable'\n        html = f'<html><body><h1>Nimbus Books</h1><p><i>{badge}</i></p><h2>Our catalog</h2>{body}</body></html>'\n        self.send_response(200)\n        self.send_header('Content-type', 'text/html')\n        self.end_headers()\n        self.wfile.write(bytes(html, 'utf8'))\n\nHTTPServer(('', 80), Handler).serve_forever()\nEOF\necho '(python3 /root/server.py >/dev/null 2>&1 &)' >> /root/.bashrc\nnohup python3 /root/server.py >/dev/null 2>&1 &\n```\n\nThen on `web`'s security group (shield icon): Direction **Inbound**, Action **ALLOW**, Protocol **TCP**, Port **80**, Source **Anywhere (0.0.0.0/0)** → **Add Rule**.",
+      "validators": [
+        { "type": "http_get_contains", "params": { "node": "web", "port": 80, "path": "/", "expectedText": "Nimbus Books" } },
+        { "type": "http_get_contains", "params": { "node": "web", "port": 80, "path": "/", "expectedText": "The Pragmatic Programmer" } }
+      ]
+    },
+    {
+      "id": "add-the-cache",
+      "title": "Enter Redis",
+      "instruction": "The fix for *reading the same answer over and over* is not a bigger database — it is **remembering the answer**. Enter **Redis**: an in-memory key-value store that responds in microseconds. It will sit *beside* your database (that's the \"aside\" in cache-aside), holding hot copies of expensive results.\n\n1. Drag a **Redis** node into the subnet and name it `cache` — it starts on creation.\n2. Only the web server has any business talking to it: on `cache`, add an inbound rule **ALLOW TCP 6379** with Source **`web`** (6379 is Redis's port — the same least-privilege move as with the database).\n3. **Inspect** `cache` and open the **Explorer** tab: Torollo seeds a few demo keys (`user:1:name`, `queue:emails`, ...) so you can poke around. Real Redis instances are shared and messy just like this — which is exactly why our app will *namespace* its keys under the `cache:` prefix. Remember it; it becomes the star two steps from now.\n4. Press **Validate** and read the third check: it is already thinking ahead, verifying that your cache can **not** reach the database on 5432. A cache holds a *copy* of your data — it has no business in the vault. If that check fails, your database rule from step \"Least privilege, day one\" was too generous (Source Anywhere instead of `web`) — tighten it.",
+      "hints": [
+        "Drop the **Redis** tile onto a free cell of the subnet and name it exactly `cache`. No free cell? Grow the subnet with the C / R steppers.",
+        "The 6379 rule goes on **`cache`**'s security group (shield icon on the cache node): Direction **Inbound**, Action **ALLOW**, Protocol **TCP**, Port **6379**, Source **web** (from the Nodes group).",
+        "Third check red? Open **`db`**'s security group: your 5432 rule must have Source **web**, not Anywhere (0.0.0.0/0). Delete the broad rule and add the precise one — the store keeps working, and the cache stays out of the vault."
+      ],
+      "solution": "Drop a **Redis** node named `cache` into the subnet. On its security group (shield icon): Direction **Inbound**, Action **ALLOW**, Protocol **TCP**, Port **6379**, Source **web** → **Add Rule**. If the third check complains, fix `db`'s 5432 rule so its Source is **web**, not Anywhere.",
+      "validators": [
+        { "type": "container_running", "params": { "node": "cache" } },
+        { "type": "edge_exists", "params": { "source": "web", "target": "cache", "port": 6379 } },
+        { "type": "port_denied", "params": { "source": "cache", "target": "db", "port": 5432 } }
+      ]
+    },
+    {
+      "id": "cache-aside",
+      "title": "Cache-aside",
+      "instruction": "**Cache-aside** is *the* caching pattern — the one interviewers ask about. The application owns the logic: check the cache first; on a **hit**, answer instantly; on a **miss**, query the database, **store the result in the cache with an expiry**, then answer. The next visitor gets the hit.\n\nIn `web`'s **Terminal**:\n\n1. Install the Redis client:\n\n```bash\napt-get update && apt-get install -y python3-redis\n```\n\n2. Rewrite the app with the cache-aside read path — `GET cache:books` first; on a miss, run the expensive query and `SETEX` the result for **180 seconds**:\n\n```bash\ncat << 'EOF' > /root/server.py\nfrom http.server import SimpleHTTPRequestHandler, HTTPServer\nimport time\nimport psycopg2\nimport redis\n\nCACHE_KEY = 'cache:books'\nCACHE_TTL = 180\ncache = redis.Redis(host='cache', port=6379, decode_responses=True,\n                    socket_connect_timeout=1, socket_timeout=1)\n\nclass Handler(SimpleHTTPRequestHandler):\n    def do_GET(self):\n        started = time.monotonic()\n        body = None\n        try:\n            body = cache.get(CACHE_KEY)\n        except Exception:\n            pass\n        if body is not None:\n            elapsed = int((time.monotonic() - started) * 1000)\n            badge = f'served from cache in {elapsed} ms'\n        else:\n            try:\n                conn = psycopg2.connect(host='db', database='postgres', user='postgres', password='postgres')\n                cur = conn.cursor()\n                cur.execute('SELECT pg_sleep(1.5);')\n                cur.execute('SELECT title, author FROM books ORDER BY id;')\n                rows = cur.fetchall()\n                cur.close(); conn.close()\n                body = '<ul>' + ''.join(f'<li><b>{row[0]}</b> by {row[1]}</li>' for row in rows) + '</ul>'\n                try:\n                    cache.setex(CACHE_KEY, CACHE_TTL, body)\n                except Exception:\n                    pass\n                elapsed = int((time.monotonic() - started) * 1000)\n                badge = f'served from database in {elapsed} ms'\n            except Exception as e:\n                body = f'<p>We could not reach our database: {str(e)}</p>'\n                badge = 'catalog unavailable'\n        html = f'<html><body><h1>Nimbus Books</h1><p><i>{badge}</i></p><h2>Our catalog</h2>{body}</body></html>'\n        self.send_response(200)\n        self.send_header('Content-type', 'text/html')\n        self.end_headers()\n        self.wfile.write(bytes(html, 'utf8'))\n\nHTTPServer(('', 80), Handler).serve_forever()\nEOF\n```\n\n3. Replace the running server with the new one:\n\n```bash\npkill -f server.py\nnohup python3 /root/server.py >/dev/null 2>&1 &\n```\n\nNotice the `try/except` around every Redis call **and the 1-second timeouts on the client**: if the cache ever dies, the store gets *slow* — it never goes *down*. (Without the timeouts, a dead cache would hang every request for minutes: a cache outage would become a store outage.) That is the golden rule of caching: **the cache is an optimization, never a dependency.**\n\nAbout the checks: the second one looks for a `cache:books` key in Redis. The check's own request to your store causes the very first **miss** — which fills the cache. Your old server never writes that key; only the new code can turn this green.",
+      "hints": [
+        "Paste the commands one block at a time in `web`'s terminal (the `cat << 'EOF' ... EOF` block is a single paste). The install is a new package, `python3-redis` — psycopg2 is already there from before.",
+        "Old page still showing, or the new server won't start (\"Address already in use\")? The old server still holds port 80: run `pkill -f server.py`, then the `nohup python3 /root/server.py >/dev/null 2>&1 &` line again.",
+        "Second check red while the page loads fine? Either the running server is still the old code (kill and restart it), or Redis is unreachable: is the node running, named exactly `cache`, with the inbound **ALLOW TCP 6379** from **web** rule from the previous step?"
+      ],
+      "solution": "In `web`'s terminal, paste this whole block:\n\n```bash\napt-get update && apt-get install -y python3-redis\ncat << 'EOF' > /root/server.py\nfrom http.server import SimpleHTTPRequestHandler, HTTPServer\nimport time\nimport psycopg2\nimport redis\n\nCACHE_KEY = 'cache:books'\nCACHE_TTL = 180\ncache = redis.Redis(host='cache', port=6379, decode_responses=True,\n                    socket_connect_timeout=1, socket_timeout=1)\n\nclass Handler(SimpleHTTPRequestHandler):\n    def do_GET(self):\n        started = time.monotonic()\n        body = None\n        try:\n            body = cache.get(CACHE_KEY)\n        except Exception:\n            pass\n        if body is not None:\n            elapsed = int((time.monotonic() - started) * 1000)\n            badge = f'served from cache in {elapsed} ms'\n        else:\n            try:\n                conn = psycopg2.connect(host='db', database='postgres', user='postgres', password='postgres')\n                cur = conn.cursor()\n                cur.execute('SELECT pg_sleep(1.5);')\n                cur.execute('SELECT title, author FROM books ORDER BY id;')\n                rows = cur.fetchall()\n                cur.close(); conn.close()\n                body = '<ul>' + ''.join(f'<li><b>{row[0]}</b> by {row[1]}</li>' for row in rows) + '</ul>'\n                try:\n                    cache.setex(CACHE_KEY, CACHE_TTL, body)\n                except Exception:\n                    pass\n                elapsed = int((time.monotonic() - started) * 1000)\n                badge = f'served from database in {elapsed} ms'\n            except Exception as e:\n                body = f'<p>We could not reach our database: {str(e)}</p>'\n                badge = 'catalog unavailable'\n        html = f'<html><body><h1>Nimbus Books</h1><p><i>{badge}</i></p><h2>Our catalog</h2>{body}</body></html>'\n        self.send_response(200)\n        self.send_header('Content-type', 'text/html')\n        self.end_headers()\n        self.wfile.write(bytes(html, 'utf8'))\n\nHTTPServer(('', 80), Handler).serve_forever()\nEOF\npkill -f server.py\nnohup python3 /root/server.py >/dev/null 2>&1 &\n```",
+      "validators": [
+        { "type": "http_get_contains", "params": { "node": "web", "port": 80, "path": "/", "expectedText": "Nimbus Books" } },
+        { "type": "redis_key_exists", "params": { "node": "cache", "key": "cache:books" } }
+      ]
+    },
+    {
+      "id": "prove-the-hit",
+      "title": "Prove the hit",
+      "instruction": "Time to collect your reward.\n\n1. Refresh the store page **twice** and read the badge. First load: `served from database in ~1500 ms` — that's the miss. Second load: `served from cache in ~2 ms`. **Same page, roughly a thousand times faster.** That number is the entire caching industry in one refresh.\n2. Now look at the real thing. **Inspect** the `cache` node → **Explorer** tab: there it is — `cache:books`, type *string*, sitting among the demo keys (use the refresh icon if the list looks stale). Click **View value** to see the exact HTML your server stored.\n3. Every cache entry lives on borrowed time. In the **Shell** tab, run:\n\n```\nTTL cache:books\n```\n\nRun it twice — that countdown is your 180 seconds ticking away. When it reaches zero the key vanishes, and the next visitor pays the database price once more.\n\n4. Refresh the store one more time, then press **Validate** right away.",
+      "hints": [
+        "Badge says `served from database`? Your entry had just expired — and that very refresh refilled the cache. That is cache-aside doing its job. Refresh again: `served from cache`. Then validate.",
+        "`TTL cache:books` answers `-2`? The key expired or was deleted — load the store page once and it comes right back (the pattern heals itself). `-1` would mean no expiry, which the `SETEX` in your code rules out.",
+        "Don't see `cache:books` in the Explorer list? Click the refresh icon in the modal header, or run `KEYS cache:*` in the **Shell** tab (the shell runs one command per Execute)."
+      ],
+      "solution": "Refresh the store page twice and watch the badge flip from `served from database in ~1500 ms` to `served from cache in ~2 ms`. Open **Inspect** on `cache` → **Explorer** to see the `cache:books` key (refresh icon if needed), then **Shell** → `TTL cache:books` to watch the countdown. Refresh the store once more and press **Validate**.",
+      "validators": [
+        { "type": "http_get_contains", "params": { "node": "web", "port": 80, "path": "/", "expectedText": "served from cache" } },
+        { "type": "redis_key_exists", "params": { "node": "cache", "key": "cache:*" } }
+      ]
+    },
+    {
+      "id": "the-stale-catalog",
+      "title": "The stale catalog",
+      "instruction": "There's a famous saying: *there are only two hard things in computer science — cache invalidation and naming things.* You are about to meet the first one.\n\nA new bestseller just arrived. Add it to the catalog in `db`'s **SQL Shell**:\n\n```sql\nINSERT INTO books (title, author) VALUES ('The Phoenix Project', 'Gene Kim');\n```\n\nNow refresh the store... **it's not there.** The badge says `served from cache`: your customers are reading yesterday's catalog. The database holds the truth; the cache holds a copy up to 180 seconds old — and it will keep serving that copy until the TTL runs out.\n\n**Press Validate right now, before fixing anything, and read the failure** — the check sees exactly what your customers see: a cached page with no Phoenix Project in it.\n\nThen fix it like an operator. Waiting out the TTL works, but you didn't build all this to wait: **invalidate**. In `cache`'s **Shell** tab:\n\n```\nDEL cache:books\n```\n\nRefresh the store: the miss goes back to the database, the new book appears — and the *next* refresh serves it from the cache. Fresh **and** fast.\n\n**That's the pattern.** Look at what you built: a real Redis absorbing reads in a couple of milliseconds, a database that only works when there is new truth to fetch, an expiry you chose, an invalidation you performed by hand — on real containers, with a real firewall in between. Next time an interviewer asks *\"how would you reduce the load on your database?\"*, you haven't just read the answer — you have felt the slow page, watched the TTL tick, and served stale data once. Next stop in the catalog: carving this flat network into a proper VPC with public and private subnets.",
+      "hints": [
+        "Validating *while stale* is the point of this step: read the failure message — you'll find `served from cache` in what the check observed, right next to the book that's missing.",
+        "Run `DEL cache:books` in **`cache`** → **Shell** (one command per Execute). Then refresh the store page: first load slow (`served from database` — the miss that refills), second load instant, both with The Phoenix Project.",
+        "Still no Phoenix Project after the DEL? Check the INSERT actually ran (Database Explorer tab on `db` → `books` should have 6 rows, title spelled exactly `The Phoenix Project`), then refresh the page once more and validate."
+      ],
+      "solution": "In `db`'s **SQL Shell**: `INSERT INTO books (title, author) VALUES ('The Phoenix Project', 'Gene Kim');`. Refresh the store and see the stale, Phoenix-less page. Press **Validate** and read the failure. Then in `cache`'s **Shell**: `DEL cache:books`, refresh the store twice (miss, then hit), and validate again.",
+      "validators": [
+        { "type": "http_get_contains", "params": { "node": "web", "port": 80, "path": "/", "expectedText": "Phoenix" } },
+        { "type": "http_get_contains", "params": { "node": "web", "port": 80, "path": "/", "expectedText": "served from cache" } }
+      ]
+    }
+  ]
+}
