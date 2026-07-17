@@ -1,0 +1,162 @@
+{
+  "$schema": "https://raw.githubusercontent.com/Derssa/Torollo/main/backend/src/modules/learning/format/roadmap.schema.json",
+  "schemaVersion": 1,
+  "id": "resilient-three-tier",
+  "title": "Deploy a resilient three-tier app",
+  "description": "You are the first engineer at Nimbus Books, an online bookstore about to launch. Build the classic three-tier architecture on real containers — load balancer, replicated web servers, PostgreSQL — then lock it down, break it on purpose, and watch it survive.",
+  "language": "en",
+  "estimatedMinutes": 40,
+  "difficulty": "intermediate",
+  "prerequisites": [
+    "Docker installed and running",
+    "A Torollo project created and open on the canvas",
+    "Comfortable running basic commands in a Linux terminal"
+  ],
+  "steps": [
+    {
+      "id": "first-server",
+      "title": "Your first server",
+      "instruction": "Welcome to **Nimbus Books** — you are employee #1, and the site must be live by launch day.\n\nEvery machine needs a network to live in, so start with that:\n\n1. From the node library, drag a **Public Subnet** onto the canvas. Every machine of this roadmap will live here, so give the fleet some room: use the **C / R steppers** on the subnet header to grow it to about **3 columns × 2 rows**.\n2. Drag a **Server** node *into* the subnet (nodes can only live inside a subnet), name it `web-1`, and create it.\n3. The machine boots as soon as it is created — wait for its status dot to turn green.",
+      "hints": [
+        "The node library is the sidebar panel next to the canvas. Drag **Public Subnet** onto an empty spot first — if you drop a Server outside a subnet, Torollo refuses with \"Nodes must reside within a subnet.\"",
+        "Drop the **Server** tile onto one of the subnet's free cells. A dialog asks for a name: type exactly `web-1` (the checks in this roadmap find your machines by name). It starts on its own after creation; if you ever stop it, the play button brings it back."
+      ],
+      "solution": "Drag **Public Subnet** onto the canvas. Drag **Server** into one of its cells, name it `web-1` in the creation dialog, click **Create Node**, and wait for the node's status dot to turn green.",
+      "validators": [
+        { "type": "container_running", "params": { "node": "web-1" } }
+      ]
+    },
+    {
+      "id": "database-tier",
+      "title": "The data tier",
+      "instruction": "A bookstore is nothing without its readers. Time for tier three: the database.\n\n1. Drag a **SQL Database** node (PostgreSQL) into the same subnet and name it `db` — it starts on creation.\n2. A database must never face the internet. Here it shares the subnet with your servers, but notice: Torollo never publishes a database port to your machine, and its firewall denies everything inbound by default — you will *whitelist* every single machine allowed to talk to it. (Carving the network itself into public and private subnets is a whole discipline of its own — that's another roadmap.)\n3. Open the node (**Inspect**), go to the **SQL Shell** tab, and create the `users` table with the first three sign-ups:\n\n```sql\nCREATE TABLE users (id SERIAL PRIMARY KEY, email TEXT NOT NULL);\nINSERT INTO users (email) VALUES ('ada@nimbus.dev'), ('grace@nimbus.dev'), ('linus@nimbus.dev');\n```\n\nTip: after running it, switch to the **Database Explorer** tab — you are looking at real rows in a real PostgreSQL container.",
+      "hints": [
+        "Drop the **SQL Database** tile onto a free cell of your subnet and name it `db`. No free cell? Grow the subnet with the C / R steppers on its header.",
+        "Click **Inspect** on the `db` node, open the **SQL Shell** tab, paste the SQL block from the instruction and press **Execute Query**.",
+        "If the shell complains about running both statements at once, run the `CREATE TABLE ...;` line first, then the `INSERT INTO ...;` line. Don't skip the INSERT — a later step checks that the app can actually read these rows."
+      ],
+      "solution": "Drop a **SQL Database** node named `db` into the subnet (it starts on creation). Click **Inspect** → **SQL Shell**, paste and execute:\n\n```sql\nCREATE TABLE users (id SERIAL PRIMARY KEY, email TEXT NOT NULL);\nINSERT INTO users (email) VALUES ('ada@nimbus.dev'), ('grace@nimbus.dev'), ('linus@nimbus.dev');\n```",
+      "validators": [
+        { "type": "container_running", "params": { "node": "db" } },
+        { "type": "table_exists", "params": { "node": "db", "table": "users" } }
+      ]
+    },
+    {
+      "id": "open-the-db",
+      "title": "Wire the app to its database",
+      "instruction": "`web-1` needs to talk to `db` on PostgreSQL's port, **5432**. In this lab — as in any real cloud — connectivity is governed by **security groups**: a virtual firewall in front of every node that denies everything not explicitly allowed.\n\nLaunch is close and you take the expedient route: on `db`, add an inbound rule allowing port 5432 from **Anywhere (0.0.0.0/0)**.\n\nFeels wrong to open your database to *everyone*? Good instinct. Write it on the launch checklist — we will come back for it before opening day.",
+      "hints": [
+        "Click the small shield icon in the title bar of the `db` node — it opens the node's Security Group (firewall) rules.",
+        "In the **Add Rule** form: Direction **Inbound**, Action **ALLOW**, Protocol **TCP**, Port **5432**, Source **Anywhere (0.0.0.0/0)** — then press **Add Rule**. Green connection edges appear on the canvas: they are the visual projection of your inbound ALLOW rules."
+      ],
+      "solution": "Open the shield icon on `db` and add this inbound rule: Direction **Inbound**, Action **ALLOW**, Protocol **TCP**, Port **5432**, Source **Anywhere (0.0.0.0/0)**. Press **Add Rule** and close the modal.",
+      "validators": [
+        { "type": "edge_exists", "params": { "source": "web-1", "target": "db", "port": 5432 } }
+      ]
+    },
+    {
+      "id": "run-the-bookstore",
+      "title": "Ship the bookstore",
+      "instruction": "Tier two: the application itself. Open the **Terminal** of `web-1` and build the machine.\n\n1. Install the PostgreSQL driver:\n\n```bash\napt-get update && apt-get install -y python3-psycopg2\n```\n\n2. Write the app — a small Python server that lists your readers straight from `db`:\n\n```bash\ncat << 'EOF' > /root/server.py\nfrom http.server import SimpleHTTPRequestHandler, HTTPServer\nimport psycopg2\nclass Handler(SimpleHTTPRequestHandler):\n    def do_GET(self):\n        self.send_response(200)\n        self.send_header('Content-type', 'text/html')\n        self.end_headers()\n        html = '<html><body><h1>Nimbus Books</h1>'\n        try:\n            conn = psycopg2.connect(host='db', database='postgres', user='postgres', password='postgres')\n            cur = conn.cursor()\n            cur.execute('SELECT id, email FROM users;')\n            rows = cur.fetchall()\n            html += '<h2>Our first readers</h2><table border=1><tr><th>ID</th><th>Email</th></tr>'\n            for row in rows:\n                html += f'<tr><td>{row[0]}</td><td>{row[1]}</td></tr>'\n            html += '</table>'\n            cur.close(); conn.close()\n        except Exception as e:\n            html += f'<p>We could not reach our database: {str(e)}</p>'\n        html += '</body></html>'\n        self.wfile.write(bytes(html, 'utf8'))\nHTTPServer(('', 80), Handler).serve_forever()\nEOF\n```\n\n3. Make the server start whenever this machine boots — one line, and any future *clone* of this machine will come up serving too (remember this later):\n\n```bash\necho '(python3 /root/server.py >/dev/null 2>&1 &)' >> /root/.bashrc\n```\n\n4. Start it now:\n\n```bash\nnohup python3 /root/server.py >/dev/null 2>&1 &\n```\n\n5. Finally, open the shop's door: on `web-1`, add an inbound **ALLOW TCP 80** rule from **Anywhere (0.0.0.0/0)**. A link to your very own `http://localhost:...` appears under this instruction — click it. Nimbus Books is live.",
+      "hints": [
+        "Click the **Terminal** button on the `web-1` node and paste the commands one block at a time (the `cat << 'EOF' ... EOF` block is a single paste, including the EOF lines).",
+        "Page shows \"We could not reach our database\"? Check step 3's rule on `db` (inbound ALLOW TCP 5432). Page loads but the check on `ada@nimbus.dev` fails? Your `users` table is empty — re-run the INSERT from step 2 in the SQL Shell.",
+        "Don't forget part 5: without the inbound **ALLOW TCP 80 from Anywhere (0.0.0.0/0)** rule on `web-1`, the firewall keeps the shop closed and no browser link appears."
+      ],
+      "solution": "In `web-1`'s terminal, paste this whole block, then add the security group rule described below:\n\n```bash\napt-get update && apt-get install -y python3-psycopg2\ncat << 'EOF' > /root/server.py\nfrom http.server import SimpleHTTPRequestHandler, HTTPServer\nimport psycopg2\nclass Handler(SimpleHTTPRequestHandler):\n    def do_GET(self):\n        self.send_response(200)\n        self.send_header('Content-type', 'text/html')\n        self.end_headers()\n        html = '<html><body><h1>Nimbus Books</h1>'\n        try:\n            conn = psycopg2.connect(host='db', database='postgres', user='postgres', password='postgres')\n            cur = conn.cursor()\n            cur.execute('SELECT id, email FROM users;')\n            rows = cur.fetchall()\n            html += '<h2>Our first readers</h2><table border=1><tr><th>ID</th><th>Email</th></tr>'\n            for row in rows:\n                html += f'<tr><td>{row[0]}</td><td>{row[1]}</td></tr>'\n            html += '</table>'\n            cur.close(); conn.close()\n        except Exception as e:\n            html += f'<p>We could not reach our database: {str(e)}</p>'\n        html += '</body></html>'\n        self.wfile.write(bytes(html, 'utf8'))\nHTTPServer(('', 80), Handler).serve_forever()\nEOF\necho '(python3 /root/server.py >/dev/null 2>&1 &)' >> /root/.bashrc\nnohup python3 /root/server.py >/dev/null 2>&1 &\n```\n\nThen on `web-1`'s security group (shield icon): Direction **Inbound**, Action **ALLOW**, Protocol **TCP**, Port **80**, Source **Anywhere (0.0.0.0/0)** → **Add Rule**.",
+      "validators": [
+        { "type": "http_get_contains", "params": { "node": "web-1", "port": 80, "path": "/", "expectedText": "Nimbus Books" } },
+        { "type": "http_get_contains", "params": { "node": "web-1", "port": 80, "path": "/", "expectedText": "ada@nimbus.dev" } }
+      ]
+    },
+    {
+      "id": "second-server",
+      "title": "Two of everything",
+      "instruction": "One server means one 2 a.m. phone call away from an outage. Rule of resilient systems: **anything that matters runs at least twice.**\n\n1. Drag a second **Server** into the *same public subnet* and name it `web-2`.\n2. Open its **Terminal** and give it the exact same setup as `web-1` — same driver, same `/root/server.py`, same boot line, same start command (the full block is in this step's solution if you'd rather paste it in one go).\n3. Add the same inbound **ALLOW TCP 80** from **Anywhere (0.0.0.0/0)** rule on `web-2`.\n\nTwo identical machines, one behind the other. Next: making them answer as one.",
+      "hints": [
+        "The four terminal commands are identical to step \"Ship the bookstore\" — reveal this step's solution for the single copy-paste block.",
+        "`web-2` shows \"We could not reach our database\" while `web-1` works? Open the shield icon on `db` and look at your 5432 rule's **Source**: if it says `web-1` instead of **Anywhere (0.0.0.0/0)** (for instance because you drew an edge by hand), `web-2` is not covered. Make the source Anywhere for now — tightening it properly is coming in a later step.",
+        "The check on `web-2` runs *inside* `web-2` — it does not need the port-80 rule to pass. But add the rule anyway: the load balancer in the next step will need to reach `web-2`, and you want your two servers configured identically."
+      ],
+      "solution": "Create a **Server** named `web-2` in the same public subnet. In its terminal, paste:\n\n```bash\napt-get update && apt-get install -y python3-psycopg2\ncat << 'EOF' > /root/server.py\nfrom http.server import SimpleHTTPRequestHandler, HTTPServer\nimport psycopg2\nclass Handler(SimpleHTTPRequestHandler):\n    def do_GET(self):\n        self.send_response(200)\n        self.send_header('Content-type', 'text/html')\n        self.end_headers()\n        html = '<html><body><h1>Nimbus Books</h1>'\n        try:\n            conn = psycopg2.connect(host='db', database='postgres', user='postgres', password='postgres')\n            cur = conn.cursor()\n            cur.execute('SELECT id, email FROM users;')\n            rows = cur.fetchall()\n            html += '<h2>Our first readers</h2><table border=1><tr><th>ID</th><th>Email</th></tr>'\n            for row in rows:\n                html += f'<tr><td>{row[0]}</td><td>{row[1]}</td></tr>'\n            html += '</table>'\n            cur.close(); conn.close()\n        except Exception as e:\n            html += f'<p>We could not reach our database: {str(e)}</p>'\n        html += '</body></html>'\n        self.wfile.write(bytes(html, 'utf8'))\nHTTPServer(('', 80), Handler).serve_forever()\nEOF\necho '(python3 /root/server.py >/dev/null 2>&1 &)' >> /root/.bashrc\nnohup python3 /root/server.py >/dev/null 2>&1 &\n```\n\nThen on `web-2`'s security group: Direction **Inbound**, Action **ALLOW**, Protocol **TCP**, Port **80**, Source **Anywhere (0.0.0.0/0)** → **Add Rule**.",
+      "validators": [
+        { "type": "container_running", "params": { "node": "web-2" } },
+        { "type": "http_get_contains", "params": { "node": "web-2", "port": 80, "path": "/", "expectedText": "Nimbus Books" } },
+        { "type": "http_get_contains", "params": { "node": "web-2", "port": 80, "path": "/", "expectedText": "ada@nimbus.dev" } }
+      ]
+    },
+    {
+      "id": "load-balancer",
+      "title": "One front door",
+      "instruction": "Customers will not pick between two URLs. Tier one is the **load balancer**: a single entry point that spreads traffic across your fleet — and quietly stops sending traffic to a machine that dies.\n\n1. Drag a **Load Balancer** into the public subnet and name it `lb`.\n2. Click **Configure** on the node. In **Details & Config**: tick `web-1` and `web-2` in *Target Group Servers*, leave the Target Port at **80** and the algorithm on **Round Robin**, then press **Apply Configuration**.\n3. The front door needs to be open too: on `lb`, add an inbound **ALLOW TCP 80** rule from **Anywhere (0.0.0.0/0)**.\n4. Visit the link that appears below — from now on, *this* is the address of Nimbus Books. Nginx is proxying every request to one of your two servers, alternately.\n\nWhy no new rules on `web-1`/`web-2`? Because in the previous steps you allowed port 80 from **Anywhere** — and \"anywhere\" includes the load balancer. A stricter shop would allow *only* the load balancer to reach its web servers; hold that thought, because that is exactly the treatment the database gets next.",
+      "hints": [
+        "The load balancer is configured from its own modal, not with edges: click **Configure** on the `lb` node, tick both servers under *Target Group Servers (Ubuntu nodes)*, and press **Apply Configuration**.",
+        "Nothing at the link, or an nginx error page? Check that `lb` has the inbound **ALLOW TCP 80** from **Anywhere (0.0.0.0/0)** rule (shield icon) — the LB's own firewall is closed by default, like every node's.",
+        "A **502 Bad Gateway** means nginx answered but could not reach any target: are `web-1` and `web-2` both running, with their servers started (step \"Two of everything\")?"
+      ],
+      "solution": "Create a **Load Balancer** named `lb` in the public subnet. Click **Configure** → tick `web-1` and `web-2` in *Target Group Servers*, Target Port **80**, algorithm **Round Robin** → **Apply Configuration**. Then add on `lb`'s security group: Direction **Inbound**, Action **ALLOW**, Protocol **TCP**, Port **80**, Source **Anywhere (0.0.0.0/0)** → **Add Rule**.",
+      "validators": [
+        { "type": "lb_upstreams", "params": { "node": "lb", "min": 2 } },
+        { "type": "http_get_contains", "params": { "node": "lb", "port": 80, "path": "/", "expectedText": "Nimbus Books" } }
+      ]
+    },
+    {
+      "id": "lock-down-the-db",
+      "title": "Lock the vault",
+      "instruction": "Remember the launch checklist? *\"Database open to Anywhere — fix before opening day.\"* That day is today.\n\nFirst, **click Validate right now, before changing anything**, and read the failure: *Port 5432 is still open from \"lb\" to \"db\"*. Your load balancer — the machine directly exposed to the internet — can currently talk to your database. If an attacker ever owns the front door, they walk straight into the vault.\n\nThe principle is **least privilege**: only the machines that *need* the database may reach it — the two app servers, nothing else.\n\n1. Open `db`'s security group (shield icon) and **delete** the `5432 from Anywhere` rule.\n2. Add two precise rules instead: inbound **ALLOW TCP 5432** with Source `web-1`, and inbound **ALLOW TCP 5432** with Source `web-2` (pick the nodes in the Source dropdown).\n3. Refresh the store in your browser: still up. Tightening security should be invisible to customers.",
+      "hints": [
+        "Seriously — press **Validate** before touching anything, and watch it fail. Reading a real failure message is half of this step.",
+        "In `db`'s security group: delete the old rule with the trash icon, then add the two new ones. In the **Add Rule** form the Source dropdown has a **Nodes** group — pick `web-1` for the first rule, `web-2` for the second. Everything not explicitly allowed is denied: no DENY rule to write.",
+        "Store broken after the change (\"We could not reach our database\")? You probably deleted the Anywhere rule *without* adding the two per-server rules, or added them with the wrong port. `db` must end up with exactly: ALLOW TCP 5432 from `web-1`, and ALLOW TCP 5432 from `web-2`."
+      ],
+      "solution": "On `db`'s security group: delete the inbound `ALLOW TCP 5432 from 0.0.0.0/0` rule. Add: Direction **Inbound**, Action **ALLOW**, Protocol **TCP**, Port **5432**, Source **web-1** → **Add Rule**; then the same with Source **web-2**. Refresh the browser tab on `lb`'s address to confirm the store still works.",
+      "validators": [
+        { "type": "port_denied", "params": { "source": "lb", "target": "db", "port": 5432 } },
+        { "type": "edge_exists", "params": { "source": "web-1", "target": "db", "port": 5432 } },
+        { "type": "edge_exists", "params": { "source": "web-2", "target": "db", "port": 5432 } }
+      ]
+    },
+    {
+      "id": "pull-the-plug",
+      "title": "Pull the plug",
+      "instruction": "A disk dies at 2 a.m. Does Nimbus Books go down with it? There is exactly one way to know: **rehearse the failure.**\n\n1. Open the store through `lb`'s address and keep the browser tab handy.\n2. Now **stop `web-1`**. Not a simulation — stop the container from the canvas.\n3. Refresh the tab. Once, twice, five times. *Nimbus Books still answers* — nginx noticed the dead upstream and quietly routed everything to `web-2`.\n4. Press **Validate** **while `web-1` is still stopped**. That green check next to a dead server is the whole point of replication.\n\nLeave `web-1` stopped for now — the next step begins by bringing it back.",
+      "hints": [
+        "Use the stop (square) button on the `web-1` node itself. The first refresh right after the kill can take a moment — nginx is timing out on the dead server before retrying the live one.",
+        "Store actually down? Then `web-2` isn't serving: check that its container is running and revisit step \"Two of everything\" — its server must answer on port 80."
+      ],
+      "solution": "Stop `web-1` with its stop button, refresh the browser tab pointed at `lb`'s address to see the store still up, then press **Validate** while `web-1` is stopped.",
+      "validators": [
+        { "type": "http_get_contains", "params": { "node": "lb", "port": 80, "path": "/", "expectedText": "Nimbus Books" } }
+      ]
+    },
+    {
+      "id": "auto-scaling-group",
+      "title": "The clone factory",
+      "instruction": "You replaced `web-1` by hand at 2 a.m. once. Never again — that is a machine's job. An **Auto Scaling Group** watches a fleet of identical servers and keeps it at the size you declare: one dies, a replacement boots.\n\n1. First, **restart `web-1`** — it becomes the *golden template* the ASG will clone, so it had better be alive and healthy.\n2. Drag an **Auto Scaling Group** into the public subnet and name it `web-asg`.\n3. Click **Inspect**. In *Design & Scaling settings*: select `web-1` as the **Template Server**, tick your **public subnet** as the deployment target, and set the capacity to Min **1** / Desired **2** / Max **4**.\n4. Press **Save & Deploy**. Torollo snapshots `web-1` — packages, `/root/server.py`, and the boot line you wrote in `/root/.bashrc` — and boots 2 replicas from that image. *That* is why step \"Ship the bookstore\" made you bake the start command into the machine: clones come up already serving.\n5. Open the **Simulation & Live Grid** tab and watch the fleet. Try **Simulate Failure** on one replica: the ASG notices and self-heals. Wait until both replicas show *Healthy* again before validating.",
+      "hints": [
+        "`web-1` must be **running** before you deploy — the ASG clones a live template (and one of this step's checks insists on it).",
+        "In the ASG modal: *1. Launch Template Source* → pick `web-1`; *2. VPC Subnet Targets* → tick the public subnet; *3. Instance Capacity Limits* → Min 1, Desired 2, Max 4; then **Save & Deploy**.",
+        "Deploy takes a moment: Torollo is committing `web-1`'s disk into an image, then booting replicas from it. If the replica count looks wrong, check **Desired Instances** is 2 and give a self-healing cycle a couple of seconds to finish (the grid shows each replica's health)."
+      ],
+      "solution": "Restart `web-1`. Drag an **Auto Scaling Group** named `web-asg` into the public subnet. Click **Inspect** → Template Server: `web-1`; subnet: the public subnet; Min **1**, Desired **2**, Max **4** → **Save & Deploy**. Wait for the two replicas to show *Healthy* in the Simulation tab.",
+      "validators": [
+        { "type": "asg_replicas", "params": { "node": "web-asg", "count": 2 } },
+        { "type": "container_running", "params": { "node": "web-1" } }
+      ]
+    },
+    {
+      "id": "traffic-spike",
+      "title": "Launch day",
+      "instruction": "Nimbus Books just got featured in a big newsletter. Traffic is 10× and climbing — and launch day has one iron rule: **don't rewire anything while the shop is on fire, add capacity.**\n\n1. Absorb the spike: **Inspect** on `web-asg`, raise **Desired Instances** to **4**, press **Save Changes**. Watch the grid: two more clones boot from the golden image, already serving — that boot line you baked in step 4 is doing its job four times over.\n2. Refresh the store on `lb`'s address: steady as ever, served by `web-1` and `web-2` while your reserve fleet stands ready. Swapping the front door over to the ASG fleet and retiring the hand-built servers is *tomorrow's* change window (look up \"blue-green deployment\" — you have just built everything it needs).\n\n**That's the launch.** Look at your canvas: a load balancer, a replicated app tier that survived a dead server, a self-healing fleet at desired capacity, a database that only answers to machines on its list — the exact three-tier architecture behind most of the sites you use every day, running in real containers, with real firewall rules, on your machine. Next stops in the catalog: caching the catalog reads with Redis, and carving this network into a proper VPC with public and private subnets.",
+      "hints": [
+        "**Inspect** on `web-asg` → *3. Instance Capacity Limits* → set **Desired Instances** to 4 (Max is already 4 from step 9) → **Save Changes**.",
+        "The check wants *exactly 4* running replicas. If it counts fewer, wait a few seconds — the new clones are booting from the golden image — and check the Simulation grid shows all four *Healthy*. If you stopped `web-1` or `web-2` along the way, restart them: the store check goes through the load balancer."
+      ],
+      "solution": "**Inspect** on `web-asg`: Desired Instances **4** → **Save Changes**. Wait for the grid to show 4 *Healthy* replicas, refresh the store on `lb`'s address, and validate.",
+      "validators": [
+        { "type": "http_get_contains", "params": { "node": "lb", "port": 80, "path": "/", "expectedText": "Nimbus Books" } },
+        { "type": "asg_replicas", "params": { "node": "web-asg", "count": 4 } }
+      ]
+    }
+  ]
+}
