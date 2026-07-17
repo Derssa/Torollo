@@ -40,6 +40,20 @@ describe('redisKeyExists', () => {
     expect(outcome.observed).toBe('database not ready yet');
   });
 
+  it('fails pedagogically on a redis-cli server error like LOADING', async () => {
+    const outcome = await redisKeyExists(
+      { node: 'cache', key: 'session:*' },
+      makeContext({
+        containers: [redisContainer],
+        executeRedisCommand: () =>
+          Promise.resolve('(error) LOADING Redis is loading the dataset in memory\n'),
+      })
+    );
+
+    expect(outcome.status).toBe('fail');
+    expect(outcome.observed).toBe('database not ready yet');
+  });
+
   it('fails when the node is not a Redis node', async () => {
     const outcome = await redisKeyExists(
       { node: 'cache', key: 'session:*' },

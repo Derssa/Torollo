@@ -100,10 +100,12 @@ The 9 validator types of format v1:
 | `edge_exists` | a connection edge exists from `source` to `target` (omit `port` to accept any port) | `{ "source": string, "target": string, "port"?: number }` |
 | `lb_upstreams` | the load balancer node has **at least** `min` upstream targets | `{ "node": string, "min": number }` |
 | `port_denied` | traffic from `source` to `target` on `port` is **blocked** | `{ "source": string, "target": string, "port": number }` |
-| `asg_replicas` | the auto-scaling group node runs **exactly** `count` instances | `{ "node": string, "count": number }` |
+| `asg_replicas` | the auto-scaling group node runs **exactly** `count` instances (`count` is a non-negative integer) | `{ "node": string, "count": number }` |
 | `http_get_contains` | an HTTP GET request to localhost inside the container responds with a body containing the expected string | `{ "node": string, "port": number, "path": string, "expectedText": string }` |
 
 Ports and counts are JSON numbers.
+
+**Connectivity semantics (`edge_exists`, `port_denied`):** both checks evaluate the target's **inbound** security-group rules with the same first-match-wins order as the Network Simulator and the real firewall enforcement — the first rule matching the pair and port decides (`ALLOW` opens, `DENY` blocks), and no match means blocked (zero-trust default). `DENY` rules are honored: an early `DENY` blocks the port even when a broader `ALLOW` sits below it. `port_denied` additionally requires the network to actually be enforced: while no network configuration is applied to the project, or while either node sits outside a subnet, containers can talk freely on the shared bridge, so the check **fails** (pedagogically — the learner is told to place the nodes in subnets first) rather than blessing an unenforced topology.
 
 ## UI Integrations & Localhost Access
 

@@ -83,7 +83,7 @@ describe('learning engine — real containers (V-4)', () => {
     const cache = await containerProvider.createContainer(projectId, 'cache', 'redis');
     const nosql = await containerProvider.createContainer(projectId, 'nosql', 'mongo');
     const lb = await containerProvider.createContainer(projectId, 'lb', 'loadbalancer');
-    const asgBoundary = await containerProvider.createContainer(projectId, 'web-asg', 'ubuntu');
+    const asgBoundary = await containerProvider.createContainer(projectId, 'web-asg', 'autoscalinggroup');
     await containerProvider.createContainer(projectId, 'web-asg-replica-1', 'ubuntu', false, undefined, {
       'akal.asg.id': asgBoundary.id,
       'akal.asg.instance': 'true',
@@ -110,6 +110,14 @@ describe('learning engine — real containers (V-4)', () => {
       "db.getSiblingDB('test').events.insertOne({ seed: true })"
     );
 
+    // Realistic security groups: every node in a subnet carries the default SG
+    // (deny all inbound / allow all outbound — what the canvas gives every
+    // dropped node), learner rules prepended like the UI does. `cache` stages
+    // the DENY-shadow scenario: a DENY on 6379 sits above a broader ALLOW.
+    const defaultSgRules = () => [
+      { id: 'sg-default-in', type: 'inbound', action: 'DENY', protocol: 'ALL', port: 'ALL', source: '0.0.0.0/0' },
+      { id: 'sg-default-out', type: 'outbound', action: 'ALLOW', protocol: 'ALL', port: 'ALL', source: '0.0.0.0/0' },
+    ];
     await ProjectService.saveNetworkConfig(projectId, {
       nodeSubnetMap: {
         [web.id]: 'public',
@@ -118,8 +126,16 @@ describe('learning engine — real containers (V-4)', () => {
         [nosql.id]: 'private',
       },
       nodeSecurityGroups: {
+        [web.id]: defaultSgRules(),
+        [nosql.id]: defaultSgRules(),
         [db.id]: [
           { id: 'sg-web-to-db', type: 'inbound', action: 'ALLOW', protocol: 'TCP', port: '5432', source: web.id },
+          ...defaultSgRules(),
+        ],
+        [cache.id]: [
+          { id: 'sg-web-deny-6379', type: 'inbound', action: 'DENY', protocol: 'TCP', port: '6379', source: web.id },
+          { id: 'sg-web-allow-all', type: 'inbound', action: 'ALLOW', protocol: 'ALL', port: 'ALL', source: web.id },
+          ...defaultSgRules(),
         ],
       },
       loadBalancerTargets: {
@@ -189,15 +205,31 @@ describe('learning engine — real containers (V-4)', () => {
     expect(result.status).toBe('pass');
   });
 
-  it('edge_exists fails for a pair with no security group rule', async () => {
+  it('edge_exists fails with only the default security group (no learner rule)', async () => {
     const result = await runOne('edge_exists', { source: 'web', target: 'nosql', port: 5432 });
     expect(result.status).toBe('fail');
     expect(result.expected).toBeTruthy();
     expect(result.observed).toBeTruthy();
   });
 
-  it('port_denied passes for a port with no allow rule', async () => {
+  it('edge_exists fails when a DENY rule blocks the port despite a broader ALLOW below it', async () => {
+    const result = await runOne('edge_exists', { source: 'web', target: 'cache', port: 6379 });
+    expect(result.status).toBe('fail');
+    expect(result.observed).toBe('blocked by a DENY rule');
+  });
+
+  it('edge_exists passes on a port covered by the broader ALLOW next to a specific DENY', async () => {
+    const result = await runOne('edge_exists', { source: 'web', target: 'cache', port: 80 });
+    expect(result.status).toBe('pass');
+  });
+
+  it('port_denied passes for a port with no allow rule (default security group)', async () => {
     const result = await runOne('port_denied', { source: 'web', target: 'db', port: 9999 });
+    expect(result.status).toBe('pass');
+  });
+
+  it('port_denied passes for a port blocked by a DENY rule above a broader ALLOW', async () => {
+    const result = await runOne('port_denied', { source: 'web', target: 'cache', port: 6379 });
     expect(result.status).toBe('pass');
   });
 
@@ -206,6 +238,12 @@ describe('learning engine — real containers (V-4)', () => {
     expect(result.status).toBe('fail');
     expect(result.expected).toBeTruthy();
     expect(result.observed).toBeTruthy();
+  });
+
+  it('port_denied fails when a node sits outside any subnet (nothing is enforced)', async () => {
+    const result = await runOne('port_denied', { source: 'web', target: 'lb', port: 80 });
+    expect(result.status).toBe('fail');
+    expect(result.observed).toBe('"lb" is outside any subnet');
   });
 
   it('lb_upstreams passes when enough replicas are running', async () => {

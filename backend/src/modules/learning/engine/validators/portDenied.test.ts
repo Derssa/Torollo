@@ -1,15 +1,44 @@
 import { portDenied } from './portDenied';
 import { InvalidParamsError } from '../types';
-import { makeContainer, makeContext, makeSemanticRule } from './testSupport';
+import { makeContainer, makeContext, makeNetworkConfig } from './testSupport';
+
+// `computeSemanticRules` lists containers to resolve ASG replicas — no ASGs
+// here. A plain async function, not a jest.fn(): `resetMocks` would wipe a
+// mockResolvedValue between tests.
+jest.mock('../../../../infrastructure/docker/DockerClient', () => ({
+  __esModule: true,
+  default: { listContainers: async () => [] },
+}));
 
 const web = makeContainer({ id: 'web-1', name: 'web' });
 const db = makeContainer({ id: 'db-1', name: 'db' });
+const containers = [web, db];
 
 describe('portDenied', () => {
-  it('passes when no ALLOW rule covers the port', async () => {
+  it('fails when no network configuration is applied to the project', async () => {
     const outcome = await portDenied(
       { source: 'web', target: 'db', port: 5432 },
-      makeContext({ containers: [web, db], semanticRules: [] })
+      makeContext({ containers, networkConfig: null })
+    );
+
+    expect(outcome.status).toBe('fail');
+    expect(outcome.observed).toBe('no network configuration applied');
+  });
+
+  it('fails when one of the nodes is outside any subnet', async () => {
+    const outcome = await portDenied(
+      { source: 'web', target: 'db', port: 5432 },
+      makeContext({ containers, networkConfig: makeNetworkConfig(['db-1']) })
+    );
+
+    expect(outcome.status).toBe('fail');
+    expect(outcome.observed).toBe('"web" is outside any subnet');
+  });
+
+  it('passes with only the default security groups (deny all inbound)', async () => {
+    const outcome = await portDenied(
+      { source: 'web', target: 'db', port: 5432 },
+      makeContext({ containers, networkConfig: makeNetworkConfig(['web-1', 'db-1']) })
     );
 
     expect(outcome.status).toBe('pass');
@@ -19,10 +48,10 @@ describe('portDenied', () => {
     const outcome = await portDenied(
       { source: 'web', target: 'db', port: 5432 },
       makeContext({
-        containers: [web, db],
-        semanticRules: [
-          makeSemanticRule({ sourceNodeId: 'web-1', targetNodeId: 'db-1', port: '5432' }),
-        ],
+        containers,
+        networkConfig: makeNetworkConfig(['web-1', 'db-1'], {
+          'db-1': [{ type: 'inbound', action: 'ALLOW', protocol: 'TCP', port: '5432', source: 'web-1' }],
+        }),
       })
     );
 
@@ -34,10 +63,10 @@ describe('portDenied', () => {
     const outcome = await portDenied(
       { source: 'web', target: 'db', port: 5432 },
       makeContext({
-        containers: [web, db],
-        semanticRules: [
-          makeSemanticRule({ sourceNodeId: 'web-1', targetNodeId: 'db-1', port: 'ALL' }),
-        ],
+        containers,
+        networkConfig: makeNetworkConfig(['web-1', 'db-1'], {
+          'db-1': [{ type: 'inbound', action: 'ALLOW', protocol: 'ALL', port: 'ALL', source: 'web-1' }],
+        }),
       })
     );
 
@@ -45,14 +74,31 @@ describe('portDenied', () => {
     expect(outcome.observed).toContain('all ports are allowed');
   });
 
-  it('passes when an ALLOW rule exists for a different port', async () => {
+  it('passes when the ALLOW rule is for a different port', async () => {
     const outcome = await portDenied(
       { source: 'web', target: 'db', port: 5432 },
       makeContext({
-        containers: [web, db],
-        semanticRules: [
-          makeSemanticRule({ sourceNodeId: 'web-1', targetNodeId: 'db-1', port: '80' }),
-        ],
+        containers,
+        networkConfig: makeNetworkConfig(['web-1', 'db-1'], {
+          'db-1': [{ type: 'inbound', action: 'ALLOW', protocol: 'TCP', port: '80', source: 'web-1' }],
+        }),
+      })
+    );
+
+    expect(outcome.status).toBe('pass');
+  });
+
+  it('passes when a DENY rule blocks the port despite a broader ALLOW below it', async () => {
+    const outcome = await portDenied(
+      { source: 'web', target: 'db', port: 5432 },
+      makeContext({
+        containers,
+        networkConfig: makeNetworkConfig(['web-1', 'db-1'], {
+          'db-1': [
+            { type: 'inbound', action: 'DENY', protocol: 'TCP', port: '5432', source: 'web-1' },
+            { type: 'inbound', action: 'ALLOW', protocol: 'ALL', port: 'ALL', source: 'web-1' },
+          ],
+        }),
       })
     );
 

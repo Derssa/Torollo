@@ -1,6 +1,6 @@
 import { ValidatorHandler } from '../types';
-import { requireStringParam, requireNumberParam } from '../params';
-import { countRunningAsgReplicas } from './shared';
+import { requireStringParam, requireNonNegativeIntegerParam } from '../params';
+import { countRunningAsgReplicas, resolveContainerOfType } from './shared';
 
 /**
  * `asg_replicas` — checks that an auto-scaling group node runs exactly
@@ -10,20 +10,13 @@ import { countRunningAsgReplicas } from './shared';
  */
 export const asgReplicas: ValidatorHandler = async (params, ctx) => {
   const node = requireStringParam(params, 'node');
-  const count = requireNumberParam(params, 'count');
+  const count = requireNonNegativeIntegerParam(params, 'count');
 
   const containers = await ctx.getContainers();
-  const asgContainer = containers.find((c) => c.name === node);
-  if (!asgContainer) {
-    return {
-      status: 'fail',
-      message: `No auto-scaling group named "${node}" exists in this project yet. Create it on the canvas first.`,
-      expected: `an auto-scaling group named "${node}"`,
-      observed: 'no container with that name',
-    };
-  }
+  const resolved = resolveContainerOfType(containers, node, ['autoscalinggroup'], 'auto-scaling group');
+  if ('outcome' in resolved) return resolved.outcome;
 
-  const runningReplicas = countRunningAsgReplicas(containers, asgContainer.id);
+  const runningReplicas = countRunningAsgReplicas(containers, resolved.container.id);
 
   if (runningReplicas !== count) {
     return {
