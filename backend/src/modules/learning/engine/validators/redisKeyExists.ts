@@ -16,7 +16,10 @@ export const redisKeyExists: ValidatorHandler = async (params, ctx) => {
 
   const output = await ctx.executeRedisCommand(resolved.container.id, ['KEYS', key]);
 
-  if (output.startsWith('ERROR')) {
+  // `ERROR` is the provider's not-ready sentinel; `(error ...)` is how
+  // redis-cli reports server errors (LOADING, NOAUTH, ...) on stdout —
+  // neither is ever a proof that the key exists.
+  if (output.startsWith('ERROR') || output.trim().startsWith('(error')) {
     return {
       status: 'fail',
       message: `Redis on "${node}" is still starting up. Wait a few seconds and try again.`,

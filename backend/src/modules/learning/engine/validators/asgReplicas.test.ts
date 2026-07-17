@@ -44,9 +44,28 @@ describe('asgReplicas', () => {
     expect(outcome.observed).toBe('no container with that name');
   });
 
+  it('fails when a same-named node is not an auto-scaling group', async () => {
+    const outcome = await asgReplicas(
+      { node: 'web-fleet', count: 0 },
+      makeContext({ containers: [makeContainer({ id: 'redis-1', name: 'web-fleet', type: 'redis' })] })
+    );
+
+    expect(outcome.status).toBe('fail');
+    expect(outcome.message).toContain('not an auto-scaling group node');
+  });
+
   it('throws InvalidParamsError when "count" is missing', async () => {
     await expect(asgReplicas({ node: 'web-fleet' }, makeContext())).rejects.toThrow(
       InvalidParamsError
     );
+  });
+
+  it('throws InvalidParamsError when "count" is negative or fractional', async () => {
+    await expect(
+      asgReplicas({ node: 'web-fleet', count: -1 }, makeContext({ containers: [asg] }))
+    ).rejects.toThrow(InvalidParamsError);
+    await expect(
+      asgReplicas({ node: 'web-fleet', count: 1.5 }, makeContext({ containers: [asg] }))
+    ).rejects.toThrow(InvalidParamsError);
   });
 });
