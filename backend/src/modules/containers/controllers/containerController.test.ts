@@ -1,35 +1,33 @@
 import request from 'supertest';
 import express from 'express';
 import { ContainerController } from './containerController';
+import { requireContainerOwnership } from '../middleware/containerOwnership';
 import { ContainerService } from '../services/containerService';
 import { ProjectService } from '../../projects/services/projectService';
 import { NetworkService } from '../../network/services/networkService';
-import docker from '../../../infrastructure/docker/DockerClient';
+import { ContainerNotFoundError } from '../../../infrastructure/docker/dockerErrors';
 
 // Mock Services
 jest.mock('../services/containerService');
 jest.mock('../../projects/services/projectService');
 jest.mock('../../network/services/networkService');
-jest.mock('../../../infrastructure/docker/DockerClient', () => ({
-  __esModule: true,
-  default: {
-    getContainer: jest.fn()
-  }
-}));
 
 const app = express();
 app.use(express.json());
 
 app.get('/api/projects/:projectId/containers', ContainerController.list);
 app.post('/api/projects/:projectId/containers', ContainerController.create);
-app.post('/api/containers/:id/start', ContainerController.start);
-app.post('/api/containers/:id/stop', ContainerController.stop);
-app.delete('/api/containers/:id', ContainerController.delete);
-app.patch('/api/projects/:projectId/containers/:id/rename', ContainerController.rename);
+app.post('/api/projects/:projectId/containers/:id/start', requireContainerOwnership, ContainerController.start);
+app.post('/api/projects/:projectId/containers/:id/stop', requireContainerOwnership, ContainerController.stop);
+app.delete('/api/projects/:projectId/containers/:id', requireContainerOwnership, ContainerController.delete);
+app.patch('/api/projects/:projectId/containers/:id/rename', requireContainerOwnership, ContainerController.rename);
+app.get('/api/projects/:projectId/containers/:id/postgres/explorer', requireContainerOwnership, ContainerController.postgresExplorer);
 
 describe('ContainerController', () => {
   beforeEach(() => {
     jest.clearAllMocks();
+    // The ownership guard passes by default; denial cases override this.
+    (ContainerService.assertContainerInProject as jest.Mock).mockResolvedValue(undefined);
   });
 
   describe('GET /api/projects/:projectId/containers', () => {
@@ -85,19 +83,46 @@ describe('ContainerController', () => {
     });
   });
 
-  describe('PATCH /api/projects/:projectId/containers/:id/rename', () => {
+  describe('container ownership guard', () => {
     beforeEach(() => {
-      (docker.getContainer as jest.Mock).mockReturnValue({
-        inspect: jest.fn().mockResolvedValue({
-          Config: {
-            Labels: {
-              'akal.project.id': 'test-project'
-            }
-          }
-        })
-      });
+      (ContainerService.assertContainerInProject as jest.Mock).mockRejectedValue(new ContainerNotFoundError('1'));
     });
 
+    it.each([
+      ['start', () => request(app).post('/api/projects/test-project/containers/1/start'), () => ContainerService.startContainer],
+      ['stop', () => request(app).post('/api/projects/test-project/containers/1/stop'), () => ContainerService.stopContainer],
+      ['delete', () => request(app).delete('/api/projects/test-project/containers/1'), () => ContainerService.deleteContainer],
+      ['rename', () => request(app).patch('/api/projects/test-project/containers/1/rename').send({ newName: 'x' }), () => ContainerService.renameContainer],
+      ['postgres explorer', () => request(app).get('/api/projects/test-project/containers/1/postgres/explorer'), () => ContainerService.getPostgresExplorer],
+    ])('answers 404 CONTAINER_NOT_FOUND on %s and never reaches the service', async (_op, doRequest, service) => {
+      const res = await doRequest();
+
+      expect(res.status).toBe(404);
+      expect(res.body.code).toBe('CONTAINER_NOT_FOUND');
+      expect(ContainerService.assertContainerInProject).toHaveBeenCalledWith('1', 'test-project');
+      expect(service()).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('POST /api/projects/:projectId/containers/:id/start', () => {
+    it('should start the container and re-apply the network policy of the URL project', async () => {
+      (ContainerService.startContainer as jest.Mock).mockResolvedValue(undefined);
+      (ProjectService.getNetworkConfig as jest.Mock).mockResolvedValue({ some: 'config' });
+      (NetworkService.applyPolicy as jest.Mock).mockResolvedValue(undefined);
+
+      const res = await request(app).post('/api/projects/test-project/containers/1/start');
+
+      expect(res.status).toBe(200);
+      expect(res.body).toEqual({ success: true });
+      expect(ContainerService.assertContainerInProject).toHaveBeenCalledWith('1', 'test-project');
+      expect(ContainerService.startContainer).toHaveBeenCalledWith('1');
+      expect(ProjectService.getNetworkConfig).toHaveBeenCalledWith('test-project');
+      expect(NetworkService.clearPolicyHash).toHaveBeenCalledWith('test-project');
+      expect(NetworkService.applyPolicy).toHaveBeenCalledWith('test-project', { some: 'config' });
+    });
+  });
+
+  describe('PATCH /api/projects/:projectId/containers/:id/rename', () => {
     it('should rename a container successfully', async () => {
       (ContainerService.renameContainer as jest.Mock).mockResolvedValue(undefined);
       (ProjectService.getNetworkConfig as jest.Mock).mockResolvedValue({ some: 'config' });
@@ -105,7 +130,7 @@ describe('ContainerController', () => {
 
       const res = await request(app)
         .patch('/api/projects/test-project/containers/1/rename')
-        .send({ newName: 'new-name' });
+        .send({ newName: '  new-name  ' });
 
       expect(res.status).toBe(200);
       expect(res.body).toEqual({ success: true });
@@ -131,31 +156,6 @@ describe('ContainerController', () => {
 
       expect(res.status).toBe(400);
       expect(res.body).toEqual({ error: 'newName is required' });
-    });
-
-    it('should resolve the project from the container labels before renaming', async () => {
-      (docker.getContainer as jest.Mock).mockReturnValue({
-        inspect: jest.fn().mockResolvedValue({
-          Config: {
-            Labels: {
-              'akal.project.id': 'resolved-project'
-            }
-          }
-        })
-      });
-      (ContainerService.renameContainer as jest.Mock).mockResolvedValue(undefined);
-      (ProjectService.getNetworkConfig as jest.Mock).mockResolvedValue({ some: 'config' });
-      (NetworkService.applyPolicy as jest.Mock).mockResolvedValue(undefined);
-
-      const res = await request(app)
-        .patch('/api/projects/wrong-project/containers/1/rename')
-        .send({ newName: '  new-name  ' });
-
-      expect(res.status).toBe(200);
-      expect(ContainerService.renameContainer).toHaveBeenCalledWith('1', 'resolved-project', 'new-name');
-      expect(ProjectService.getNetworkConfig).toHaveBeenCalledWith('resolved-project');
-      expect(NetworkService.clearPolicyHash).toHaveBeenCalledWith('resolved-project');
-      expect(NetworkService.applyPolicy).toHaveBeenCalledWith('resolved-project', { some: 'config' });
     });
 
     it('should handle the same-name error gracefully by returning success', async () => {
@@ -189,7 +189,7 @@ describe('ContainerController', () => {
         Object.assign(new Error('connect ECONNREFUSED /var/run/docker.sock'), { code: 'ECONNREFUSED' })
       );
 
-      const res = await request(app).post('/api/containers/1/start');
+      const res = await request(app).post('/api/projects/test-project/containers/1/start');
 
       expect(res.status).toBe(503);
       expect(res.body.code).toBe('DOCKER_UNAVAILABLE');
@@ -231,7 +231,7 @@ describe('ContainerController', () => {
         Object.assign(new Error('container already started'), { statusCode: 304 })
       );
 
-      const res = await request(app).post('/api/containers/1/start');
+      const res = await request(app).post('/api/projects/test-project/containers/1/start');
 
       expect(res.status).toBe(200);
       expect(res.body).toEqual({ success: true });

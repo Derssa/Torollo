@@ -2,7 +2,6 @@ import { Request, Response } from 'express';
 import { ContainerService } from '../services/containerService';
 import { ProjectService } from '../../projects/services/projectService';
 import { NetworkService } from '../../network/services/networkService';
-import docker from '../../../infrastructure/docker/DockerClient';
 import { sendDockerError } from '../../../infrastructure/docker/dockerErrors';
 
 export class ContainerController {
@@ -53,24 +52,16 @@ export class ContainerController {
   public static async start(req: Request, res: Response): Promise<void> {
     try {
       const containerId = req.params.id as string;
-      let projectId: string | undefined;
-      try {
-        const inspectData = await docker.getContainer(containerId).inspect();
-        projectId = inspectData.Config.Labels['akal.project.id'];
-      } catch (inspectErr) {
-        console.warn(`Failed to inspect container before starting:`, inspectErr);
-      }
+      const projectId = req.params.projectId as string;
 
       await ContainerService.startContainer(containerId);
 
-      if (projectId) {
-        const config = await ProjectService.getNetworkConfig(projectId);
-        if (config) {
-          NetworkService.clearPolicyHash(projectId);
-          NetworkService.applyPolicy(projectId, config).catch(err => {
-            console.error(`Failed to re-apply network policy on start:`, err);
-          });
-        }
+      const config = await ProjectService.getNetworkConfig(projectId);
+      if (config) {
+        NetworkService.clearPolicyHash(projectId);
+        NetworkService.applyPolicy(projectId, config).catch(err => {
+          console.error(`Failed to re-apply network policy on start:`, err);
+        });
       }
 
       res.json({ success: true });
@@ -82,24 +73,16 @@ export class ContainerController {
   public static async stop(req: Request, res: Response): Promise<void> {
     try {
       const containerId = req.params.id as string;
-      let projectId: string | undefined;
-      try {
-        const inspectData = await docker.getContainer(containerId).inspect();
-        projectId = inspectData.Config.Labels['akal.project.id'];
-      } catch (inspectErr) {
-        console.warn(`Failed to inspect container before stopping:`, inspectErr);
-      }
+      const projectId = req.params.projectId as string;
 
       await ContainerService.stopContainer(containerId);
 
-      if (projectId) {
-        const config = await ProjectService.getNetworkConfig(projectId);
-        if (config) {
-          NetworkService.clearPolicyHash(projectId);
-          NetworkService.applyPolicy(projectId, config).catch(err => {
-            console.error(`Failed to re-apply network policy on stop:`, err);
-          });
-        }
+      const config = await ProjectService.getNetworkConfig(projectId);
+      if (config) {
+        NetworkService.clearPolicyHash(projectId);
+        NetworkService.applyPolicy(projectId, config).catch(err => {
+          console.error(`Failed to re-apply network policy on stop:`, err);
+        });
       }
 
       res.json({ success: true });
@@ -111,24 +94,16 @@ export class ContainerController {
   public static async delete(req: Request, res: Response): Promise<void> {
     try {
       const containerId = req.params.id as string;
-      let projectId: string | undefined;
-      try {
-        const inspectData = await docker.getContainer(containerId).inspect();
-        projectId = inspectData.Config.Labels['akal.project.id'];
-      } catch (inspectErr) {
-        console.warn(`Failed to inspect container before deleting:`, inspectErr);
-      }
+      const projectId = req.params.projectId as string;
 
       await ContainerService.deleteContainer(containerId);
 
-      if (projectId) {
-        const config = await ProjectService.getNetworkConfig(projectId);
-        if (config) {
-          NetworkService.clearPolicyHash(projectId);
-          NetworkService.applyPolicy(projectId, config).catch(err => {
-            console.error(`Failed to re-apply network policy on delete:`, err);
-          });
-        }
+      const config = await ProjectService.getNetworkConfig(projectId);
+      if (config) {
+        NetworkService.clearPolicyHash(projectId);
+        NetworkService.applyPolicy(projectId, config).catch(err => {
+          console.error(`Failed to re-apply network policy on delete:`, err);
+        });
       }
 
       res.json({ success: true });
@@ -233,24 +208,13 @@ export class ContainerController {
         return;
       }
 
-      let resolvedProjectId: string | undefined;
-      try {
-        const inspectData = await docker.getContainer(id as string).inspect();
-        resolvedProjectId = inspectData.Config.Labels['akal.project.id'];
-      } catch (inspectErr) {
-        console.warn(`Failed to inspect container before renaming:`, inspectErr);
-      }
+      const projectId = req.params.projectId as string;
+      await ContainerService.renameContainer(id as string, projectId, trimmedNewName);
 
-      if (!resolvedProjectId) {
-        throw new Error('Unable to resolve project ID from container labels');
-      }
-
-      await ContainerService.renameContainer(id as string, resolvedProjectId, trimmedNewName);
-
-      const config = await ProjectService.getNetworkConfig(resolvedProjectId);
+      const config = await ProjectService.getNetworkConfig(projectId);
       if (config) {
-        NetworkService.clearPolicyHash(resolvedProjectId);
-        NetworkService.applyPolicy(resolvedProjectId, config).catch(err => {
+        NetworkService.clearPolicyHash(projectId);
+        NetworkService.applyPolicy(projectId, config).catch(err => {
           console.error(`Failed to re-apply network policy on rename:`, err);
         });
       }
