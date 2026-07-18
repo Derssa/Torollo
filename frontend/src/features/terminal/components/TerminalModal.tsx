@@ -10,11 +10,12 @@ import { API_BASE } from '../../../shared/types';
 
 interface TerminalModalProps {
   containerId: string;
+  projectId: string;
   nodeName: string;
   onClose: () => void;
 }
 
-export default function TerminalModal({ containerId, nodeName, onClose }: TerminalModalProps) {
+export default function TerminalModal({ containerId, projectId, nodeName, onClose }: TerminalModalProps) {
   const { t } = useTranslation();
   const terminalRef = useRef<HTMLDivElement>(null);
   const socketRef = useRef<Socket | null>(null);
@@ -46,7 +47,7 @@ export default function TerminalModal({ containerId, nodeName, onClose }: Termin
       fitAddon.fit();
     }
 
-    socket.emit('join-terminal', { containerId });
+    socket.emit('join-terminal', { containerId, projectId });
 
     socket.on('terminal-output', (data: string) => {
       term.write(data);
@@ -72,7 +73,7 @@ export default function TerminalModal({ containerId, nodeName, onClose }: Termin
       socket.disconnect();
       term.dispose();
     };
-  }, [containerId]);
+  }, [containerId, projectId]);
 
   return (
     <div style={styles.overlay}>

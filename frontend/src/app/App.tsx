@@ -42,9 +42,10 @@ function App() {
         />
       )}
 
-      {activeTerminal && (
+      {activeProject && activeTerminal && (
         <TerminalModal
           containerId={activeTerminal.id}
+          projectId={activeProject.id}
           nodeName={activeTerminal.name}
           onClose={() => setActiveTerminal(null)}
         />

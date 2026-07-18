@@ -1,13 +1,16 @@
 import { Server, Socket } from 'socket.io';
 import { TerminalManager } from '../../../infrastructure/docker/TerminalManager';
+import { ContainerService } from '../../containers/services/containerService';
+import { classifyDockerError } from '../../../infrastructure/docker/dockerErrors';
 
 export class TerminalGateway {
   public static handleConnections(io: Server): void {
     io.on('connection', (socket: Socket) => {
       let execStream: NodeJS.ReadWriteStream | null = null;
 
-      socket.on('join-terminal', async ({ containerId }: { containerId: string }) => {
+      socket.on('join-terminal', async ({ containerId, projectId }: { containerId: string; projectId: string }) => {
         try {
+          await ContainerService.assertContainerInProject(containerId, projectId);
           const session = await TerminalManager.createTerminalSession(containerId);
           execStream = session.stream;
 
@@ -32,7 +35,8 @@ export class TerminalGateway {
 
         } catch (err: any) {
           console.error('Terminal session error:', err);
-          socket.emit('terminal-output', `\r\nError starting terminal: ${err.message}\r\n`);
+          const { userMessage } = classifyDockerError(err, 'starting the terminal');
+          socket.emit('terminal-output', `\r\nError starting terminal: ${userMessage}\r\n`);
         }
       });
 
