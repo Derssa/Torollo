@@ -9,6 +9,10 @@ Only the latest `main` branch and the most recent release receive security updat
 | 1.0.x   | :white_check_mark: |
 | < 1.0   | :x:                |
 
+## Network Exposure Defaults
+
+The backend binds to loopback (`127.0.0.1`) by default and restricts cross-origin requests to local origins. Torollo has no authentication; see the "Self-Hosting & Network Exposure" section of the README before exposing it to a network.
+
 ## Reporting a Vulnerability
 
 Please do not open a public issue for security vulnerabilities. Instead, report them privately by emailing **youssefmoinou@gmail.com**.

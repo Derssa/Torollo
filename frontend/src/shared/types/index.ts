@@ -33,4 +33,4 @@ export interface TerminalInfo {
 /** API base URL for the backend */
 export const API_BASE = import.meta.env.DEV
   ? 'http://localhost:23233'
-  : `http://localhost:${(window as any).TOROLLO_BACKEND_PORT || 23233}`;
+  : `http://${window.location.hostname}:${(window as any).TOROLLO_BACKEND_PORT || 23233}`;

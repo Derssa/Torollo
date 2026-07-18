@@ -32,6 +32,23 @@ npx torollo start
 
 ---
 
+## Self-Hosting & Network Exposure
+
+By default, the Torollo API binds to `127.0.0.1` and only accepts cross-origin requests from local origins (`localhost`, `127.0.0.1`, `[::1]`). Other machines on your network cannot reach it, and no configuration is needed for normal use.
+
+To access Torollo from another machine (e.g. a home lab server), opt in explicitly:
+
+```bash
+TOROLLO_HOST=0.0.0.0 TOROLLO_ALLOWED_ORIGINS=http://<your-lan-ip>:23232 npx torollo start
+```
+
+- `TOROLLO_HOST` — address the API binds to (default `127.0.0.1`; set to `0.0.0.0` to listen on all interfaces).
+- `TOROLLO_ALLOWED_ORIGINS` — comma-separated list of exact extra origins allowed to call the API from a browser (the address you type into the browser, e.g. `http://192.168.1.5:23232`).
+
+> ⚠️ **Warning:** Torollo has no authentication. Exposing it gives everyone on the network terminal access to its containers and control over Docker on your machine. Only do this on a trusted network, or put it behind an authenticating reverse proxy.
+
+---
+
 ## Supported Infrastructure Nodes
 
 You can drag and drop a wide range of infrastructure components onto the canvas. Everything is backed by **real Docker containers** running locally on your machine.
