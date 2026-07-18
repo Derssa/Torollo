@@ -75,7 +75,7 @@ export class ProjectService {
   public static async createProject(name: string, filePath: string = DB_PATH): Promise<Project> {
     return this.mutate(store => {
       const newProject: Project = {
-        id: `project-${Date.now()}`,
+        id: `project-${Date.now()}-${Math.random().toString(36).slice(2, 9)}`,
         name,
         createdAt: new Date().toISOString()
       };
