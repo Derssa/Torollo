@@ -74,7 +74,9 @@
     "noProjects": "Aucun projet trouvé. Créez-en un nouveau !",
     "lastUpdated": "Dernière mise à jour :",
     "open": "Ouvrir",
-    "delete": "Supprimer"
+    "delete": "Supprimer",
+    "storeRecovered": "Votre fichier de projets était illisible et a dû être réinitialisé. Le fichier illisible a été conservé sous projects.json.corrupt dans votre dossier .torollo.",
+    "dismissNotice": "Fermer l'avertissement"
   },
   "vpc": {
     "titleInfo": "Paramètres VPC du Projet",

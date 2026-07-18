@@ -28,12 +28,23 @@ describe('ProjectController', () => {
         { id: 'project-1', name: 'Project 1', createdAt: '2026-07-11T12:00:00.000Z' }
       ];
       (ProjectService.listProjects as jest.Mock).mockResolvedValue(mockProjects);
+      (ProjectService.consumeStoreRecovered as jest.Mock).mockReturnValue(false);
 
       const res = await request(app).get('/api/projects');
 
       expect(res.status).toBe(200);
-      expect(res.body).toEqual(mockProjects);
+      expect(res.body).toEqual({ projects: mockProjects });
       expect(ProjectService.listProjects).toHaveBeenCalled();
+    });
+
+    it('should surface the one-shot store recovery notice', async () => {
+      (ProjectService.listProjects as jest.Mock).mockResolvedValue([]);
+      (ProjectService.consumeStoreRecovered as jest.Mock).mockReturnValue(true);
+
+      const res = await request(app).get('/api/projects');
+
+      expect(res.status).toBe(200);
+      expect(res.body).toEqual({ projects: [], storeRecovered: true });
     });
 
     it('should handle errors and return 500 status', async () => {

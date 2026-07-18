@@ -3,6 +3,7 @@ import path from 'path';
 import os from 'os';
 import docker from './DockerClient';
 import { NODE_TYPES } from './nodeTypes';
+import { parseProjectsRaw } from '../../modules/projects/services/projectStore';
 
 export class DockerInitializer {
   private static isInitializing = false;
@@ -32,19 +33,23 @@ export class DockerInitializer {
     const dbPath = path.join(os.homedir(), '.torollo', 'projects.json');
     const names = new Set<string>();
     if (!fs.existsSync(dbPath)) return names;
+    let projects;
     try {
-      const projects = JSON.parse(fs.readFileSync(dbPath, 'utf-8'));
-      if (!Array.isArray(projects)) throw new Error('projects.json is not an array');
-      for (const p of projects) {
-        for (const s of p.networkConfig?.subnets || []) {
-          names.add(`akal-subnet-${p.id}-${s.id}`);
-        }
-      }
-      return names;
+      projects = parseProjectsRaw(fs.readFileSync(dbPath, 'utf-8'));
     } catch (err) {
-      console.error('[DockerInitializer] Failed to parse projects.json for orphaned network cleanup:', err);
+      console.error('[DockerInitializer] Failed to read projects.json for orphaned network cleanup:', err);
       return null;
     }
+    if (projects === null) {
+      console.error('[DockerInitializer] Failed to parse projects.json for orphaned network cleanup');
+      return null;
+    }
+    for (const p of projects) {
+      for (const s of p.networkConfig?.subnets || []) {
+        names.add(`akal-subnet-${p.id}-${s.id}`);
+      }
+    }
+    return names;
   }
 
   private static async ensureSharedNetwork(): Promise<void> {

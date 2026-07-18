@@ -6,7 +6,12 @@ export class ProjectController {
   public static async list(req: Request, res: Response): Promise<void> {
     try {
       const list = await ProjectService.listProjects();
-      res.json(list);
+      // storeRecovered is one-shot: present (true) once after an unreadable
+      // store was moved aside, so the UI can tell the user.
+      res.json({
+        projects: list,
+        ...(ProjectService.consumeStoreRecovered() ? { storeRecovered: true } : {})
+      });
     } catch (err: any) {
       res.status(500).json({ error: err.message });
     }

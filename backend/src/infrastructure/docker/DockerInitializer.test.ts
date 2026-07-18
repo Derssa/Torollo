@@ -68,6 +68,30 @@ describe('DockerInitializer.ensureSharedNetwork', () => {
     });
   });
 
+  it('accepts the versioned envelope format like the bare array', async () => {
+    mockedFs.existsSync.mockReturnValue(true);
+    (mockedFs.readFileSync as jest.Mock).mockReturnValue(JSON.stringify({
+      version: 1,
+      projects: [{ id: 'project-1', networkConfig: { subnets: [{ id: 'subnet-1' }] } }]
+    }));
+
+    await ensureSharedNetwork();
+
+    expect(mockedDocker.getNetwork).toHaveBeenCalledTimes(1);
+    expect(mockedDocker.getNetwork).toHaveBeenCalledWith('n2');
+    expect(networkHandle.remove).toHaveBeenCalledTimes(1);
+  });
+
+  it('skips cleanup on an unknown store version, and never moves the file aside', async () => {
+    mockedFs.existsSync.mockReturnValue(true);
+    (mockedFs.readFileSync as jest.Mock).mockReturnValue(JSON.stringify({ version: 2, projects: [] }));
+
+    await ensureSharedNetwork();
+
+    expect(networkHandle.remove).not.toHaveBeenCalled();
+    expect(mockedFs.renameSync).not.toHaveBeenCalled();
+  });
+
   it('skips cleanup when projects.json is not an array', async () => {
     mockedFs.existsSync.mockReturnValue(true);
     (mockedFs.readFileSync as jest.Mock).mockReturnValue(JSON.stringify({}));

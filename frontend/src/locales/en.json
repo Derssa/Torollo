@@ -74,7 +74,9 @@
     "noProjects": "No projects found. Create a new one!",
     "lastUpdated": "Last updated:",
     "open": "Open",
-    "delete": "Delete"
+    "delete": "Delete",
+    "storeRecovered": "Your projects file could not be read and had to be reset. The unreadable file was kept as projects.json.corrupt in your .torollo folder.",
+    "dismissNotice": "Dismiss notice"
   },
   "vpc": {
     "titleInfo": "Project VPC Settings",

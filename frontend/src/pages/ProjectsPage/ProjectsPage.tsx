@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Plus } from 'lucide-react';
+import { AlertTriangle, Plus, X } from 'lucide-react';
 import InputModal from '../../shared/components/InputModal';
 import ConfirmModal from '../../shared/components/ConfirmModal';
 import ProjectCard from './components/ProjectCard';
@@ -22,6 +22,7 @@ export default function ProjectsPage({ onSelectProject }: ProjectsPageProps) {
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [deleteTarget, setDeleteTarget] = useState<Project | null>(null);
   const [deletingIds, setDeletingIds] = useState<string[]>([]);
+  const [storeRecovered, setStoreRecovered] = useState(false);
 
   const toggleLanguage = () => {
     const nextLang = i18n.language === 'fr' ? 'en' : 'fr';
@@ -34,8 +35,13 @@ export default function ProjectsPage({ onSelectProject }: ProjectsPageProps) {
       setLoading(true);
       const res = await fetch(`${API_BASE}/api/projects`);
       const data = await res.json();
-      if (Array.isArray(data)) {
-        setProjects(data);
+      if (Array.isArray(data?.projects)) {
+        setProjects(data.projects);
+      }
+      // One-shot notice from the backend: the projects file was unreadable
+      // and has been moved aside — keep the banner up until dismissed.
+      if (data?.storeRecovered === true) {
+        setStoreRecovered(true);
       }
     } catch (err) {
       console.error(err);
@@ -116,6 +122,20 @@ export default function ProjectsPage({ onSelectProject }: ProjectsPageProps) {
           </button>
         </div>
       </div>
+
+      {storeRecovered && (
+        <div style={styles.noticeBox}>
+          <AlertTriangle size={13} color="var(--color-warning-strong)" style={{ flexShrink: 0 }} />
+          <span style={styles.noticeText}>{t('projects.storeRecovered')}</span>
+          <button
+            onClick={() => setStoreRecovered(false)}
+            style={styles.noticeDismiss}
+            aria-label={t('projects.dismissNotice')}
+          >
+            <X size={13} />
+          </button>
+        </div>
+      )}
 
       {loading && <p style={styles.loading}>{t('projects.loading')}</p>}
 
@@ -232,6 +252,32 @@ const styles: Record<string, React.CSSProperties> = {
   loading: {
     color: 'var(--color-text-secondary)',
     fontSize: '14px',
+  },
+  noticeBox: {
+    display: 'flex',
+    alignItems: 'flex-start',
+    gap: '6px',
+    padding: '8px 10px',
+    border: '1px solid var(--color-warning)',
+    borderRadius: '6px',
+    backgroundColor: 'var(--color-warning-glow)',
+    marginBottom: '20px',
+  },
+  noticeText: {
+    flex: 1,
+    fontSize: '12px',
+    color: 'var(--color-warning-strong)',
+    lineHeight: 1.5,
+  },
+  noticeDismiss: {
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    background: 'none',
+    border: 'none',
+    padding: 0,
+    cursor: 'pointer',
+    color: 'var(--color-warning-strong)',
   },
   grid: {
     display: 'grid',
