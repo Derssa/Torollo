@@ -13,7 +13,11 @@ on:
     paths:
       - 'backend/src/infrastructure/docker/nodeTypes.ts'
       - 'backend/src/infrastructure/docker/imageRequirements.itest.ts'
+      - 'backend/src/infrastructure/docker/providers/**'
+      - 'backend/src/infrastructure/docker/dockerErrors.ts'
       - 'backend/src/modules/learning/**'
+      - 'backend/src/modules/containers/**'
+      - 'backend/src/modules/terminal/**'
       - 'backend/jest.integration.config.js'
       - 'backend/package.json'
       - 'backend/package-lock.json'
@@ -23,7 +27,11 @@ on:
     paths:
       - 'backend/src/infrastructure/docker/nodeTypes.ts'
       - 'backend/src/infrastructure/docker/imageRequirements.itest.ts'
+      - 'backend/src/infrastructure/docker/providers/**'
+      - 'backend/src/infrastructure/docker/dockerErrors.ts'
       - 'backend/src/modules/learning/**'
+      - 'backend/src/modules/containers/**'
+      - 'backend/src/modules/terminal/**'
       - 'backend/jest.integration.config.js'
       - 'backend/package.json'
       - 'backend/package-lock.json'
