@@ -15,6 +15,7 @@ export interface ContainerInfo {
 
 export interface ContainerProvider {
   listContainersByProject(projectId: string): Promise<ContainerInfo[]>;
+  assertContainerInProject(containerId: string, projectId: string): Promise<void>;
   createContainer(
     projectId: string,
     nodeName: string,

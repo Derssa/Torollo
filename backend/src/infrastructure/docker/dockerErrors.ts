@@ -22,6 +22,18 @@ interface DockerErrorLike {
 }
 
 /**
+ * Thrown when a container id/name does not exist OR belongs to another
+ * project. Both cases map to the exact same 404 payload as
+ * CONTAINER_NOT_FOUND so a caller cannot probe for a container's existence.
+ */
+export class ContainerNotFoundError extends Error {
+  constructor(containerId: string) {
+    super(`No such container: ${containerId}`);
+    this.name = 'ContainerNotFoundError';
+  }
+}
+
+/**
  * Maps a raw error from dockerode (or a service layer above it) to a stable
  * error code, an HTTP status and a user-facing message.
  *
@@ -30,6 +42,14 @@ interface DockerErrorLike {
  * conflicts are reported by the Docker Engine as a generic 500.
  */
 export function classifyDockerError(err: unknown, context?: string): ClassifiedDockerError {
+  if (err instanceof ContainerNotFoundError) {
+    return {
+      code: 'CONTAINER_NOT_FOUND',
+      httpStatus: 404,
+      userMessage: 'This container no longer exists in Docker. Refresh the canvas.',
+    };
+  }
+
   const e = (err ?? {}) as DockerErrorLike;
   const message = e.message ?? '';
 

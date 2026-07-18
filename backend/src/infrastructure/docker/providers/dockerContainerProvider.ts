@@ -1,4 +1,5 @@
 import docker from '../DockerClient';
+import { ContainerNotFoundError } from '../dockerErrors';
 import { NodeType, NodeTypeDescriptor, resolveNodeType } from '../nodeTypes';
 import { ContainerInfo, ContainerProvider } from './containerProvider';
 
@@ -69,6 +70,28 @@ export class DockerContainerProvider implements ContainerProvider {
       } else {
         throw pullErr;
       }
+    }
+  }
+
+  /**
+   * Verifies that `containerId` (id or name) carries the label
+   * `akal.project.id === projectId`. Throws ContainerNotFoundError otherwise —
+   * including when the container simply does not exist, so callers cannot
+   * distinguish "not yours" from "not there".
+   */
+  public async assertContainerInProject(containerId: string, projectId: string): Promise<void> {
+    let labels: Record<string, string> | undefined;
+    try {
+      const info = await docker.getContainer(containerId).inspect();
+      labels = info.Config?.Labels;
+    } catch (err: any) {
+      if (err?.statusCode === 404) {
+        throw new ContainerNotFoundError(containerId);
+      }
+      throw err;
+    }
+    if (!projectId || labels?.['akal.project.id'] !== projectId) {
+      throw new ContainerNotFoundError(containerId);
     }
   }
 

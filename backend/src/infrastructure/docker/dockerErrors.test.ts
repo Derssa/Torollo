@@ -1,4 +1,4 @@
-import { classifyDockerError, sendDockerError } from './dockerErrors';
+import { classifyDockerError, sendDockerError, ContainerNotFoundError } from './dockerErrors';
 
 describe('classifyDockerError', () => {
   it.each([
@@ -52,6 +52,13 @@ describe('classifyDockerError', () => {
   it('classifies 404 "no such container" as CONTAINER_NOT_FOUND', () => {
     const result = classifyDockerError({ statusCode: 404, message: '(HTTP code 404) no such container - No such container: abc123' });
     expect(result).toMatchObject({ code: 'CONTAINER_NOT_FOUND', httpStatus: 404 });
+  });
+
+  it('classifies ContainerNotFoundError identically to a missing container (no existence leak)', () => {
+    const denied = classifyDockerError(new ContainerNotFoundError('abc123'));
+    const missing = classifyDockerError({ statusCode: 404, message: '(HTTP code 404) no such container - No such container: abc123' });
+    expect(denied).toEqual(missing);
+    expect(denied).toMatchObject({ code: 'CONTAINER_NOT_FOUND', httpStatus: 404 });
   });
 
   it('hides the raw engine message behind a generic one when the error has a statusCode', () => {

@@ -21,6 +21,10 @@ export class ContainerService {
     return containerProvider.listContainersByProject(projectId);
   }
 
+  public static async assertContainerInProject(containerId: string, projectId: string): Promise<void> {
+    return containerProvider.assertContainerInProject(containerId, projectId);
+  }
+
   public static async createContainer(projectId: string, name: string, type?: string, isPublic?: boolean, customImage?: string, extraLabels?: Record<string, string>): Promise<ContainerInfo> {
     return containerProvider.createContainer(projectId, name, type, isPublic, customImage, extraLabels);
   }
