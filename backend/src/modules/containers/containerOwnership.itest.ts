@@ -70,9 +70,9 @@ describe('container ownership — real containers', () => {
 
     await ensureSharedNetwork();
 
-    const projectA = await ProjectService.createProject('s2-ownership-fixture-a');
+    const projectA = await ProjectService.createProject('ownership-fixture-a');
     projectAId = projectA.id;
-    const projectB = await ProjectService.createProject('s2-ownership-fixture-b');
+    const projectB = await ProjectService.createProject('ownership-fixture-b');
     projectBId = projectB.id;
 
     const appContainer = await containerProvider.createContainer(projectAId, 'app', 'ubuntu');
@@ -86,13 +86,13 @@ describe('container ownership — real containers', () => {
     // above), no akal label at all. A leftover from an aborted previous run
     // would make createContainer fail on the name conflict — clear it first.
     try {
-      await docker.getContainer('s2-rogue-container').remove({ force: true });
+      await docker.getContainer('rogue-container').remove({ force: true });
     } catch {
       // no leftover
     }
     const rogue = await docker.createContainer({
       Image: resolveNodeType('ubuntu').image,
-      name: 's2-rogue-container',
+      name: 'rogue-container',
       Cmd: ['sleep', 'infinity'],
     });
     rogueContainerId = rogue.id;
@@ -133,7 +133,7 @@ describe('container ownership — real containers', () => {
     it('left the rogue container untouched by the refused stop/delete', async () => {
       const info = await docker.getContainer(rogueContainerId).inspect();
       expect(info.State.Running).toBe(true);
-      expect(info.Name).toContain('s2-rogue-container');
+      expect(info.Name).toContain('rogue-container');
     });
   });
 
