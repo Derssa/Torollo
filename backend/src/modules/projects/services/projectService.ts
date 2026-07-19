@@ -12,6 +12,34 @@ const TOROLLO_DIR = path.join(os.homedir(), '.torollo');
 const DB_PATH = path.join(TOROLLO_DIR, 'projects.json');
 
 /**
+ * Merges an incoming frontend network config over the stored one while keeping
+ * the server-owned ASG replica mappings. `asgReplicaNodes` is the manifest of
+ * `nodeSubnetMap` keys the scaler owns; for any of those the incoming payload
+ * omits, we carry the stored subnet mapping forward so the replica keeps its
+ * subnet (and therefore its firewall rules). The manifest itself is taken from
+ * the stored config — the client only ever echoes a stale copy of it.
+ */
+export function mergePreservingAsgReplicas(existing: any, incoming: any): any {
+  const replicaIds: string[] = existing?.asgReplicaNodes ?? [];
+  // Nothing server-owned to protect — the frontend payload is authoritative,
+  // so this stays a plain replace (the common case, and every config predating
+  // the first scale).
+  if (replicaIds.length === 0) {
+    return incoming;
+  }
+
+  const storedMap: Record<string, string> = existing?.nodeSubnetMap ?? {};
+  const nodeSubnetMap: Record<string, string> = { ...(incoming?.nodeSubnetMap ?? {}) };
+  for (const id of replicaIds) {
+    if (!(id in nodeSubnetMap) && id in storedMap) {
+      nodeSubnetMap[id] = storedMap[id];
+    }
+  }
+
+  return { ...incoming, nodeSubnetMap, asgReplicaNodes: replicaIds };
+}
+
+/**
  * Persistence of projects in ~/.torollo/projects.json. Same durability
  * standard as the learning progress store — atomic write-then-rename,
  * versioned envelope, non-destructive recovery of an unreadable file — plus
@@ -124,6 +152,16 @@ export class ProjectService {
     );
   }
 
+  /**
+   * Persists a network config coming from the frontend. This is a *merge*, not
+   * a blind replace: the frontend owns the topology and security groups, but it
+   * never sees the ASG replicas Torollo spawns server-side, so its payload
+   * omits their `nodeSubnetMap` entries. Replacing the whole document would
+   * drop those keys and silently strip the replicas' firewall rules. We keep
+   * every mapping the server owns (`asgReplicaNodes`, maintained by the scaler)
+   * that the incoming payload doesn't carry, while still honouring the removal
+   * of ordinary user nodes.
+   */
   public static async saveNetworkConfig(
     projectId: string,
     networkConfig: any,
@@ -132,8 +170,31 @@ export class ProjectService {
     await this.mutate(store => {
       const project = store.projects.find(p => p.id === projectId);
       if (project) {
-        project.networkConfig = networkConfig;
+        project.networkConfig = mergePreservingAsgReplicas(project.networkConfig, networkConfig);
       }
+    }, filePath);
+  }
+
+  /**
+   * Serialized read-modify-write of a project's network config by key. `updater`
+   * receives the current on-disk config and returns the config to persist;
+   * running it inside the store transaction is what lets the ASG scaler apply a
+   * small delta (a few `nodeSubnetMap` keys) without a whole-document write that
+   * would clobber a concurrent topology save. Returns the persisted config, or
+   * `null` if the project is unknown. Never do Docker or network I/O in `updater`.
+   */
+  public static async updateNetworkConfig(
+    projectId: string,
+    updater: (config: any) => any,
+    filePath: string = DB_PATH
+  ): Promise<any | null> {
+    return this.mutate(store => {
+      const project = store.projects.find(p => p.id === projectId);
+      if (!project) {
+        return null;
+      }
+      project.networkConfig = updater(project.networkConfig ?? {});
+      return project.networkConfig;
     }, filePath);
   }
 
