@@ -49,6 +49,12 @@ describe('classifyDockerError', () => {
     expect(result).toMatchObject({ code: 'NAME_CONFLICT', httpStatus: 409 });
   });
 
+  it('classifies a 409 "is not running" (exec on a stopped container) as CONTAINER_NOT_RUNNING', () => {
+    const result = classifyDockerError({ statusCode: 409, message: '(HTTP code 409) container stopped/paused - container abc123 is not running' });
+    expect(result).toMatchObject({ code: 'CONTAINER_NOT_RUNNING', httpStatus: 409 });
+    expect(result.userMessage).toContain('not running');
+  });
+
   it('classifies 404 "no such container" as CONTAINER_NOT_FOUND', () => {
     const result = classifyDockerError({ statusCode: 404, message: '(HTTP code 404) no such container - No such container: abc123' });
     expect(result).toMatchObject({ code: 'CONTAINER_NOT_FOUND', httpStatus: 404 });

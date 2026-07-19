@@ -6,6 +6,7 @@ export type DockerErrorCode =
   | 'PORT_IN_USE'
   | 'NAME_CONFLICT'
   | 'CONTAINER_NOT_FOUND'
+  | 'CONTAINER_NOT_RUNNING'
   | 'DOCKER_ERROR';
 
 export interface ClassifiedDockerError {
@@ -82,6 +83,17 @@ export function classifyDockerError(err: unknown, context?: string): ClassifiedD
       code: 'PORT_IN_USE',
       httpStatus: 409,
       userMessage: 'A port this container needs is already taken on your machine. Stop the application using it, then try again.',
+    };
+  }
+
+  // Docker exec (terminal, DB explorers/queries) answers 409 "is not running"
+  // when the target container is stopped or paused — a different situation from
+  // a name clash, so it must be matched before the generic 409 branch.
+  if (e.statusCode === 409 && /is not running|is paused/i.test(message)) {
+    return {
+      code: 'CONTAINER_NOT_RUNNING',
+      httpStatus: 409,
+      userMessage: 'This container is not running. Start it, then try again.',
     };
   }
 
