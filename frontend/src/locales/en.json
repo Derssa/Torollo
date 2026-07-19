@@ -442,7 +442,8 @@
       "stopBtn": "Stop",
       "stoppingBtn": "Stopping...",
       "deployBtn": "Save & Deploy",
-      "deployingBtn": "Deploying..."
+      "deployingBtn": "Deploying...",
+      "requestFailed": "The request failed. Please try again."
     },
     "simulation": {
       "infoBanner": "Auto Scaling self-healing check runs every 2s. If an instance is crashed, a replacement will launch.",

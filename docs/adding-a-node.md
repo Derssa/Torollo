@@ -91,7 +91,10 @@ If the tools are missing, the failure is easy to miss:
   VPC routes won't apply.
 
 The published `derssa/backend-lab-*:v1` images already ship both tools. If you build your
-own image, either base it on one of those, or add the packages in your Dockerfile:
+own image, either base it on one of those, or add the packages in your Dockerfile.
+The backend only checks that a custom image reference is well-formed (standard
+`[registry/]name[:tag][@digest]` format) — the image itself runs locally under your own
+responsibility, like any container you'd start by hand:
 
 ```dockerfile
 # Debian/Ubuntu-based images

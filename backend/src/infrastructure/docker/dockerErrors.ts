@@ -3,6 +3,7 @@ import { Response } from 'express';
 export type DockerErrorCode =
   | 'DOCKER_UNAVAILABLE'
   | 'IMAGE_NOT_FOUND'
+  | 'INVALID_IMAGE_REFERENCE'
   | 'PORT_IN_USE'
   | 'NAME_CONFLICT'
   | 'CONTAINER_NOT_FOUND'
@@ -52,6 +53,14 @@ export function classifyDockerError(err: unknown, context?: string): ClassifiedD
 
   const e = (err ?? {}) as DockerErrorLike;
   const message = e.message ?? '';
+
+  if (e.code === 'INVALID_IMAGE_REFERENCE') {
+    return {
+      code: 'INVALID_IMAGE_REFERENCE',
+      httpStatus: 400,
+      userMessage: message || 'The Docker image reference for this node is invalid.',
+    };
+  }
 
   const daemonUnreachable =
     e.code === 'ECONNREFUSED' ||

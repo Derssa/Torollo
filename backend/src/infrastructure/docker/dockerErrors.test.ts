@@ -1,4 +1,5 @@
 import { classifyDockerError, sendDockerError, ContainerNotFoundError } from './dockerErrors';
+import { InvalidImageReferenceError } from './imageReference';
 
 describe('classifyDockerError', () => {
   it.each([
@@ -32,6 +33,13 @@ describe('classifyDockerError', () => {
     expect(result.code).toBe('IMAGE_NOT_FOUND');
     expect(result.httpStatus).toBe(502);
     expect(result.userMessage).toContain('image');
+  });
+
+  it('classifies an InvalidImageReferenceError as INVALID_IMAGE_REFERENCE (400) with its message', () => {
+    const result = classifyDockerError(new InvalidImageReferenceError('bad image'));
+    expect(result.code).toBe('INVALID_IMAGE_REFERENCE');
+    expect(result.httpStatus).toBe(400);
+    expect(result.userMessage).toContain('bad image');
   });
 
   it('classifies a port conflict (reported as a 500 by the engine) as PORT_IN_USE (409)', () => {

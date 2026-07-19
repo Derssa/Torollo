@@ -1,6 +1,7 @@
 import { Request, Response } from 'express';
 import { ProjectService } from '../services/projectService';
 import { NetworkService } from '../../network/services/networkService';
+import { validateAsgCapacityConfig } from '../../containers/validation/asgCapacity';
 
 export class ProjectController {
   public static async list(req: Request, res: Response): Promise<void> {
@@ -64,6 +65,13 @@ export class ProjectController {
       if (!networkConfig) {
         res.status(400).json({ error: 'networkConfig is required' });
         return;
+      }
+      for (const [asgId, entry] of Object.entries(networkConfig.asgs ?? {})) {
+        const capacityViolation = validateAsgCapacityConfig(asgId, entry);
+        if (capacityViolation) {
+          res.status(400).json({ error: capacityViolation.message, code: capacityViolation.code });
+          return;
+        }
       }
       await ProjectService.saveNetworkConfig(projectId, networkConfig);
       

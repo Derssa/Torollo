@@ -442,7 +442,8 @@
       "stopBtn": "Arrêter",
       "stoppingBtn": "Arrêt...",
       "deployBtn": "Sauvegarder & Déployer",
-      "deployingBtn": "Déploiement..."
+      "deployingBtn": "Déploiement...",
+      "requestFailed": "La requête a échoué. Veuillez réessayer."
     },
     "simulation": {
       "infoBanner": "La vérification d'auto-réparation Auto Scaling s'exécute toutes les 2s. Si une instance plante, une remplaçante sera lancée.",

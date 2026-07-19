@@ -1,6 +1,7 @@
 import docker from '../DockerClient';
 import { ContainerNotFoundError } from '../dockerErrors';
 import { NodeType, NodeTypeDescriptor, resolveNodeType } from '../nodeTypes';
+import { InvalidImageReferenceError, isValidImageReference } from '../imageReference';
 import { ContainerInfo, ContainerProvider } from './containerProvider';
 
 export class DockerContainerProvider implements ContainerProvider {
@@ -149,6 +150,9 @@ export class DockerContainerProvider implements ContainerProvider {
     extraLabels?: Record<string, string>
   ): Promise<ContainerInfo> {
     const desc = resolveNodeType(type);
+    if (customImage !== undefined && !isValidImageReference(customImage)) {
+      throw new InvalidImageReferenceError(customImage);
+    }
     const image = customImage ?? desc.image;
 
     if (customImage) {
