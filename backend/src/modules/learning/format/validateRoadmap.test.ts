@@ -3,10 +3,7 @@ import path from 'path';
 import { validateRoadmap } from './validateRoadmap';
 import { Roadmap } from './roadmapTypes';
 
-const EXAMPLE_PATH = path.resolve(
-  __dirname,
-  '../../../../../roadmaps/example-first-architecture.json'
-);
+const EXAMPLE_PATH = path.resolve(__dirname, '__fixtures__/example-first-architecture.json');
 
 /** Minimal valid roadmap used as a base for the invalid-input tests. */
 function minimalRoadmap(): Record<string, unknown> {
