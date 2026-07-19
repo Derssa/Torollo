@@ -3,6 +3,7 @@ import { useTranslation } from 'react-i18next';
 import { X, Cpu, Server, AlertTriangle, RotateCw, Settings, Activity } from 'lucide-react';
 import { API_BASE } from '../../../shared/types';
 import type { ContainerData } from '../../../shared/types';
+import { readErrorMessage } from '../../../shared/utils/readErrorMessage';
 
 interface AsgModalProps {
   asgId: string;
@@ -51,6 +52,7 @@ export default function AsgModal({
   const [stopping, setStopping] = useState(false);
   const [saving, setSaving] = useState(false);
   const [terminatingId, setTerminatingId] = useState<string | null>(null);
+  const [apiError, setApiError] = useState<string | null>(null);
   const isScalingRef = useRef(false);
 
   const isConfigChanged = 
@@ -230,6 +232,7 @@ export default function AsgModal({
   const handleSaveAndDeploy = async () => {
     if (!parentId) return;
     setDeploying(true);
+    setApiError(null);
     try {
       // 1. Save settings
       await onSaveConfig({
@@ -251,9 +254,12 @@ export default function AsgModal({
       });
       if (res.ok) {
         await onRefreshContainers();
+      } else {
+        setApiError(await readErrorMessage(res, t('asg.details.requestFailed')));
       }
     } catch (err) {
       console.error(err);
+      setApiError(err instanceof Error && err.message ? err.message : t('asg.details.requestFailed'));
     } finally {
       setDeploying(false);
     }
@@ -261,6 +267,7 @@ export default function AsgModal({
 
   const handleSave = async () => {
     setSaving(true);
+    setApiError(null);
     try {
       await onSaveConfig({
         desiredCapacity,
@@ -269,7 +276,7 @@ export default function AsgModal({
         parentId,
         subnetIds: selectedSubnets
       });
-      await fetch(`${API_BASE}/api/projects/${projectId}/containers/asg/${asgId}/scale`, {
+      const res = await fetch(`${API_BASE}/api/projects/${projectId}/containers/asg/${asgId}/scale`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -277,9 +284,14 @@ export default function AsgModal({
           subnetIds: selectedSubnets
         })
       });
-      await onRefreshContainers();
+      if (res.ok) {
+        await onRefreshContainers();
+      } else {
+        setApiError(await readErrorMessage(res, t('asg.details.requestFailed')));
+      }
     } catch (err) {
       console.error(err);
+      setApiError(err instanceof Error && err.message ? err.message : t('asg.details.requestFailed'));
     } finally {
       setSaving(false);
     }
@@ -287,8 +299,9 @@ export default function AsgModal({
 
   const handleStop = async () => {
     setStopping(true);
+    setApiError(null);
     try {
-      await fetch(`${API_BASE}/api/projects/${projectId}/containers/asg/${asgId}/scale`, {
+      const res = await fetch(`${API_BASE}/api/projects/${projectId}/containers/asg/${asgId}/scale`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -296,9 +309,14 @@ export default function AsgModal({
           subnetIds: selectedSubnets
         })
       });
-      await onRefreshContainers();
+      if (res.ok) {
+        await onRefreshContainers();
+      } else {
+        setApiError(await readErrorMessage(res, t('asg.details.requestFailed')));
+      }
     } catch (err) {
       console.error(err);
+      setApiError(err instanceof Error && err.message ? err.message : t('asg.details.requestFailed'));
     } finally {
       setStopping(false);
     }
@@ -478,6 +496,13 @@ export default function AsgModal({
                   </div>
                 </div>
               </div>
+
+              {apiError && (
+                <div role="alert" style={styles.errorBanner}>
+                  <AlertTriangle size={14} style={{ flexShrink: 0 }} />
+                  <span>{apiError}</span>
+                </div>
+              )}
 
               {/* Save & Deploy / Stop buttons */}
               <div style={styles.footer}>
@@ -920,6 +945,18 @@ const styles: Record<string, React.CSSProperties> = {
     marginTop: '12px',
     borderTop: '1px solid rgba(0,0,0,0.05)',
     paddingTop: '16px',
+  },
+  errorBanner: {
+    backgroundColor: '#FEE2E2',
+    border: '1px solid #FECACA',
+    borderRadius: '6px',
+    padding: '10px 14px',
+    display: 'flex',
+    alignItems: 'center',
+    gap: '10px',
+    marginTop: '12px',
+    color: '#B91C1C',
+    fontSize: '12px',
   },
   actionBtn: {
     padding: '8px 16px',

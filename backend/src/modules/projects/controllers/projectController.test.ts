@@ -148,5 +148,40 @@ describe('ProjectController', () => {
       expect(res.status).toBe(400);
       expect(res.body).toEqual({ error: 'networkConfig is required' });
     });
+
+    it('should save a config whose ASG capacities are within bounds', async () => {
+      const mockConfig = { asgs: { 'asg-1': { minCapacity: 1, desiredCapacity: 2, maxCapacity: 4 } } };
+      (ProjectService.saveNetworkConfig as jest.Mock).mockResolvedValue(undefined);
+      (NetworkService.applyPolicy as jest.Mock).mockResolvedValue(undefined);
+      (ProjectService.getNetworkConfig as jest.Mock).mockResolvedValue(mockConfig);
+
+      const res = await request(app)
+        .post('/api/projects/project-1/network-config')
+        .send({ networkConfig: mockConfig });
+
+      expect(res.status).toBe(200);
+      expect(ProjectService.saveNetworkConfig).toHaveBeenCalledWith('project-1', mockConfig);
+    });
+
+    it('should return a classified 400 for an out-of-bounds ASG capacity without saving', async () => {
+      const res = await request(app)
+        .post('/api/projects/project-1/network-config')
+        .send({ networkConfig: { asgs: { 'asg-1': { minCapacity: 1, desiredCapacity: 2, maxCapacity: 50 } } } });
+
+      expect(res.status).toBe(400);
+      expect(res.body.code).toBe('INVALID_CAPACITY');
+      expect(res.body.error).toContain('asg-1');
+      expect(ProjectService.saveNetworkConfig).not.toHaveBeenCalled();
+    });
+
+    it('should return a classified 400 when minCapacity exceeds maxCapacity', async () => {
+      const res = await request(app)
+        .post('/api/projects/project-1/network-config')
+        .send({ networkConfig: { asgs: { 'asg-1': { minCapacity: 5, maxCapacity: 3 } } } });
+
+      expect(res.status).toBe(400);
+      expect(res.body.code).toBe('INVALID_CAPACITY');
+      expect(ProjectService.saveNetworkConfig).not.toHaveBeenCalled();
+    });
   });
 });

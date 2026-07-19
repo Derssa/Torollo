@@ -3,6 +3,7 @@ import type { ContainerData } from '../../../shared/types';
 import { API_BASE } from '../../../shared/types';
 import type { NetworkConfig } from '../../../shared/types/network';
 import { validateArchitecture } from '../../../shared/utils/architectureValidator';
+import { readErrorMessage } from '../../../shared/utils/readErrorMessage';
 import { autoGrowContainers } from '../utils/networkConfigOps';
 
 interface UseNetworkConfigArgs {
@@ -49,9 +50,9 @@ export function useNetworkConfig({ projectId, containers, showNotification }: Us
       },
       body: JSON.stringify({ networkConfig: grownConfig })
     })
-    .then(res => {
+    .then(async res => {
       if (!res.ok) {
-        throw new Error(`Failed to save network config (HTTP ${res.status})`);
+        throw new Error(await readErrorMessage(res, `Failed to save network config (HTTP ${res.status})`));
       }
       return res.json();
     })
