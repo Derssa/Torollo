@@ -7,6 +7,9 @@ module.exports = {
   verbose: true,
   forceExit: true,
   collectCoverage: false,
+  // The suites share one Docker daemon (shared network, iptables chains, real
+  // containers): run them serially so their setups/cleanups can't race.
+  maxWorkers: 1,
   // Generous per-test budget: a cold run may need to pull multi-hundred-MB images.
   testTimeout: 300000
 };
