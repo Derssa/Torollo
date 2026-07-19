@@ -232,4 +232,100 @@ describe('ProjectService', () => {
 
     expect(await ProjectService.getNetworkConfig(project.id, file)).toEqual(config);
   });
+
+  it('updateNetworkConfig applies a functional update and returns the persisted config', async () => {
+    const project = await ProjectService.createProject('Scaled', file);
+    await ProjectService.saveNetworkConfig(project.id, { nodeSubnetMap: { user1: 'sn' } }, file);
+
+    const result = await ProjectService.updateNetworkConfig(project.id, config => {
+      config.nodeSubnetMap['replica-1'] = 'sn';
+      config.asgReplicaNodes = ['replica-1'];
+      return config;
+    }, file);
+
+    expect(result.nodeSubnetMap).toEqual({ user1: 'sn', 'replica-1': 'sn' });
+    expect(await ProjectService.getNetworkConfig(project.id, file)).toEqual(result);
+  });
+
+  it('updateNetworkConfig returns null for an unknown project without writing', async () => {
+    const existing = await ProjectService.createProject('Existing', file);
+
+    const result = await ProjectService.updateNetworkConfig('project-unknown', () => ({ touched: true }), file);
+
+    expect(result).toBeNull();
+    expect(await ProjectService.listProjects(file)).toEqual([existing]);
+  });
+
+  it('saveNetworkConfig preserves server-owned ASG replica mappings the payload omits', async () => {
+    const project = await ProjectService.createProject('Fleet', file);
+    await ProjectService.saveNetworkConfig(project.id, {
+      subnets: [{ id: 'sn' }],
+      nodeSubnetMap: { user1: 'sn' }
+    }, file);
+
+    // The scaler registers a replica the frontend can't see.
+    await ProjectService.updateNetworkConfig(project.id, config => {
+      config.nodeSubnetMap['replica-abc'] = 'sn';
+      config.asgReplicaNodes = ['replica-abc'];
+      return config;
+    }, file);
+
+    // A later frontend save carries an edited topology but omits the replica key.
+    await ProjectService.saveNetworkConfig(project.id, {
+      subnets: [{ id: 'sn' }, { id: 'sn2' }],
+      nodeSubnetMap: { user1: 'sn' }
+    }, file);
+
+    const config = await ProjectService.getNetworkConfig(project.id, file);
+    expect(config.nodeSubnetMap).toEqual({ user1: 'sn', 'replica-abc': 'sn' });
+    expect(config.subnets).toHaveLength(2); // the topology edit still landed
+    expect(config.asgReplicaNodes).toEqual(['replica-abc']);
+  });
+
+  it('saveNetworkConfig still drops a removed user node while keeping replicas', async () => {
+    const project = await ProjectService.createProject('Fleet', file);
+    await ProjectService.saveNetworkConfig(project.id, { nodeSubnetMap: { user1: 'sn', user2: 'sn' } }, file);
+    await ProjectService.updateNetworkConfig(project.id, config => {
+      config.nodeSubnetMap['replica-abc'] = 'sn';
+      config.asgReplicaNodes = ['replica-abc'];
+      return config;
+    }, file);
+
+    // The user deletes user2 on the canvas: the save payload no longer lists it.
+    await ProjectService.saveNetworkConfig(project.id, { nodeSubnetMap: { user1: 'sn' } }, file);
+
+    const config = await ProjectService.getNetworkConfig(project.id, file);
+    expect(config.nodeSubnetMap).toEqual({ user1: 'sn', 'replica-abc': 'sn' });
+  });
+
+  it('keeps both the replica delta and the topology edit when a scale races a config save', async () => {
+    const project = await ProjectService.createProject('Fleet', file);
+    await ProjectService.saveNetworkConfig(project.id, { subnets: [{ id: 'sn' }], nodeSubnetMap: { user1: 'sn' } }, file);
+    await ProjectService.updateNetworkConfig(project.id, config => {
+      config.nodeSubnetMap['replica-1'] = 'sn';
+      config.asgReplicaNodes = ['replica-1'];
+      return config;
+    }, file);
+
+    // A scale (adds replica-2) and a frontend topology save (adds userNew) fire
+    // concurrently. Serialized by the store queue, neither loses the other's work.
+    await Promise.all([
+      ProjectService.updateNetworkConfig(project.id, config => {
+        config.nodeSubnetMap['replica-2'] = 'sn';
+        config.asgReplicaNodes = [...(config.asgReplicaNodes ?? []), 'replica-2'];
+        return config;
+      }, file),
+      ProjectService.saveNetworkConfig(project.id, {
+        subnets: [{ id: 'sn' }, { id: 'sn2' }],
+        nodeSubnetMap: { user1: 'sn', userNew: 'sn' }
+      }, file)
+    ]);
+
+    const config = await ProjectService.getNetworkConfig(project.id, file);
+    expect(config.nodeSubnetMap['replica-1']).toBe('sn');
+    expect(config.nodeSubnetMap['replica-2']).toBe('sn');
+    expect(config.nodeSubnetMap['userNew']).toBe('sn'); // the topology edit survived
+    expect(config.subnets).toHaveLength(2);
+    expect(config.asgReplicaNodes).toEqual(expect.arrayContaining(['replica-1', 'replica-2']));
+  });
 });
