@@ -16,13 +16,13 @@ Lists the available roadmaps as summaries — **one entry per file**. Translatio
 ```json
 [
   {
-    "id": "example-first-architecture",
-    "title": "Your first architecture: a web server and its database",
-    "description": "Build a minimal two-tier architecture…",
+    "id": "resilient-three-tier",
+    "title": "Deploy a resilient three-tier app",
+    "description": "You are the first engineer at Nimbus Books, an online bookstore about to launch…",
     "language": "en",
-    "difficulty": "beginner",
-    "estimatedMinutes": 30,
-    "stepCount": 4
+    "difficulty": "intermediate",
+    "estimatedMinutes": 40,
+    "stepCount": 10
   }
 ]
 ```
@@ -46,8 +46,8 @@ Request body:
 ```json
 {
   "projectId": "project-1751883322290",
-  "roadmapId": "example-first-architecture",
-  "stepId": "create-web-server"
+  "roadmapId": "resilient-three-tier",
+  "stepId": "first-server"
 }
 ```
 
@@ -65,8 +65,8 @@ Success response (`200`):
 
 ```json
 {
-  "roadmapId": "example-first-architecture",
-  "stepId": "create-web-server",
+  "roadmapId": "resilient-three-tier",
+  "stepId": "first-server",
   "stepPassed": false,
   "checkedAt": "2026-07-14T14:03:21.402Z",
   "results": [
@@ -74,8 +74,8 @@ Success response (`200`):
       "index": 0,
       "type": "container_running",
       "status": "fail",
-      "message": "No container named \"web\" exists in this project yet. Create the node on the canvas, name it \"web\" and start it.",
-      "expected": "a running container named \"web\"",
+      "message": "No container named \"web-1\" exists in this project yet. Create the node on the canvas, name it \"web-1\" and start it.",
+      "expected": "a running container named \"web-1\"",
       "observed": "no container with that name"
     }
   ]
@@ -96,10 +96,10 @@ Roadmap progression is persisted locally in `~/.torollo/progress.json`, next to 
   "entries": [
     {
       "projectId": "project-1751883322290",
-      "roadmapId": "example-first-architecture",
+      "roadmapId": "resilient-three-tier",
       "updatedAt": "2026-07-16T20:11:00.000Z",
       "steps": {
-        "create-web-server": {
+        "first-server": {
           "passed": true,
           "attempts": 3,
           "revealedHints": 1,
@@ -119,7 +119,7 @@ Returns `{ projectId, roadmapId, steps }` — `steps` is the per-step record abo
 
 ### `PUT /api/learning/progress/:projectId/:roadmapId/hints`
 
-Body `{ "stepId": "create-web-server", "revealedHints": 2 }` → `204`. Stores the absolute revealed count (idempotent — a lost write self-heals on the next reveal). `400` when `stepId` is not a non-empty string or `revealedHints` is not a non-negative integer. No existence check against the roadmap: progress is local, non-sensitive data, and hint reveals are cheap fire-and-forget writes.
+Body `{ "stepId": "first-server", "revealedHints": 2 }` → `204`. Stores the absolute revealed count (idempotent — a lost write self-heals on the next reveal). `400` when `stepId` is not a non-empty string or `revealedHints` is not a non-negative integer. No existence check against the roadmap: progress is local, non-sensitive data, and hint reveals are cheap fire-and-forget writes.
 
 ### `DELETE /api/learning/progress/:projectId/:roadmapId`
 
@@ -164,15 +164,15 @@ curl -s -X POST localhost:23233/api/projects -H 'Content-Type: application/json'
 
 # 2. Validate step 1 before doing anything → "fail" with a pedagogical message
 curl -s -X POST localhost:23233/api/learning/validate -H 'Content-Type: application/json' \
-  -d '{"projectId": "<id>", "roadmapId": "example-first-architecture", "stepId": "create-web-server"}'
+  -d '{"projectId": "<id>", "roadmapId": "resilient-three-tier", "stepId": "first-server"}'
 
-# 3. Create and start the "web" node, as the step instructs
+# 3. Create and start the "web-1" node, as the step instructs
 curl -s -X POST 'localhost:23233/api/projects/<id>/containers' -H 'Content-Type: application/json' \
-  -d '{"name": "web", "type": "ubuntu"}'
+  -d '{"name": "web-1", "type": "ubuntu"}'
 
 # 4. Re-validate → "pass", stepPassed: true
 curl -s -X POST localhost:23233/api/learning/validate -H 'Content-Type: application/json' \
-  -d '{"projectId": "<id>", "roadmapId": "example-first-architecture", "stepId": "create-web-server"}'
+  -d '{"projectId": "<id>", "roadmapId": "resilient-three-tier", "stepId": "first-server"}'
 
 # 5. Stop the Docker daemon and re-validate → 200 with status "error", errorCode "DOCKER_UNAVAILABLE"
 ```

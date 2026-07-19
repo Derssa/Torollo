@@ -5,7 +5,7 @@ A **roadmap** is a guided, auto-corrected learning path: an ordered list of step
 This document is the reference for authoring roadmap files. You should be able to write a working roadmap from this page alone, without reading any code.
 
 - JSON Schema: [`backend/src/modules/learning/format/roadmap.schema.json`](../backend/src/modules/learning/format/roadmap.schema.json)
-- Reference example: [`roadmaps/example-first-architecture.json`](../roadmaps/example-first-architecture.json)
+- Reference example: [`roadmaps/resilient-three-tier.json`](../roadmaps/resilient-three-tier.json)
 - API that loads and runs roadmaps: [`learning-api.md`](./learning-api.md)
 
 ## Philosophy
