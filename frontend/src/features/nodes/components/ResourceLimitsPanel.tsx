@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { useTranslation } from 'react-i18next';
 
 interface ResourceLimitsPanelProps {
   labels: {
@@ -20,6 +21,7 @@ interface ResourceLimitsPanelProps {
  * it does not touch the real container.
  */
 export default function ResourceLimitsPanel({ labels, onScalingLog }: ResourceLimitsPanelProps) {
+  const { t } = useTranslation();
   const [cpuLimit, setCpuLimit] = useState(1);
   const [memoryLimit, setMemoryLimit] = useState(512);
   const [storageLimit, setStorageLimit] = useState(50);
@@ -28,7 +30,7 @@ export default function ResourceLimitsPanel({ labels, onScalingLog }: ResourceLi
   const [appliedStorage, setAppliedStorage] = useState(50);
   const [scalingLoading, setScalingLoading] = useState(false);
   const [feedbackMessage, setFeedbackMessage] = useState<string | null>(
-    "Database operating at baseline resources: 1 vCPU, 512MB RAM, 50GB storage. Handles standard query throughput."
+    t('nodeshared.resources.baseline')
   );
 
   const handleUpdateLimits = () => {
@@ -48,27 +50,27 @@ export default function ResourceLimitsPanel({ labels, onScalingLog }: ResourceLi
 
       let customMsg: string;
       if (throughputIncreased && storageIncreased) {
-        customMsg = "now the database can handle more concurrent requests/transactions and store more data (expanded persistent disk).";
+        customMsg = t('nodeshared.resources.impactUpStorageUp');
       } else if (throughputDecreased && storageDecreased) {
-        customMsg = "now the database will handle fewer requests (higher risk of CPU/RAM throttling) and store less data (reduced storage space).";
+        customMsg = t('nodeshared.resources.impactDownStorageDown');
       } else if (throughputIncreased && storageDecreased) {
-        customMsg = "now the database can handle more requests (faster query performance) but will store less data due to reduced storage limit.";
+        customMsg = t('nodeshared.resources.impactUpStorageDown');
       } else if (throughputDecreased && storageIncreased) {
-        customMsg = "now the database server will handle fewer requests (slower processing capacity) but can store more persistent data.";
+        customMsg = t('nodeshared.resources.impactDownStorageUp');
       } else if (throughputIncreased) {
-        customMsg = "now the database can handle more requests and process queries faster.";
+        customMsg = t('nodeshared.resources.impactUp');
       } else if (throughputDecreased) {
-        customMsg = "now the database will handle fewer requests and experience increased latency under query loads.";
+        customMsg = t('nodeshared.resources.impactDown');
       } else if (storageIncreased) {
-        customMsg = "now the database can store more data with expanded disk capacity.";
+        customMsg = t('nodeshared.resources.impactStorageUp');
       } else if (storageDecreased) {
-        customMsg = "now the database storage capacity is reduced.";
+        customMsg = t('nodeshared.resources.impactStorageDown');
       } else {
-        customMsg = "no resource limits were changed.";
+        customMsg = t('nodeshared.resources.impactNone');
       }
 
-      onScalingLog(`RESOURCE SCALING UPDATE: Vertical limits applied. Configured: CPU=${cpuLimit} Cores, RAM=${memoryLimit}MB, Storage=${storageLimit}GB. Impact: ${customMsg}`);
-      setFeedbackMessage(`Limits Applied! Impact: ${customMsg}`);
+      onScalingLog(t('nodeshared.resources.scalingLog', { cpu: cpuLimit, ram: memoryLimit, storage: storageLimit, impact: customMsg }));
+      setFeedbackMessage(t('nodeshared.resources.limitsApplied', { impact: customMsg }));
 
       setAppliedCpu(cpuLimit);
       setAppliedMemory(memoryLimit);

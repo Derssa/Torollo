@@ -1,15 +1,17 @@
 import { AlertTriangle } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 
 /**
  * Persistent (non-dismissable) banner shown while the Docker daemon is
  * unreachable. It disappears on its own once container polling succeeds again.
  */
 export function DockerUnavailableBanner() {
+  const { t } = useTranslation();
   return (
     <div style={bannerStyles.wrapper}>
       <div style={bannerStyles.banner}>
         <AlertTriangle size={16} color="#F59E0B" style={{ flexShrink: 0 }} />
-        <span>Docker daemon unreachable — start Docker and the lab will reconnect automatically.</span>
+        <span>{t('common.dockerUnavailable')}</span>
       </div>
     </div>
   );

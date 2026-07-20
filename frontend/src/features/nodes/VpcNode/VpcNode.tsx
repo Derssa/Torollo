@@ -1,4 +1,5 @@
 import { Shield, Settings, Trash } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 
 interface VpcNodeProps {
   data: {
@@ -11,6 +12,7 @@ interface VpcNodeProps {
 }
 
 export default function VpcNode({ data }: VpcNodeProps) {
+  const { t } = useTranslation();
   const isHovered = data.hoverStatus === 'valid' || data.hoverStatus === 'invalid';
   const borderColor = isHovered 
     ? (data.hoverStatus === 'valid' ? '#10B981' : '#EF4444') 
@@ -49,7 +51,7 @@ export default function VpcNode({ data }: VpcNodeProps) {
         zIndex: 10,
       }}>
         <Shield size={12} />
-        <span>VPC: {data.name || 'Lab-VPC'}</span>
+        <span>{t('nodeviz.vpcLabel', { name: data.name || 'Lab-VPC' })}</span>
       </div>
 
       <button
@@ -75,10 +77,10 @@ export default function VpcNode({ data }: VpcNodeProps) {
           boxShadow: '0 1px 2px rgba(0,0,0,0.05)',
           zIndex: 10,
         }}
-        title="Configure VPC / Network Simulator"
+        title={t('nodeviz.configureVpcTitle')}
       >
         <Settings size={10} />
-        <span>Configure</span>
+        <span>{t('nodeviz.configure')}</span>
       </button>
 
       <button
@@ -102,7 +104,7 @@ export default function VpcNode({ data }: VpcNodeProps) {
           boxShadow: '0 1px 2px rgba(0,0,0,0.1)',
           zIndex: 10,
         }}
-        title="Delete VPC"
+        title={t('nodeviz.deleteVpc')}
       >
         <Trash size={9} />
       </button>
@@ -129,7 +131,7 @@ export default function VpcNode({ data }: VpcNodeProps) {
         transition: 'all 0.2s ease',
       }}>
         <span style={{ fontSize: '14px' }}>+</span>
-        <span>DROP SUBNETS OR SERVICES HERE</span>
+        <span>{t('nodeviz.dropZone')}</span>
       </div>
     </div>
   );

@@ -1,4 +1,5 @@
 import { useState, useMemo, useRef, useCallback } from 'react';
+import { useTranslation } from 'react-i18next';
 import type { ContainerData } from '../../../shared/types';
 import { API_BASE } from '../../../shared/types';
 import type { NetworkConfig } from '../../../shared/types/network';
@@ -17,6 +18,7 @@ interface UseNetworkConfigArgs {
  * config from the response) and the architecture audit toasts.
  */
 export function useNetworkConfig({ projectId, containers, showNotification }: UseNetworkConfigArgs) {
+  const { t } = useTranslation();
   const prevDbCountRef = useRef(0);
   const hasShownCacheWarningRef = useRef(false);
 
@@ -121,12 +123,12 @@ export function useNetworkConfig({ projectId, containers, showNotification }: Us
     prevDbCountRef.current = currentDbCount;
 
     let warnings = result.warnings;
-    const hasCacheWarning = warnings.some(w => w.includes('No caching tier'));
+    const hasCacheWarning = warnings.some(w => w.key === 'noCachingTier');
 
     if (hasCacheWarning) {
       if (hasShownCacheWarningRef.current) {
         // Filter it out so it doesn't toast again
-        warnings = warnings.filter(w => !w.includes('No caching tier'));
+        warnings = warnings.filter(w => w.key !== 'noCachingTier');
       } else {
         // Mark as shown so subsequent non-add actions don't trigger it
         hasShownCacheWarningRef.current = true;
@@ -137,14 +139,19 @@ export function useNetworkConfig({ projectId, containers, showNotification }: Us
       }
     }
 
+    // Resolve the finding's translation key against the active UI language here,
+    // at display time — the validator is language-neutral.
     if (result.errors.length > 0) {
-      showNotification({ type: 'error', message: result.errors[0] });
+      const m = result.errors[0];
+      showNotification({ type: 'error', message: t(`audit.${m.key}`, m.params) });
     } else if (warnings.length > 0) {
-      showNotification({ type: 'warning', message: warnings[0] });
+      const m = warnings[0];
+      showNotification({ type: 'warning', message: t(`audit.${m.key}`, m.params) });
     } else if (result.successes.length > 0) {
-      showNotification({ type: 'success', message: result.successes[0] });
+      const m = result.successes[0];
+      showNotification({ type: 'success', message: t(`audit.${m.key}`, m.params) });
     }
-  }, [containers, showNotification]);
+  }, [containers, showNotification, t]);
 
   return { networkConfig, saveNetworkConfig, fetchNetworkConfig, triggerArchitectureAudit };
 }

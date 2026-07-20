@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { Send, CheckCircle2, XCircle } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 import type { ContainerData } from '../../../shared/types';
 import type { SecurityGroupRule } from './SecurityGroupsModal';
 
@@ -16,6 +17,7 @@ export default function NetworkSimulatorPanel({
   nodeSecurityGroups,
   nodeSubnetMap
 }: NetworkSimulatorPanelProps) {
+  const { t } = useTranslation();
   const [sourceNodeId, setSourceNodeId] = useState('');
   const [destNodeId, setDestNodeId] = useState('');
   const [port, setPort] = useState('80');
@@ -29,8 +31,8 @@ export default function NetworkSimulatorPanel({
     if (!sourceNodeId || !destNodeId) {
       setSimulationResult({
         success: false,
-        message: 'Simulation Error',
-        details: 'Please select both source and destination nodes.'
+        message: t('nodeshared.netsim.simulationError'),
+        details: t('nodeshared.netsim.selectBothNodes')
       });
       return;
     }
@@ -38,8 +40,8 @@ export default function NetworkSimulatorPanel({
     if (sourceNodeId === destNodeId) {
       setSimulationResult({
         success: false,
-        message: 'Loopback Connection',
-        details: 'Local loopback connection (localhost) is always allowed.'
+        message: t('nodeshared.netsim.loopbackConnection'),
+        details: t('nodeshared.netsim.loopbackDetails')
       });
       return;
     }
@@ -50,8 +52,8 @@ export default function NetworkSimulatorPanel({
     if (!sourceNode || !destNode) {
       setSimulationResult({
         success: false,
-        message: 'Simulation Error',
-        details: 'Selected nodes could not be found.'
+        message: t('nodeshared.netsim.simulationError'),
+        details: t('nodeshared.netsim.nodesNotFound')
       });
       return;
     }
@@ -69,8 +71,8 @@ export default function NetworkSimulatorPanel({
     if (sourceVpcId !== destVpcId) {
       setSimulationResult({
         success: false,
-        message: 'Connection Blocked',
-        details: 'Blocked: Nodes are in different VPCs. Inter-VPC traffic is isolated by default.'
+        message: t('nodeshared.netsim.connectionBlocked'),
+        details: t('nodeshared.netsim.differentVpcs')
       });
       return;
     }
@@ -78,8 +80,8 @@ export default function NetworkSimulatorPanel({
     if (!sourceVpcId) {
       setSimulationResult({
         success: false,
-        message: 'Connection Blocked',
-        details: 'Blocked: Nodes must be assigned to subnets inside a VPC to communicate.'
+        message: t('nodeshared.netsim.connectionBlocked'),
+        details: t('nodeshared.netsim.noVpc')
       });
       return;
     }
@@ -125,16 +127,19 @@ export default function NetworkSimulatorPanel({
     if (isAllowed) {
       setSimulationResult({
         success: true,
-        message: 'Connection Allowed',
-        details: `Allowed by rule: Inbound ALLOW port ${matchingRule?.port} from ${
-          matchingRule?.source === '0.0.0.0/0' ? 'Anywhere' : 'authorized source'
-        }.`
+        message: t('nodeshared.netsim.connectionAllowed'),
+        details: t('nodeshared.netsim.allowedByRule', {
+          port: matchingRule?.port,
+          source: matchingRule?.source === '0.0.0.0/0'
+            ? t('nodeshared.netsim.anywhere')
+            : t('nodeshared.netsim.authorizedSource')
+        })
       });
     } else {
       setSimulationResult({
         success: false,
-        message: 'Blocked by Security Group',
-        details: `Implicit Deny: No security group rule on "${destNode.name}" allows inbound traffic on port ${port} from "${sourceNode.name}".`
+        message: t('nodeshared.netsim.blockedBySecurityGroup'),
+        details: t('nodeshared.netsim.implicitDeny', { dest: destNode.name, port, source: sourceNode.name })
       });
     }
   };
@@ -143,55 +148,55 @@ export default function NetworkSimulatorPanel({
     <div style={styles.panel} className="glass">
       <div style={styles.header}>
         <Send size={14} color="var(--color-accent)" />
-        <span style={styles.title}>Traffic Route Simulator</span>
+        <span style={styles.title}>{t('nodeshared.netsim.title')}</span>
       </div>
 
       <div style={styles.body}>
         <div style={styles.formGroup}>
-          <label style={styles.label}>Source Node</label>
+          <label style={styles.label}>{t('nodeshared.netsim.sourceNode')}</label>
           <select 
             value={sourceNodeId}
             onChange={(e) => setSourceNodeId(e.target.value)}
             style={styles.select}
           >
-            <option value="">-- Select Source --</option>
+            <option value="">{t('nodeshared.netsim.selectSource')}</option>
             {nodes.map(n => (
               <option key={n.id} value={n.id}>
-                {n.name} ({nodeSubnetMap[n.id] ? 'Subnet' : 'No Subnet'})
+                {n.name} ({nodeSubnetMap[n.id] ? t('nodeshared.netsim.subnet') : t('nodeshared.netsim.noSubnet')})
               </option>
             ))}
           </select>
         </div>
 
         <div style={styles.formGroup}>
-          <label style={styles.label}>Destination Node</label>
+          <label style={styles.label}>{t('nodeshared.netsim.destinationNode')}</label>
           <select 
             value={destNodeId}
             onChange={(e) => setDestNodeId(e.target.value)}
             style={styles.select}
           >
-            <option value="">-- Select Destination --</option>
+            <option value="">{t('nodeshared.netsim.selectDestination')}</option>
             {nodes.map(n => (
               <option key={n.id} value={n.id}>
-                {n.name} ({nodeSubnetMap[n.id] ? 'Subnet' : 'No Subnet'})
+                {n.name} ({nodeSubnetMap[n.id] ? t('nodeshared.netsim.subnet') : t('nodeshared.netsim.noSubnet')})
               </option>
             ))}
           </select>
         </div>
 
         <div style={styles.formGroupShort}>
-          <label style={styles.label}>Dest Port</label>
+          <label style={styles.label}>{t('nodeshared.netsim.destPort')}</label>
           <input 
             type="text" 
             value={port}
             onChange={(e) => setPort(e.target.value)}
-            placeholder="e.g. 80, 5432"
+            placeholder={t('nodeshared.netsim.portPlaceholder')}
             style={styles.input}
           />
         </div>
 
         <button onClick={handleSimulate} style={styles.simulateBtn}>
-          Test Packet
+          {t('nodeshared.netsim.testPacket')}
         </button>
 
         {simulationResult && (

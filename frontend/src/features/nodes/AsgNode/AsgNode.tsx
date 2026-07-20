@@ -1,4 +1,5 @@
 import { Layers, Settings } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 import BaseNode from '../components/BaseNode';
 import styles from '../ServiceNode.module.css';
 
@@ -32,6 +33,7 @@ interface AsgNodeProps {
 }
 
 export default function AsgNode({ data }: AsgNodeProps) {
+  const { t } = useTranslation();
   const isRunning = data.state === 'running';
 
   return (
@@ -46,8 +48,8 @@ export default function AsgNode({ data }: AsgNodeProps) {
       hideHandles={true}
       subtitle={
         <>
-          <span className={styles.label}>Instances:</span>
-          <span className={styles.value}>{data.instanceCount || 0} Running</span>
+          <span className={styles.label}>{t('nodeviz.instances')}</span>
+          <span className={styles.value}>{t('nodeviz.countRunning', { count: data.instanceCount || 0 })}</span>
         </>
       }
       onStart={data.onStart}
@@ -55,11 +57,11 @@ export default function AsgNode({ data }: AsgNodeProps) {
       onDelete={data.onDelete}
       onRename={data.onRename}
       primaryAction={{
-        label: 'Inspect',
+        label: t('nodeviz.inspect'),
         icon: <Settings size={14} />,
         color: '#EC4899',
         onClick: data.onInspect,
-        title: 'Configure ASG settings & inspect instance replicas',
+        title: t('nodeviz.asgInspectTitle'),
       }}
     />
   );

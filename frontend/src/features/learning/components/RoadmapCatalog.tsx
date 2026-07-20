@@ -8,12 +8,21 @@ interface RoadmapCatalogProps {
 }
 
 export default function RoadmapCatalog({ onOpen }: RoadmapCatalogProps) {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const { summaries, loading, error, fetchRoadmaps } = useRoadmaps();
 
   useEffect(() => {
     fetchRoadmaps();
   }, [fetchRoadmaps]);
+
+  // Only surface roadmaps authored in the active UI language: an English user
+  // sees English roadmaps only. Compare on the base subtag so 'en-US' still
+  // matches an 'en' roadmap. Re-evaluated on every render, so toggling the
+  // language in the topbar re-filters the catalogue immediately.
+  const uiLanguage = i18n.language.split('-')[0];
+  const visibleSummaries = summaries.filter(
+    summary => summary.language.split('-')[0] === uiLanguage
+  );
 
   if (loading) {
     return <div style={styles.status}>{t('learning.catalog.loading')}</div>;
@@ -30,13 +39,13 @@ export default function RoadmapCatalog({ onOpen }: RoadmapCatalogProps) {
     );
   }
 
-  if (summaries.length === 0) {
+  if (visibleSummaries.length === 0) {
     return <div style={styles.status}>{t('learning.catalog.empty')}</div>;
   }
 
   return (
     <div style={styles.list}>
-      {summaries.map(summary => (
+      {visibleSummaries.map(summary => (
         <button
           key={`${summary.id}-${summary.language}`}
           onClick={() => onOpen(summary)}
@@ -44,7 +53,6 @@ export default function RoadmapCatalog({ onOpen }: RoadmapCatalogProps) {
         >
           <div style={styles.cardHeader}>
             <span style={styles.cardTitle}>{summary.title}</span>
-            <span style={styles.languageBadge}>{summary.language.toUpperCase()}</span>
           </div>
           <span style={styles.cardDescription}>{summary.description}</span>
           <div style={styles.cardMeta}>
@@ -111,15 +119,6 @@ const styles: Record<string, React.CSSProperties> = {
     fontSize: '13px',
     fontWeight: 600,
     color: 'var(--color-text-primary)',
-  },
-  languageBadge: {
-    fontSize: '10px',
-    fontWeight: 700,
-    color: 'var(--color-text-muted)',
-    border: '1px solid var(--border-color)',
-    borderRadius: '4px',
-    padding: '1px 5px',
-    flexShrink: 0,
   },
   cardDescription: {
     fontSize: '11px',

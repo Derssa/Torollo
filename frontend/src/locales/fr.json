@@ -5,7 +5,8 @@
     "saveGraph": "Enregistrer le Graphe",
     "backToProjects": "Retour aux Projets",
     "refreshNodes": "Actualiser les Nœuds",
-    "learning": "Apprentissage"
+    "learning": "Apprentissage",
+    "toggleLanguage": "Changer de langue"
   },
   "learning": {
     "panelTitle": "Apprentissage",
@@ -76,7 +77,12 @@
     "open": "Ouvrir",
     "delete": "Supprimer",
     "storeRecovered": "Votre fichier de projets était illisible et a dû être réinitialisé. Le fichier illisible a été conservé sous projects.json.corrupt dans votre dossier .torollo.",
-    "dismissNotice": "Fermer l'avertissement"
+    "dismissNotice": "Fermer l'avertissement",
+    "emptyTitle": "Aucun projet pour l'instant",
+    "emptyDesc": "Cliquez sur « Nouveau projet » pour créer votre première stack d'infrastructure.",
+    "deleting": "Suppression...",
+    "deleteProjectTooltip": "Supprimer le projet",
+    "openStack": "Ouvrir la stack"
   },
   "vpc": {
     "titleInfo": "Paramètres VPC du Projet",
@@ -481,6 +487,225 @@
       "example": "Exemple d'Utilisation",
       "copied": "Copié !",
       "copy": "Copier"
+    }
+  },
+  "common": {
+    "delete": "Supprimer",
+    "rename": "Renommer",
+    "deleteContainerTitle": "Supprimer le conteneur",
+    "deleteContainerMessage": "Cela arrêtera et supprimera définitivement ce conteneur. Cette action est irréversible.",
+    "renameNodeTitle": "Renommer le nœud",
+    "renameNodeLabel": "Saisissez un nouveau nom pour ce nœud.",
+    "cancel": "Annuler",
+    "confirm": "Confirmer",
+    "deleting": "Suppression...",
+    "creating": "Création...",
+    "create": "Créer",
+    "genericError": "Une erreur s'est produite",
+    "dockerUnavailable": "Démon Docker injoignable — démarrez Docker et le lab se reconnectera automatiquement.",
+    "deleteConnection": "Supprimer la connexion"
+  },
+  "toasts": {
+    "subnetDeleteBlocked": "Impossible de supprimer le sous-réseau : déplacez ou supprimez d'abord tous les nœuds qu'il contient.",
+    "subnetDeleted": "Sous-réseau supprimé avec succès",
+    "gridShrinkBlocked": "Impossible de réduire la grille. Retirez le nœud nommé « {{name}} » pour pouvoir réduire la taille.",
+    "firewallConnectionRemoved": "Connexion du pare-feu supprimée",
+    "sgAllTraffic": "tout le trafic",
+    "sgPort": "Port {{port}}",
+    "sgAllowedInbound": "Groupe de sécurité : {{traffic}} autorisé en entrée depuis {{source}}",
+    "firewallRuleRemoved": "Règle de pare-feu supprimée",
+    "graphSaved": "Disposition du graphe enregistrée avec succès",
+    "nodeExists": "Un nœud nommé « {{name}} » existe déjà dans ce projet.",
+    "nodeAlreadyNamed": "Le nœud s'appelle déjà « {{name}} ».",
+    "renameFailedGeneric": "Échec du renommage.",
+    "renameFailedServer": "Échec du renommage : serveur injoignable.",
+    "nodeRenamed": "Nœud renommé en « {{name}} »",
+    "subnetNestingInvalid": "Placement invalide : les sous-réseaux ne peuvent pas être imbriqués dans d'autres sous-réseaux.",
+    "nodeRemovedFromSubnet": "Nœud « {{node}} » retiré du sous-réseau « {{subnet}} »",
+    "nodeAddedToSubnet": "Nœud « {{node}} » ajouté au sous-réseau « {{subnet}} »",
+    "nodesMustResideInSubnet": "Les nœuds doivent se trouver dans un sous-réseau.",
+    "asgTemplateDeleteBlocked": "Impossible de supprimer le nœud « {{name}} » : il sert de modèle à un groupe d'auto-scaling actif. Arrêtez d'abord l'ASG.",
+    "subnetFallback": "Sous-réseau",
+    "nodeFallback": "Nœud",
+    "nodeCreated": "Nœud « {{name}} » créé avec succès",
+    "nodeCreateFailed": "Échec de la création du nœud « {{name}} »",
+    "nodeCreateError": "Erreur lors de la création du nœud conteneur",
+    "containerStartFailed": "Échec du démarrage du conteneur",
+    "containerStartUnreachable": "Serveur injoignable pour démarrer le conteneur",
+    "containerStopFailed": "Échec de l'arrêt du conteneur",
+    "containerStopUnreachable": "Serveur injoignable pour arrêter le conteneur",
+    "containerDeleted": "Conteneur supprimé",
+    "containerDeleteFailed": "Échec de la suppression du conteneur",
+    "containerDeleteUnreachable": "Serveur injoignable pour supprimer le conteneur"
+  },
+  "audit": {
+    "nodeMissingSubnet": "Le nœud « {{name}} » est affecté à un sous-réseau qui n'existe pas.",
+    "dataStorePublicSubnet": "Le magasin de données « {{name}} » se trouve dans un sous-réseau public. Par sécurité, les magasins de données devraient rester dans des sous-réseaux privés.",
+    "dataStorePublicExposure": "Le magasin de données « {{name}} » est exposé à l'Internet public (0.0.0.0/0) dans son groupe de sécurité.",
+    "noCachingTier": "Aucune couche de cache (par ex. Redis ou Memcached) détectée. Envisagez d'en ajouter une pour optimiser la charge de la base de données.",
+    "directPublicToDb": "La base de données « {{db}} » reçoit des connexions directes du nœud public « {{src}} ». Le trafic devrait passer par une couche applicative back-end.",
+    "secure3Tier": "Architecture VPC 3-tiers sécurisée détectée ! (Passerelle publique -> Serveur d'application privé -> Base de données privée isolée)",
+    "vpcValid": "Le réseau VPC est entièrement valide et respecte les règles de sécurité de base en conception système !"
+  },
+  "nodeviz": {
+    "inspect": "Inspecter",
+    "configure": "Configurer",
+    "ipAddress": "Adresse IP :",
+    "ipPort": "IP/Port :",
+    "private": "Privée",
+    "instances": "Réplicas :",
+    "countRunning": "{{count}} en cours d'exécution",
+    "asgInspectTitle": "Configurer les paramètres de l'ASG et inspecter les réplicas d'instances",
+    "loadBalancerConfigTitle": "Configurer les règles et cibles du répartiteur de charge",
+    "infoGuide": "Infos et guide",
+    "natInfoGuideTitle": "Voir les détails et le guide de la passerelle NAT",
+    "inspectDatabaseTitle": "Inspecter l'explorateur de base de données / le shell",
+    "inspectRedisTitle": "Inspecter les clés Redis / le shell",
+    "terminal": "Terminal",
+    "openTerminal": "Ouvrir le terminal",
+    "publicSubnet": "Sous-réseau public",
+    "privateSubnet": "Sous-réseau privé",
+    "grid": "Grille :",
+    "reduceColumns": "Réduire les colonnes",
+    "increaseColumns": "Augmenter les colonnes",
+    "reduceRows": "Réduire les rangées",
+    "increaseRows": "Augmenter les rangées",
+    "manageRoutingTable": "Gérer la table de routage du sous-réseau",
+    "routes": "Routes",
+    "deleteSubnet": "Supprimer le sous-réseau",
+    "vpcLabel": "VPC : {{name}}",
+    "configureVpcTitle": "Configurer le VPC / simulateur réseau",
+    "deleteVpc": "Supprimer le VPC",
+    "dropZone": "DÉPOSEZ DES SOUS-RÉSEAUX OU SERVICES ICI"
+  },
+  "nodeshared": {
+    "base": {
+      "renameStopFirst": "Arrêtez le service pour renommer ce nœud",
+      "renameNode": "Renommer le nœud",
+      "securityGroupTitle": "Configurer le groupe de sécurité (pare-feu)",
+      "online": "En ligne",
+      "error": "Erreur",
+      "offline": "Hors ligne",
+      "stopNode": "Arrêter le nœud",
+      "startNode": "Démarrer le nœud",
+      "start": "Démarrer",
+      "deleteNode": "Supprimer le nœud"
+    },
+    "schema": {
+      "offlineUnreachable": "Base de données hors ligne/injoignable"
+    },
+    "resources": {
+      "baseline": "Base de données fonctionnant avec les ressources de base : 1 vCPU, 512 Mo de mémoire, 50 Go de stockage. Gère un débit de requêtes standard.",
+      "impactUpStorageUp": "la base de données peut désormais gérer plus de requêtes/transactions simultanées et stocker plus de données (disque persistant étendu).",
+      "impactDownStorageDown": "la base de données gérera désormais moins de requêtes (risque accru de throttling CPU/mémoire) et stockera moins de données (espace de stockage réduit).",
+      "impactUpStorageDown": "la base de données peut désormais gérer plus de requêtes (meilleures performances des requêtes) mais stockera moins de données en raison de la limite de stockage réduite.",
+      "impactDownStorageUp": "le serveur de base de données gérera désormais moins de requêtes (capacité de traitement plus lente) mais peut stocker plus de données persistantes.",
+      "impactUp": "la base de données peut désormais gérer plus de requêtes et traiter les requêtes plus rapidement.",
+      "impactDown": "la base de données gérera désormais moins de requêtes et connaîtra une latence accrue en charge.",
+      "impactStorageUp": "la base de données peut désormais stocker plus de données grâce à la capacité disque étendue.",
+      "impactStorageDown": "la capacité de stockage de la base de données est désormais réduite.",
+      "impactNone": "aucune limite de ressources n'a été modifiée.",
+      "scalingLog": "MISE À JOUR DE MISE À L'ÉCHELLE DES RESSOURCES : limites verticales appliquées. Configuré : CPU={{cpu}} cœurs, mémoire={{ram}} Mo, stockage={{storage}} Go. Impact : {{impact}}",
+      "limitsApplied": "Limites appliquées ! Impact : {{impact}}"
+    },
+    "netsim": {
+      "simulationError": "Erreur de simulation",
+      "selectBothNodes": "Veuillez sélectionner les nœuds source et destination.",
+      "loopbackConnection": "Connexion en boucle locale",
+      "loopbackDetails": "La connexion en boucle locale (localhost) est toujours autorisée.",
+      "nodesNotFound": "Les nœuds sélectionnés sont introuvables.",
+      "connectionBlocked": "Connexion bloquée",
+      "differentVpcs": "Bloqué : les nœuds sont dans des VPC différents. Le trafic inter-VPC est isolé par défaut.",
+      "noVpc": "Bloqué : les nœuds doivent être affectés à des sous-réseaux dans un VPC pour communiquer.",
+      "connectionAllowed": "Connexion autorisée",
+      "allowedByRule": "Autorisé par la règle : entrant ALLOW port {{port}} depuis {{source}}.",
+      "anywhere": "N'importe où",
+      "authorizedSource": "source autorisée",
+      "blockedBySecurityGroup": "Bloqué par le groupe de sécurité",
+      "implicitDeny": "Refus implicite : aucune règle de groupe de sécurité sur « {{dest}} » n'autorise le trafic entrant sur le port {{port}} depuis « {{source}} ».",
+      "title": "Simulateur de route de trafic",
+      "sourceNode": "Nœud source",
+      "destinationNode": "Nœud de destination",
+      "destPort": "Port de destination",
+      "selectSource": "-- Sélectionner la source --",
+      "selectDestination": "-- Sélectionner la destination --",
+      "subnet": "Sous-réseau",
+      "noSubnet": "Aucun sous-réseau",
+      "portPlaceholder": "ex. 80, 5432",
+      "testPacket": "Tester le paquet"
+    }
+  },
+  "nodeLibrary": {
+    "title": "Bibliothèque de nœuds",
+    "search": "Rechercher des nœuds...",
+    "expand": "Développer la barre latérale",
+    "collapse": "Réduire la barre latérale",
+    "noMatch": "Aucun nœud correspondant",
+    "dragNode": "Glisser {{name}}",
+    "categories": {
+      "networking": "Réseau",
+      "compute": "Calcul",
+      "databases": "Bases de données"
+    },
+    "types": {
+      "subnet-public": {
+        "name": "Sous-réseau public",
+        "desc": "Autorise l'accès public"
+      },
+      "subnet-private": {
+        "name": "Sous-réseau privé",
+        "desc": "Instances internes uniquement"
+      },
+      "nat": {
+        "name": "Passerelle NAT",
+        "desc": "Routage sortant vers Internet"
+      },
+      "loadbalancer": {
+        "name": "Répartiteur de charge",
+        "desc": "Proxy HTTP entrant"
+      },
+      "ubuntu": {
+        "name": "Serveur",
+        "desc": "Shell de terminal standard"
+      },
+      "autoscalinggroup": {
+        "name": "Groupe d'auto-scaling",
+        "desc": "Pool d'instances dynamique"
+      },
+      "postgres": {
+        "name": "Base de données SQL",
+        "desc": "BD relationnelle + Shell"
+      },
+      "nosql": {
+        "name": "Base de données NoSQL",
+        "desc": "BD documentaire + Shell"
+      },
+      "redis": {
+        "name": "Cache",
+        "desc": "Cache clé-valeur en mémoire"
+      }
+    },
+    "createNode": {
+      "label": "Donnez un nom descriptif à votre nouveau conteneur.",
+      "submit": "Créer le nœud",
+      "titles": {
+        "ubuntu": "Créer un nœud Ubuntu",
+        "postgres": "Créer un nœud Base de données SQL",
+        "nosql": "Créer un nœud Base de données NoSQL",
+        "redis": "Créer un nœud Cache",
+        "nat": "Créer un nœud Passerelle NAT",
+        "loadbalancer": "Créer un nœud Répartiteur de charge",
+        "autoscalinggroup": "Créer un nœud Groupe d'auto-scaling"
+      },
+      "placeholders": {
+        "ubuntu": "ex. server-1",
+        "postgres": "ex. sql-1",
+        "nosql": "ex. nosql-1",
+        "redis": "ex. redis-1",
+        "nat": "ex. nat-1",
+        "loadbalancer": "ex. alb-1",
+        "autoscalinggroup": "ex. asg-1"
+      }
     }
   }
 }

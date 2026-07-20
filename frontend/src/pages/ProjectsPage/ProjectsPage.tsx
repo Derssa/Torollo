@@ -111,8 +111,8 @@ export default function ProjectsPage({ onSelectProject }: ProjectsPageProps) {
         <div style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
           <button 
             onClick={toggleLanguage} 
-            style={{...styles.createBtn, background: 'var(--bg-surface-solid)', color: 'var(--color-text-primary)', border: '1px solid var(--border-color)', padding: '0 12px'}} 
-            title="Toggle Language"
+            style={{...styles.createBtn, background: 'var(--bg-surface-solid)', color: 'var(--color-text-primary)', border: '1px solid var(--border-color)', padding: '0 12px'}}
+            title={t('topbar.toggleLanguage')}
           >
             {i18n.language.toUpperCase()}
           </button>

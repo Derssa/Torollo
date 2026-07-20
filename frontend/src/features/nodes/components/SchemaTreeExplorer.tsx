@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { Database, Table, Columns, RefreshCw, AlertCircle, Eye, Loader2 } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 import { inspectorStyles } from './inspectorStyles';
 
 export interface DBColumn {
@@ -53,6 +54,7 @@ export default function SchemaTreeExplorer({
   initialExpandedDb,
   labels,
 }: SchemaTreeExplorerProps) {
+  const { t } = useTranslation();
   const [expandedDBs, setExpandedDBs] = useState<Record<string, boolean>>({ [initialExpandedDb]: true });
   const [expandedTables, setExpandedTables] = useState<Record<string, boolean>>({});
 
@@ -96,7 +98,7 @@ export default function SchemaTreeExplorer({
               <Database size={16} color="#3B82F6" style={{ marginRight: 8 }} />
               <span style={styles.dbName}>{node.database}</span>
               {node.error && (
-                <span title="Database offline/unreachable">
+                <span title={t('nodeshared.schema.offlineUnreachable')}>
                   <AlertCircle size={14} color="#EF4444" style={{ marginLeft: 8 }} />
                 </span>
               )}

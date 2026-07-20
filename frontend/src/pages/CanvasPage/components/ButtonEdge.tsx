@@ -1,6 +1,7 @@
 import React from 'react';
 import { BaseEdge, EdgeLabelRenderer, getBezierPath } from '@xyflow/react';
 import type { EdgeProps } from '@xyflow/react';
+import { useTranslation } from 'react-i18next';
 
 export default function ButtonEdge({
   id,
@@ -15,6 +16,7 @@ export default function ButtonEdge({
   label,
   data
 }: EdgeProps) {
+  const { t } = useTranslation();
   const [edgePath, labelX, labelY] = getBezierPath({
     sourceX,
     sourceY,
@@ -71,7 +73,7 @@ export default function ButtonEdge({
               padding: 0,
               fontWeight: 'bold',
             }}
-            title="Delete Connection"
+            title={t('common.deleteConnection')}
           >
             ✕
           </button>

@@ -1,4 +1,5 @@
 import { useState, useCallback, useRef } from 'react';
+import { useTranslation } from 'react-i18next';
 import { API_BASE } from '../types';
 import type { ContainerData } from '../types';
 import type { NotificationData } from './useToast';
@@ -14,6 +15,7 @@ interface UseContainersOptions {
  * against the backend API, scoped to a specific project.
  */
 export function useContainers({ projectId, onNotify }: UseContainersOptions) {
+  const { t } = useTranslation();
   const [containers, setContainers] = useState<ContainerData[]>([]);
   const [loading, setLoading] = useState(false);
   const [creating, setCreating] = useState(false);
@@ -72,19 +74,19 @@ export function useContainers({ projectId, onNotify }: UseContainersOptions) {
         body: JSON.stringify({ name, type, subnetId }),
       });
       if (res.ok) {
-        onNotify?.({ type: 'success', message: `Node "${name}" created successfully` });
+        onNotify?.({ type: 'success', message: t('toasts.nodeCreated', { name }) });
         fetchContainers();
       } else {
-        const message = await readErrorMessage(res, `Failed to create node "${name}"`);
+        const message = await readErrorMessage(res, t('toasts.nodeCreateFailed', { name }));
         onNotify?.({ type: 'error', message });
       }
     } catch (err) {
       console.error(err);
-      onNotify?.({ type: 'error', message: 'Error creating container node' });
+      onNotify?.({ type: 'error', message: t('toasts.nodeCreateError') });
     } finally {
       setCreating(false);
     }
-  }, [baseUrl, fetchContainers, onNotify]);
+  }, [baseUrl, fetchContainers, onNotify, t]);
 
   const startContainer = useCallback(async (id: string) => {
     try {
@@ -93,15 +95,15 @@ export function useContainers({ projectId, onNotify }: UseContainersOptions) {
         clearOpError(id);
         fetchContainers();
       } else {
-        const message = await readErrorMessage(res, 'Failed to start the container');
+        const message = await readErrorMessage(res, t('toasts.containerStartFailed'));
         setOpError(id, message);
         onNotify?.({ type: 'error', message });
       }
     } catch (err) {
       console.error(err);
-      onNotify?.({ type: 'error', message: 'Could not reach the server to start the container' });
+      onNotify?.({ type: 'error', message: t('toasts.containerStartUnreachable') });
     }
-  }, [baseUrl, fetchContainers, onNotify, setOpError, clearOpError]);
+  }, [baseUrl, fetchContainers, onNotify, setOpError, clearOpError, t]);
 
   const stopContainer = useCallback(async (id: string) => {
     try {
@@ -110,15 +112,15 @@ export function useContainers({ projectId, onNotify }: UseContainersOptions) {
         clearOpError(id);
         fetchContainers();
       } else {
-        const message = await readErrorMessage(res, 'Failed to stop the container');
+        const message = await readErrorMessage(res, t('toasts.containerStopFailed'));
         setOpError(id, message);
         onNotify?.({ type: 'error', message });
       }
     } catch (err) {
       console.error(err);
-      onNotify?.({ type: 'error', message: 'Could not reach the server to stop the container' });
+      onNotify?.({ type: 'error', message: t('toasts.containerStopUnreachable') });
     }
-  }, [baseUrl, fetchContainers, onNotify, setOpError, clearOpError]);
+  }, [baseUrl, fetchContainers, onNotify, setOpError, clearOpError, t]);
 
   const deleteContainer = useCallback(async (id: string) => {
     try {
@@ -126,19 +128,19 @@ export function useContainers({ projectId, onNotify }: UseContainersOptions) {
       if (res.ok) {
         setContainers(prev => prev.filter(c => c.id !== id));
         clearOpError(id);
-        onNotify?.({ type: 'success', message: 'Container deleted' });
+        onNotify?.({ type: 'success', message: t('toasts.containerDeleted') });
         fetchContainers();
         return true;
       }
-      const message = await readErrorMessage(res, 'Failed to delete the container');
+      const message = await readErrorMessage(res, t('toasts.containerDeleteFailed'));
       setOpError(id, message);
       onNotify?.({ type: 'error', message });
     } catch (err) {
       console.error(err);
-      onNotify?.({ type: 'error', message: 'Could not reach the server to delete the container' });
+      onNotify?.({ type: 'error', message: t('toasts.containerDeleteUnreachable') });
     }
     return false;
-  }, [baseUrl, fetchContainers, onNotify, setOpError, clearOpError]);
+  }, [baseUrl, fetchContainers, onNotify, setOpError, clearOpError, t]);
 
   return {
     containers,

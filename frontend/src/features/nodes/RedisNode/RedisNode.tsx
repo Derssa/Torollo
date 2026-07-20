@@ -1,4 +1,5 @@
 import { Database, Search } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 import BaseNode from '../components/BaseNode';
 import styles from '../ServiceNode.module.css';
 
@@ -19,6 +20,7 @@ interface RedisNodeProps {
 }
 
 export default function RedisNode({ data }: RedisNodeProps) {
+  const { t } = useTranslation();
   const isRunning = data.state === 'running';
 
   return (
@@ -31,7 +33,7 @@ export default function RedisNode({ data }: RedisNodeProps) {
       customBorder={isRunning ? '1px solid #DC2626' : undefined}
       subtitle={
         <>
-          <span className={styles.label}>IP/Port:</span>
+          <span className={styles.label}>{t('nodeviz.ipPort')}</span>
           <span className={styles.value} style={{ color: data.ip ? '#10B981' : undefined }}>{data.ip ? `${data.ip}:6379` : '6379'}</span>
         </>
       }
@@ -41,11 +43,11 @@ export default function RedisNode({ data }: RedisNodeProps) {
       onRename={data.onRename}
       onSecurityGroupOpen={data.onSecurityGroupOpen}
       primaryAction={{
-        label: 'Inspect',
+        label: t('nodeviz.inspect'),
         icon: <Search size={14} />,
         color: '#DC2626', // Redis Red
         onClick: data.onInspect,
-        title: 'Inspect Redis Keys / Shell',
+        title: t('nodeviz.inspectRedisTitle'),
       }}
     />
   );

@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import Modal from './Modal';
 import { AlertTriangle, Loader2 } from 'lucide-react';
 
@@ -14,11 +15,12 @@ interface ConfirmModalProps {
 export default function ConfirmModal({
   title,
   message,
-  confirmText = 'Confirm',
+  confirmText,
   variant = 'default',
   onConfirm,
   onCancel,
 }: ConfirmModalProps) {
+  const { t } = useTranslation();
   const [isDeleting, setIsDeleting] = useState(false);
   const isDanger = variant === 'danger';
 
@@ -47,7 +49,7 @@ export default function ConfirmModal({
       <h3 style={styles.title}>{title}</h3>
       <p style={styles.message}>{message}</p>
       <div style={styles.actions}>
-        <button onClick={onCancel} style={styles.cancelBtn} disabled={isDeleting}>Cancel</button>
+        <button onClick={onCancel} style={styles.cancelBtn} disabled={isDeleting}>{t('common.cancel')}</button>
         <button onClick={handleConfirm} disabled={isDeleting} style={{
           ...styles.confirmBtn,
           background: isDanger ? 'var(--color-danger)' : 'var(--color-accent)',
@@ -61,9 +63,9 @@ export default function ConfirmModal({
           {isDeleting ? (
             <>
               <Loader2 size={14} className="spin" />
-              Deleting...
+              {t('common.deleting')}
             </>
-          ) : confirmText}
+          ) : (confirmText ?? t('common.confirm'))}
         </button>
       </div>
     </Modal>

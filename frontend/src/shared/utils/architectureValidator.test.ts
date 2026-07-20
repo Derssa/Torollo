@@ -23,7 +23,7 @@ describe('validateArchitecture', () => {
 
     const result = validateArchitecture(config, [node]);
 
-    expect(result.errors).toContain('Node "App Server" is assigned to a subnet that does not exist.');
+    expect(result.errors).toContainEqual({ key: 'nodeMissingSubnet', params: { name: 'App Server' } });
   });
 
   it('does not error when a node maps to a vpc- prefixed id (not a subnet)', () => {
@@ -44,7 +44,7 @@ describe('validateArchitecture', () => {
 
     const result = validateArchitecture(config, [db]);
 
-    expect(result.warnings).toContain('Data store "Primary DB" is in a public subnet. For safety, data store instances should be kept in private subnets.');
+    expect(result.warnings).toContainEqual({ key: 'dataStorePublicSubnet', params: { name: 'Primary DB' } });
   });
 
   it('does not warn about public subnet placement for non-sensitive node types', () => {
@@ -69,7 +69,7 @@ describe('validateArchitecture', () => {
 
     const result = validateArchitecture(config, [db]);
 
-    expect(result.warnings).toContain('Data store "Cache" is exposed to the public internet (0.0.0.0/0) in its security group.');
+    expect(result.warnings).toContainEqual({ key: 'dataStorePublicExposure', params: { name: 'Cache' } });
   });
 
   it('does not warn about public exposure when the matching rule is outbound', () => {
@@ -90,7 +90,7 @@ describe('validateArchitecture', () => {
 
     const result = validateArchitecture(baseConfig(), [db]);
 
-    expect(result.warnings).toContain('No caching tier (e.g., Redis or Memcached) detected. Consider adding one to optimize database loads.');
+    expect(result.warnings).toContainEqual({ key: 'noCachingTier' });
   });
 
   it('does not warn about a missing caching tier when a redis node is present', () => {
@@ -99,7 +99,7 @@ describe('validateArchitecture', () => {
 
     const result = validateArchitecture(baseConfig(), [db, cache]);
 
-    expect(result.warnings).not.toContain('No caching tier (e.g., Redis or Memcached) detected. Consider adding one to optimize database loads.');
+    expect(result.warnings).not.toContainEqual({ key: 'noCachingTier' });
   });
 
   it('does not warn about a missing caching tier when there is no database at all', () => {
@@ -123,9 +123,10 @@ describe('validateArchitecture', () => {
 
     const result = validateArchitecture(config, [gateway, db]);
 
-    expect(result.warnings).toContain(
-      'Database "Primary DB" receives direct connections from public-facing node "api-gateway". Traffic should go through a backend application layer.'
-    );
+    expect(result.warnings).toContainEqual({
+      key: 'directPublicToDb',
+      params: { db: 'Primary DB', src: 'api-gateway' },
+    });
   });
 
   it('reports a secure 3-tier success when frontend -> backend -> db flow is properly isolated', () => {
@@ -146,9 +147,7 @@ describe('validateArchitecture', () => {
 
     const result = validateArchitecture(config, [frontend, backend, db]);
 
-    expect(result.successes).toContain(
-      'Secure 3-Tier VPC Architecture detected! (Public Gateway -> Private App Server -> Private Isolated Database)'
-    );
+    expect(result.successes).toContainEqual({ key: 'secure3Tier' });
   });
 
   it('produces the generic success message when a valid multi-node config has no errors or warnings', () => {
@@ -159,7 +158,7 @@ describe('validateArchitecture', () => {
 
     expect(result.errors).toEqual([]);
     expect(result.warnings).toEqual([]);
-    expect(result.successes).toContain('VPC Network is fully valid and adheres to basic system design security guidelines!');
+    expect(result.successes).toContainEqual({ key: 'vpcValid' });
   });
 
   it('produces no successes for an empty container list', () => {

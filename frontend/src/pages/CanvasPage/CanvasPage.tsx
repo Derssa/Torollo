@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useCallback, useRef, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { ReactFlow, Background, Controls, BackgroundVariant, useNodesState } from '@xyflow/react';
 import type { Node, Edge, ReactFlowInstance, Connection } from '@xyflow/react';
 import '@xyflow/react/dist/style.css';
@@ -55,6 +56,7 @@ const INSPECTOR_KIND_BY_NODE_TYPE: Record<string, InspectorState['kind']> = {
 };
 
 export default function CanvasPage({ projectId, projectName, onBackToProjects, onTerminalOpen }: CanvasPageProps) {
+  const { t } = useTranslation();
   const { toast, showNotification, showToast, dismissToast } = useToast();
 
   const {
@@ -143,7 +145,7 @@ export default function CanvasPage({ projectId, projectName, onBackToProjects, o
     if (hasNodes) {
       showNotification({
         type: 'error',
-        message: 'Cannot delete subnet: Move or delete all nodes inside the subnet first.'
+        message: t('toasts.subnetDeleteBlocked')
       });
       return;
     }
@@ -155,9 +157,9 @@ export default function CanvasPage({ projectId, projectName, onBackToProjects, o
     });
     const newConfig = { ...networkConfig, subnets: updatedSubnets, nodeSubnetMap: updatedNodeSubnetMap };
     saveNetworkConfig(newConfig);
-    showToast("Subnet deleted successfully");
+    showToast(t('toasts.subnetDeleted'));
     triggerArchitectureAudit(newConfig);
-  }, [networkConfig, saveNetworkConfig, showToast, triggerArchitectureAudit, showNotification]);
+  }, [networkConfig, saveNetworkConfig, showToast, triggerArchitectureAudit, showNotification, t]);
 
   const handleSubnetResize = useCallback((subnetId: string, dimension: 'columns' | 'rows', newValue: number) => {
     if (dimension === 'columns' && newValue < 2) return;
@@ -184,7 +186,7 @@ export default function CanvasPage({ projectId, projectName, onBackToProjects, o
           if (col >= targetCols || row >= targetRows) {
             showNotification({
               type: 'error',
-              message: `Cannot shrink grid. You should remove the node with name '${node.name}' to be able to reduce the size`
+              message: t('toasts.gridShrinkBlocked', { name: node.name })
             });
             return;
           }
@@ -209,7 +211,7 @@ export default function CanvasPage({ projectId, projectName, onBackToProjects, o
     const newConfig = { ...networkConfig, subnets: updatedSubnets };
     saveNetworkConfig(newConfig);
     triggerArchitectureAudit(newConfig);
-  }, [networkConfig, containers, saveNetworkConfig, triggerArchitectureAudit, showNotification]);
+  }, [networkConfig, containers, saveNetworkConfig, triggerArchitectureAudit, showNotification, t]);
 
   const handleDeleteEdge = useCallback((edgeId: string) => {
     const parsed = parseEdgeId(edgeId);
@@ -219,9 +221,9 @@ export default function CanvasPage({ projectId, projectName, onBackToProjects, o
     if (!newConfig) return;
 
     saveNetworkConfig(newConfig);
-    showToast("Firewall connection removed");
+    showToast(t('toasts.firewallConnectionRemoved'));
     triggerArchitectureAudit(newConfig);
-  }, [networkConfig, saveNetworkConfig, showToast, triggerArchitectureAudit]);
+  }, [networkConfig, saveNetworkConfig, showToast, triggerArchitectureAudit, t]);
 
   // Dynamic edges representing firewall rules
   const edges = useMemo(
@@ -242,9 +244,10 @@ export default function CanvasPage({ projectId, projectName, onBackToProjects, o
 
     saveNetworkConfig(result.config);
     const sourceName = sourceNode?.name || source;
-    showToast(`Security Group: Allowed ${result.port === 'ALL' ? 'all traffic' : `Port ${result.port}`} inbound from ${sourceName}`);
+    const traffic = result.port === 'ALL' ? t('toasts.sgAllTraffic') : t('toasts.sgPort', { port: result.port });
+    showToast(t('toasts.sgAllowedInbound', { traffic, source: sourceName }));
     triggerArchitectureAudit(result.config);
-  }, [containers, networkConfig, saveNetworkConfig, showToast, triggerArchitectureAudit]);
+  }, [containers, networkConfig, saveNetworkConfig, showToast, triggerArchitectureAudit, t]);
 
   // Handle connection line deletion (removes matching firewall rule)
   const onEdgesDelete = useCallback((deletedEdges: Edge[]) => {
@@ -255,9 +258,9 @@ export default function CanvasPage({ projectId, projectName, onBackToProjects, o
     if (!newConfig) return;
 
     saveNetworkConfig(newConfig);
-    showToast("Firewall rule removed");
+    showToast(t('toasts.firewallRuleRemoved'));
     triggerArchitectureAudit(newConfig);
-  }, [networkConfig, saveNetworkConfig, showToast, triggerArchitectureAudit]);
+  }, [networkConfig, saveNetworkConfig, showToast, triggerArchitectureAudit, t]);
 
   // Load saved positions, network configurations and start polling
   useEffect(() => {
@@ -451,7 +454,7 @@ export default function CanvasPage({ projectId, projectName, onBackToProjects, o
     });
     positionsRef.current = currentPositions;
     localStorage.setItem(`akal-lab-graph-layout-${projectId}`, JSON.stringify(currentPositions));
-    showToast('Graph layout saved successfully');
+    showToast(t('toasts.graphSaved'));
   };
 
   const handleCreateNode = async (name: string) => {
@@ -459,7 +462,7 @@ export default function CanvasPage({ projectId, projectName, onBackToProjects, o
     if (exists) {
       showNotification({
         type: 'error',
-        message: `A node named "${name}" already exists in this project.`
+        message: t('toasts.nodeExists', { name })
       });
       return;
     }
@@ -499,7 +502,7 @@ export default function CanvasPage({ projectId, projectName, onBackToProjects, o
 
     // Guard against renaming to the same name
     if (trimmedNewName.toLowerCase() === currentName.toLowerCase()) {
-      showNotification({ type: 'warning', message: `The node is already named "${currentName}".` });
+      showNotification({ type: 'warning', message: t('toasts.nodeAlreadyNamed', { name: currentName }) });
       setRenamingNode(null);
       return;
     }
@@ -509,7 +512,7 @@ export default function CanvasPage({ projectId, projectName, onBackToProjects, o
       c => c.name.toLowerCase() === trimmedNewName.toLowerCase() && c.id !== id
     );
     if (exists) {
-      showNotification({ type: 'error', message: `A node named "${trimmedNewName}" already exists in this project.` });
+      showNotification({ type: 'error', message: t('toasts.nodeExists', { name: trimmedNewName }) });
       return;
     }
 
@@ -520,7 +523,7 @@ export default function CanvasPage({ projectId, projectName, onBackToProjects, o
         body: JSON.stringify({ newName: trimmedNewName }),
       });
       if (!res.ok) {
-        let message = 'Rename failed.';
+        let message = t('toasts.renameFailedGeneric');
         try {
           const data = await res.json();
           if (typeof data?.error === 'string' && data.error.trim()) {
@@ -533,12 +536,12 @@ export default function CanvasPage({ projectId, projectName, onBackToProjects, o
         return;
       }
     } catch {
-      showNotification({ type: 'error', message: 'Rename failed: could not reach the server.' });
+      showNotification({ type: 'error', message: t('toasts.renameFailedServer') });
       return;
     }
 
     setRenamingNode(null);
-    showToast(`Node renamed to "${trimmedNewName}"`);
+    showToast(t('toasts.nodeRenamed', { name: trimmedNewName }));
     await fetchContainers();
   };
 

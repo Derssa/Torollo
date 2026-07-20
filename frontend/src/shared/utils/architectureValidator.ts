@@ -4,19 +4,30 @@ import type { NetworkConfig as FullNetworkConfig } from '../types/network';
 /** The validator only reads the topology-related slice of the network config. */
 export type NetworkConfig = Pick<FullNetworkConfig, 'subnets' | 'nodeSubnetMap' | 'nodeSecurityGroups'>;
 
+/**
+ * A validation finding as a translation key plus its interpolation params,
+ * NOT a rendered string. The UI language is unknown here (this is a pure util),
+ * so the caller resolves `audit.<key>` against i18next at display time. `key`
+ * is also a stable identity the caller can dedupe on (e.g. the cache warning).
+ */
+export interface ValidationMessage {
+  key: string;
+  params?: Record<string, string | number>;
+}
+
 export interface ValidationResult {
-  errors: string[];
-  warnings: string[];
-  successes: string[];
+  errors: ValidationMessage[];
+  warnings: ValidationMessage[];
+  successes: ValidationMessage[];
 }
 
 export function validateArchitecture(
   networkConfig: NetworkConfig,
   containers: ContainerData[]
 ): ValidationResult {
-  const errors: string[] = [];
-  const warnings: string[] = [];
-  const successes: string[] = [];
+  const errors: ValidationMessage[] = [];
+  const warnings: ValidationMessage[] = [];
+  const successes: ValidationMessage[] = [];
 
   const dbTypes = ['postgres', 'sql', 'nosql', 'mysql'];
   // Data stores that should be kept private and never exposed publicly. Redis is a
@@ -31,7 +42,7 @@ export function validateArchitecture(
     if (subnetId && !subnetId.startsWith('vpc-')) {
       const subnet = networkConfig.subnets.find(s => s.id === subnetId);
       if (!subnet) {
-        errors.push(`Node "${node.name}" is assigned to a subnet that does not exist.`);
+        errors.push({ key: 'nodeMissingSubnet', params: { name: node.name } });
       }
     }
   });
@@ -46,7 +57,7 @@ export function validateArchitecture(
       if (subnetId) {
         const subnet = networkConfig.subnets.find(s => s.id === subnetId);
         if (subnet && subnet.type === 'public') {
-          warnings.push(`Data store "${node.name}" is in a public subnet. For safety, data store instances should be kept in private subnets.`);
+          warnings.push({ key: 'dataStorePublicSubnet', params: { name: node.name } });
         }
       }
     }
@@ -61,7 +72,7 @@ export function validateArchitecture(
         rule => rule.type === 'inbound' && rule.action === 'ALLOW' && rule.source === '0.0.0.0/0'
       );
       if (hasPublicAccess) {
-        warnings.push(`Data store "${node.name}" is exposed to the public internet (0.0.0.0/0) in its security group.`);
+        warnings.push({ key: 'dataStorePublicExposure', params: { name: node.name } });
       }
     }
   });
@@ -75,7 +86,7 @@ export function validateArchitecture(
     // Only warn if there's at least one DB
     const hasDb = containers.some(c => dbTypes.includes(c.type || ''));
     if (hasDb) {
-      warnings.push('No caching tier (e.g., Redis or Memcached) detected. Consider adding one to optimize database loads.');
+      warnings.push({ key: 'noCachingTier' });
     }
   }
 
@@ -100,7 +111,7 @@ export function validateArchitecture(
           const srcSubnetId = networkConfig.nodeSubnetMap[srcNode.id];
           const srcSubnet = networkConfig.subnets.find(s => s.id === srcSubnetId);
           if (isPublicFacingNode(srcNode, srcSubnet?.type)) {
-            warnings.push(`Database "${dbNode.name}" receives direct connections from public-facing node "${srcNode.name}". Traffic should go through a backend application layer.`);
+            warnings.push({ key: 'directPublicToDb', params: { db: dbNode.name, src: srcNode.name } });
           }
         }
       }
@@ -154,14 +165,14 @@ export function validateArchitecture(
       );
 
       if (!directFromFrontendToDb) {
-        successes.push('Secure 3-Tier VPC Architecture detected! (Public Gateway -> Private App Server -> Private Isolated Database)');
+        successes.push({ key: 'secure3Tier' });
       }
     }
   }
 
   // Default success if everything is healthy and configured in subnets/VPCs
   if (errors.length === 0 && warnings.length === 0 && containers.length >= 2) {
-    successes.push('VPC Network is fully valid and adheres to basic system design security guidelines!');
+    successes.push({ key: 'vpcValid' });
   }
 
   return { errors, warnings, successes };

@@ -51,7 +51,7 @@ export default function CanvasTopbar({
         <button
           onClick={toggleLanguage}
           style={{...styles.saveBtn, padding: '0 10px', minWidth: '40px'}}
-          title="Toggle Language"
+          title={t('topbar.toggleLanguage')}
         >
           {i18n.language.toUpperCase()}
         </button>

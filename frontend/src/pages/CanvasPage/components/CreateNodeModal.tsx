@@ -1,15 +1,16 @@
+import { useTranslation } from 'react-i18next';
 import InputModal from '../../../shared/components/InputModal';
 import type { ContainerData } from '../../../shared/types';
 
-const COPY_BY_TYPE: Record<string, { title: string; placeholder: string; prefix: string }> = {
-  ubuntu: { title: 'Create Ubuntu Node', placeholder: 'e.g. server-1', prefix: 'srv-' },
-  postgres: { title: 'Create SQL Database Node', placeholder: 'e.g. sql-1', prefix: 'sql-' },
-  sql: { title: 'Create SQL Database Node', placeholder: 'e.g. sql-1', prefix: 'sql-' },
-  nosql: { title: 'Create NoSQL Database Node', placeholder: 'e.g. nosql-1', prefix: 'nosql-' },
-  redis: { title: 'Create Cache Store Node', placeholder: 'e.g. redis-1', prefix: 'redis-' },
-  nat: { title: 'Create NAT Gateway Node', placeholder: 'e.g. nat-1', prefix: 'nat-' },
-  loadbalancer: { title: 'Create Load Balancer Node', placeholder: 'e.g. alb-1', prefix: 'alb-' },
-  autoscalinggroup: { title: 'Create Auto Scaling Group Node', placeholder: 'e.g. asg-1', prefix: 'asg-' },
+const META_BY_TYPE: Record<string, { titleKey: string; placeholderKey: string; prefix: string }> = {
+  ubuntu: { titleKey: 'nodeLibrary.createNode.titles.ubuntu', placeholderKey: 'nodeLibrary.createNode.placeholders.ubuntu', prefix: 'srv-' },
+  postgres: { titleKey: 'nodeLibrary.createNode.titles.postgres', placeholderKey: 'nodeLibrary.createNode.placeholders.postgres', prefix: 'sql-' },
+  sql: { titleKey: 'nodeLibrary.createNode.titles.postgres', placeholderKey: 'nodeLibrary.createNode.placeholders.postgres', prefix: 'sql-' },
+  nosql: { titleKey: 'nodeLibrary.createNode.titles.nosql', placeholderKey: 'nodeLibrary.createNode.placeholders.nosql', prefix: 'nosql-' },
+  redis: { titleKey: 'nodeLibrary.createNode.titles.redis', placeholderKey: 'nodeLibrary.createNode.placeholders.redis', prefix: 'redis-' },
+  nat: { titleKey: 'nodeLibrary.createNode.titles.nat', placeholderKey: 'nodeLibrary.createNode.placeholders.nat', prefix: 'nat-' },
+  loadbalancer: { titleKey: 'nodeLibrary.createNode.titles.loadbalancer', placeholderKey: 'nodeLibrary.createNode.placeholders.loadbalancer', prefix: 'alb-' },
+  autoscalinggroup: { titleKey: 'nodeLibrary.createNode.titles.autoscalinggroup', placeholderKey: 'nodeLibrary.createNode.placeholders.autoscalinggroup', prefix: 'asg-' },
 };
 
 interface CreateNodeModalProps {
@@ -21,22 +22,23 @@ interface CreateNodeModalProps {
 
 /** Name prompt for a dropped node, pre-filled with the first free `<prefix><n>` name. */
 export default function CreateNodeModal({ type, containers, onSubmit, onCancel }: CreateNodeModalProps) {
-  const copy = COPY_BY_TYPE[type] ?? COPY_BY_TYPE.ubuntu;
+  const { t } = useTranslation();
+  const meta = META_BY_TYPE[type] ?? META_BY_TYPE.ubuntu;
 
   let suffix = 1;
-  while (containers.some(c => c.name === `${copy.prefix}${suffix}`)) {
+  while (containers.some(c => c.name === `${meta.prefix}${suffix}`)) {
     suffix++;
   }
 
   return (
     <InputModal
-      title={copy.title}
-      label="Give your new container a descriptive name."
-      placeholder={copy.placeholder}
+      title={t(meta.titleKey)}
+      label={t('nodeLibrary.createNode.label')}
+      placeholder={t(meta.placeholderKey)}
       maxLength={20}
       restrictPattern={/[^a-zA-Z0-9-]/g}
-      defaultValue={`${copy.prefix}${suffix}`}
-      submitText="Create Node"
+      defaultValue={`${meta.prefix}${suffix}`}
+      submitText={t('nodeLibrary.createNode.submit')}
       onSubmit={onSubmit}
       onCancel={onCancel}
     />

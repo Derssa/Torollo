@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { ChevronLeft, ChevronRight, Database, Library, Network, Search, GitFork, Braces, Layers, ArrowRightLeft, Cpu } from 'lucide-react';
 
 interface NodeLibraryProps {
@@ -6,6 +7,7 @@ interface NodeLibraryProps {
 }
 
 export default function NodeLibrary({ onCollapseChange }: NodeLibraryProps) {
+  const { t } = useTranslation();
   const [isCollapsed, setIsCollapsed] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
 
@@ -22,78 +24,78 @@ export default function NodeLibrary({ onCollapseChange }: NodeLibraryProps) {
 
   const categories = [
     {
-      title: 'Networking',
+      title: t('nodeLibrary.categories.networking'),
       nodes: [
         {
           type: 'subnet-public',
-          name: 'Public Subnet',
-          desc: 'Allows public access',
+          name: t('nodeLibrary.types.subnet-public.name'),
+          desc: t('nodeLibrary.types.subnet-public.desc'),
           icon: <Network size={18} color="#10B981" />,
           collapsedIcon: <Network size={20} color="#10B981" />
         },
         {
           type: 'subnet-private',
-          name: 'Private Subnet',
-          desc: 'Internal instances only',
+          name: t('nodeLibrary.types.subnet-private.name'),
+          desc: t('nodeLibrary.types.subnet-private.desc'),
           icon: <Network size={18} color="#F59E0B" />,
           collapsedIcon: <Network size={20} color="#F59E0B" />
         },
         {
           type: 'nat',
-          name: 'NAT Gateway',
-          desc: 'Outbound internet routing',
+          name: t('nodeLibrary.types.nat.name'),
+          desc: t('nodeLibrary.types.nat.desc'),
           icon: <ArrowRightLeft size={18} color="#8B5CF6" />,
           collapsedIcon: <ArrowRightLeft size={20} color="#8B5CF6" />
         },
         {
           type: 'loadbalancer',
-          name: 'Load Balancer',
-          desc: 'Inbound HTTP proxying',
+          name: t('nodeLibrary.types.loadbalancer.name'),
+          desc: t('nodeLibrary.types.loadbalancer.desc'),
           icon: <GitFork size={18} color="#EF4444" />,
           collapsedIcon: <GitFork size={20} color="#EF4444" />
         }
       ]
     },
     {
-      title: 'Compute',
+      title: t('nodeLibrary.categories.compute'),
       nodes: [
         {
           type: 'ubuntu',
-          name: 'Server',
-          desc: 'Standard terminal shell',
+          name: t('nodeLibrary.types.ubuntu.name'),
+          desc: t('nodeLibrary.types.ubuntu.desc'),
           icon: <Cpu size={18} color="#3B82F6" />,
           collapsedIcon: <Cpu size={20} color="#3B82F6" />
         },
         {
           type: 'autoscalinggroup',
-          name: 'Auto Scaling Group',
-          desc: 'Dynamic instance pool',
+          name: t('nodeLibrary.types.autoscalinggroup.name'),
+          desc: t('nodeLibrary.types.autoscalinggroup.desc'),
           icon: <Layers size={18} color="#EC4899" />,
           collapsedIcon: <Layers size={20} color="#EC4899" />
         }
       ]
     },
     {
-      title: 'Databases',
+      title: t('nodeLibrary.categories.databases'),
       nodes: [
         {
           type: 'postgres',
-          name: 'SQL Database',
-          desc: 'Relational DB + Shell',
+          name: t('nodeLibrary.types.postgres.name'),
+          desc: t('nodeLibrary.types.postgres.desc'),
           icon: <Database size={18} color="#64748B" />,
           collapsedIcon: <Database size={20} color="#64748B" />
         },
         {
           type: 'nosql',
-          name: 'NoSQL Database',
-          desc: 'Document DB + Shell',
+          name: t('nodeLibrary.types.nosql.name'),
+          desc: t('nodeLibrary.types.nosql.desc'),
           icon: <Braces size={18} color="#475569" />,
           collapsedIcon: <Braces size={20} color="#475569" />
         },
         {
           type: 'redis',
-          name: 'Cache Store',
-          desc: 'In-memory key-value cache',
+          name: t('nodeLibrary.types.redis.name'),
+          desc: t('nodeLibrary.types.redis.desc'),
           icon: <Database size={18} color="#DC2626" />,
           collapsedIcon: <Database size={20} color="#DC2626" />
         }
@@ -118,10 +120,10 @@ export default function NodeLibrary({ onCollapseChange }: NodeLibraryProps) {
         {!isCollapsed && (
           <div style={styles.headerTitle}>
             <Library size={16} color="var(--color-accent)" style={{ marginRight: 8 }} />
-            <span>Node Library</span>
+            <span>{t('nodeLibrary.title')}</span>
           </div>
         )}
-        <button onClick={toggleCollapse} style={styles.collapseBtn} title={isCollapsed ? "Expand Sidebar" : "Collapse Sidebar"}>
+        <button onClick={toggleCollapse} style={styles.collapseBtn} title={isCollapsed ? t('nodeLibrary.expand') : t('nodeLibrary.collapse')}>
           {isCollapsed ? <ChevronLeft size={16} /> : <ChevronRight size={16} />}
         </button>
       </div>
@@ -133,7 +135,7 @@ export default function NodeLibrary({ onCollapseChange }: NodeLibraryProps) {
               <Search size={14} color="var(--color-text-muted)" style={{ marginRight: 6 }} />
               <input
                 type="text"
-                placeholder="Search nodes..."
+                placeholder={t('nodeLibrary.search')}
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 style={styles.searchInput}
@@ -164,7 +166,7 @@ export default function NodeLibrary({ onCollapseChange }: NodeLibraryProps) {
               </div>
             ))}
             {filteredCategories.length === 0 && (
-              <div style={styles.emptySearch}>No matching nodes found</div>
+              <div style={styles.emptySearch}>{t('nodeLibrary.noMatch')}</div>
             )}
           </div>
         </>
@@ -178,7 +180,7 @@ export default function NodeLibrary({ onCollapseChange }: NodeLibraryProps) {
               draggable
               onDragStart={(e) => handleDragStart(e, node.type)}
               style={styles.collapsedIconNode}
-              title={`Drag ${node.name}`}
+              title={t('nodeLibrary.dragNode', { name: node.name })}
             >
               {node.collapsedIcon}
             </div>

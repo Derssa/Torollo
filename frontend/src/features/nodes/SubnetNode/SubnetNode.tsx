@@ -1,4 +1,5 @@
 import { Eye, EyeOff, Route, Trash } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 
 interface SubnetNodeProps {
   id: string;
@@ -16,7 +17,9 @@ interface SubnetNodeProps {
 }
 
 export default function SubnetNode({ id, data }: SubnetNodeProps) {
+  const { t } = useTranslation();
   const isPublic = data.type === 'public';
+  const defaultName = isPublic ? t('nodeviz.publicSubnet') : t('nodeviz.privateSubnet');
   const isHovered = data.hoverStatus === 'valid' || data.hoverStatus === 'invalid';
   
   const defaultColor = isPublic ? '#10B981' : '#F59E0B';
@@ -110,7 +113,7 @@ export default function SubnetNode({ id, data }: SubnetNodeProps) {
         zIndex: 10,
       }}>
         {isPublic ? <Eye size={12} /> : <EyeOff size={12} />}
-        <span>{data.name || (isPublic ? 'Public Subnet' : 'Private Subnet')}</span>
+        <span>{data.name || defaultName}</span>
 
         {/* Grid Controls (Rows & Cols) */}
         <div 
@@ -125,7 +128,7 @@ export default function SubnetNode({ id, data }: SubnetNodeProps) {
           }}
           onClick={(e) => e.stopPropagation()}
         >
-          <span style={{ fontSize: '11px', opacity: 0.9 }}>Grid:</span>
+          <span style={{ fontSize: '11px', opacity: 0.9 }}>{t('nodeviz.grid')}</span>
           
           <div style={{ display: 'flex', alignItems: 'center', gap: '2px' }}>
             <button
@@ -133,7 +136,7 @@ export default function SubnetNode({ id, data }: SubnetNodeProps) {
                 if (cols > 2) data.onResize?.(id, 'columns', cols - 1);
               }}
               style={btnStyle}
-              title="Reduce Columns"
+              title={t('nodeviz.reduceColumns')}
             >
               -
             </button>
@@ -161,7 +164,7 @@ export default function SubnetNode({ id, data }: SubnetNodeProps) {
             <button
               onClick={() => data.onResize?.(id, 'columns', cols + 1)}
               style={btnStyle}
-              title="Increase Columns"
+              title={t('nodeviz.increaseColumns')}
             >
               +
             </button>
@@ -174,7 +177,7 @@ export default function SubnetNode({ id, data }: SubnetNodeProps) {
             <button
               onClick={() => data.onResize?.(id, 'rows', rows - 1)}
               style={btnStyle}
-              title="Reduce Rows"
+              title={t('nodeviz.reduceRows')}
             >
               -
             </button>
@@ -202,7 +205,7 @@ export default function SubnetNode({ id, data }: SubnetNodeProps) {
             <button
               onClick={() => data.onResize?.(id, 'rows', rows + 1)}
               style={btnStyle}
-              title="Increase Rows"
+              title={t('nodeviz.increaseRows')}
             >
               +
             </button>
@@ -214,7 +217,7 @@ export default function SubnetNode({ id, data }: SubnetNodeProps) {
       <button
         onClick={(e) => {
           e.stopPropagation();
-          data.onManageRoutes?.(id, data.name || (isPublic ? 'Public Subnet' : 'Private Subnet'));
+          data.onManageRoutes?.(id, data.name || defaultName);
         }}
         style={{
           position: 'absolute',
@@ -234,10 +237,10 @@ export default function SubnetNode({ id, data }: SubnetNodeProps) {
           boxShadow: '0 1px 2px rgba(0,0,0,0.05)',
           zIndex: 10,
         }}
-        title="Manage Subnet Routing Table"
+        title={t('nodeviz.manageRoutingTable')}
       >
         <Route size={12} />
-        <span>Routes</span>
+        <span>{t('nodeviz.routes')}</span>
       </button>
 
       <button
@@ -261,7 +264,7 @@ export default function SubnetNode({ id, data }: SubnetNodeProps) {
           boxShadow: '0 1px 2px rgba(0,0,0,0.1)',
           zIndex: 10,
         }}
-        title="Delete Subnet"
+        title={t('nodeviz.deleteSubnet')}
       >
         <Trash size={12} />
       </button>

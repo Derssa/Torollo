@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import PostgresModal from '../../../features/nodes/PostgresNode/PostgresModal';
 import NoSqlModal from '../../../features/nodes/NoSqlNode/NoSqlModal';
 import RedisModal from '../../../features/nodes/RedisNode/RedisModal';
@@ -56,6 +57,7 @@ export default function CanvasModals({
   vpcSettings,
   trafficSimulator,
 }: CanvasModalsProps) {
+  const { t } = useTranslation();
   const renderVpcModal = (initialTab: 'info' | 'simulator', onClose: () => void) => (
     <VpcModal
       vpcConfig={networkConfig.vpcConfig}
@@ -68,7 +70,7 @@ export default function CanvasModals({
         const newConfig = { ...networkConfig, vpcConfig: config };
         saveNetworkConfig(newConfig);
         onClose();
-        showToast("VPC configuration saved");
+        showToast(t('toasts.vpcConfigSaved'));
         triggerArchitectureAudit(newConfig);
       }}
       initialTab={initialTab}
@@ -88,9 +90,9 @@ export default function CanvasModals({
 
       {deleteNode && (
         <ConfirmModal
-          title="Delete Container"
-          message="This will permanently stop and remove this container. This action cannot be undone."
-          confirmText="Delete"
+          title={t('common.deleteContainerTitle')}
+          message={t('common.deleteContainerMessage')}
+          confirmText={t('common.delete')}
           variant="danger"
           onConfirm={deleteNode.onConfirm}
           onCancel={deleteNode.onCancel}
@@ -99,13 +101,13 @@ export default function CanvasModals({
 
       {renameNode && (
         <InputModal
-          title="Rename Node"
-          label="Enter a new name for this node."
+          title={t('common.renameNodeTitle')}
+          label={t('common.renameNodeLabel')}
           placeholder="e.g. api-gateway"
           maxLength={20}
           restrictPattern={/[^a-zA-Z0-9-]/g}
           defaultValue={renameNode.currentName}
-          submitText="Rename"
+          submitText={t('common.rename')}
           onSubmit={renameNode.onSubmit}
           onCancel={renameNode.onCancel}
         />
@@ -171,7 +173,7 @@ export default function CanvasModals({
               loadBalancerRoutingRules: { ...(networkConfig.loadBalancerRoutingRules || {}), [inspector.id]: routingRules }
             };
             await saveNetworkConfig(newConfig);
-            showToast("Load Balancer configuration applied");
+            showToast(t('toasts.lbConfigApplied'));
             triggerArchitectureAudit(newConfig);
           }}
         />
@@ -191,7 +193,7 @@ export default function CanvasModals({
               asgs: { ...(networkConfig.asgs || {}), [inspector.id]: asgConfig }
             };
             await saveNetworkConfig(newConfig);
-            showToast("Auto Scaling Group configuration saved");
+            showToast(t('toasts.asgConfigSaved'));
             triggerArchitectureAudit(newConfig);
           }}
           onRefreshContainers={fetchContainers}

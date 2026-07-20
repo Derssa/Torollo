@@ -5,7 +5,8 @@
     "saveGraph": "Save Graph",
     "backToProjects": "Back to Projects",
     "refreshNodes": "Refresh Nodes",
-    "learning": "Learning"
+    "learning": "Learning",
+    "toggleLanguage": "Toggle Language"
   },
   "learning": {
     "panelTitle": "Learning",
@@ -76,7 +77,12 @@
     "open": "Open",
     "delete": "Delete",
     "storeRecovered": "Your projects file could not be read and had to be reset. The unreadable file was kept as projects.json.corrupt in your .torollo folder.",
-    "dismissNotice": "Dismiss notice"
+    "dismissNotice": "Dismiss notice",
+    "emptyTitle": "No projects yet",
+    "emptyDesc": "Click \"New Project\" to create your first infrastructure stack.",
+    "deleting": "Deleting...",
+    "deleteProjectTooltip": "Delete project",
+    "openStack": "Open Stack"
   },
   "vpc": {
     "titleInfo": "Project VPC Settings",
@@ -481,6 +487,225 @@
       "example": "Example Usage",
       "copied": "Copied!",
       "copy": "Copy"
+    }
+  },
+  "common": {
+    "delete": "Delete",
+    "rename": "Rename",
+    "deleteContainerTitle": "Delete Container",
+    "deleteContainerMessage": "This will permanently stop and remove this container. This action cannot be undone.",
+    "renameNodeTitle": "Rename Node",
+    "renameNodeLabel": "Enter a new name for this node.",
+    "cancel": "Cancel",
+    "confirm": "Confirm",
+    "deleting": "Deleting...",
+    "creating": "Creating...",
+    "create": "Create",
+    "genericError": "An error occurred",
+    "dockerUnavailable": "Docker daemon unreachable — start Docker and the lab will reconnect automatically.",
+    "deleteConnection": "Delete Connection"
+  },
+  "toasts": {
+    "subnetDeleteBlocked": "Cannot delete subnet: Move or delete all nodes inside the subnet first.",
+    "subnetDeleted": "Subnet deleted successfully",
+    "gridShrinkBlocked": "Cannot shrink grid. You should remove the node with name '{{name}}' to be able to reduce the size",
+    "firewallConnectionRemoved": "Firewall connection removed",
+    "sgAllTraffic": "all traffic",
+    "sgPort": "Port {{port}}",
+    "sgAllowedInbound": "Security Group: Allowed {{traffic}} inbound from {{source}}",
+    "firewallRuleRemoved": "Firewall rule removed",
+    "graphSaved": "Graph layout saved successfully",
+    "nodeExists": "A node named \"{{name}}\" already exists in this project.",
+    "nodeAlreadyNamed": "The node is already named \"{{name}}\".",
+    "renameFailedGeneric": "Rename failed.",
+    "renameFailedServer": "Rename failed: could not reach the server.",
+    "nodeRenamed": "Node renamed to \"{{name}}\"",
+    "subnetNestingInvalid": "Invalid placement: Subnets cannot be nested inside other subnets.",
+    "nodeRemovedFromSubnet": "Node \"{{node}}\" removed from Subnet \"{{subnet}}\"",
+    "nodeAddedToSubnet": "Node \"{{node}}\" added to Subnet \"{{subnet}}\"",
+    "nodesMustResideInSubnet": "Nodes must reside within a subnet.",
+    "asgTemplateDeleteBlocked": "Cannot delete node \"{{name}}\": it is used as a template by an active Auto Scaling Group. Please stop the ASG first.",
+    "subnetFallback": "Subnet",
+    "nodeFallback": "Node",
+    "nodeCreated": "Node \"{{name}}\" created successfully",
+    "nodeCreateFailed": "Failed to create node \"{{name}}\"",
+    "nodeCreateError": "Error creating container node",
+    "containerStartFailed": "Failed to start the container",
+    "containerStartUnreachable": "Could not reach the server to start the container",
+    "containerStopFailed": "Failed to stop the container",
+    "containerStopUnreachable": "Could not reach the server to stop the container",
+    "containerDeleted": "Container deleted",
+    "containerDeleteFailed": "Failed to delete the container",
+    "containerDeleteUnreachable": "Could not reach the server to delete the container"
+  },
+  "audit": {
+    "nodeMissingSubnet": "Node \"{{name}}\" is assigned to a subnet that does not exist.",
+    "dataStorePublicSubnet": "Data store \"{{name}}\" is in a public subnet. For safety, data store instances should be kept in private subnets.",
+    "dataStorePublicExposure": "Data store \"{{name}}\" is exposed to the public internet (0.0.0.0/0) in its security group.",
+    "noCachingTier": "No caching tier (e.g., Redis or Memcached) detected. Consider adding one to optimize database loads.",
+    "directPublicToDb": "Database \"{{db}}\" receives direct connections from public-facing node \"{{src}}\". Traffic should go through a backend application layer.",
+    "secure3Tier": "Secure 3-Tier VPC Architecture detected! (Public Gateway -> Private App Server -> Private Isolated Database)",
+    "vpcValid": "VPC Network is fully valid and adheres to basic system design security guidelines!"
+  },
+  "nodeviz": {
+    "inspect": "Inspect",
+    "configure": "Configure",
+    "ipAddress": "IP Address:",
+    "ipPort": "IP/Port:",
+    "private": "Private",
+    "instances": "Instances:",
+    "countRunning": "{{count}} Running",
+    "asgInspectTitle": "Configure ASG settings & inspect instance replicas",
+    "loadBalancerConfigTitle": "Configure Load Balancer rules & targets",
+    "infoGuide": "Info & Guide",
+    "natInfoGuideTitle": "View NAT Gateway details & guide",
+    "inspectDatabaseTitle": "Inspect Database Explorer / Shell",
+    "inspectRedisTitle": "Inspect Redis Keys / Shell",
+    "terminal": "Terminal",
+    "openTerminal": "Open Terminal",
+    "publicSubnet": "Public Subnet",
+    "privateSubnet": "Private Subnet",
+    "grid": "Grid:",
+    "reduceColumns": "Reduce Columns",
+    "increaseColumns": "Increase Columns",
+    "reduceRows": "Reduce Rows",
+    "increaseRows": "Increase Rows",
+    "manageRoutingTable": "Manage Subnet Routing Table",
+    "routes": "Routes",
+    "deleteSubnet": "Delete Subnet",
+    "vpcLabel": "VPC: {{name}}",
+    "configureVpcTitle": "Configure VPC / Network Simulator",
+    "deleteVpc": "Delete VPC",
+    "dropZone": "DROP SUBNETS OR SERVICES HERE"
+  },
+  "nodeshared": {
+    "base": {
+      "renameStopFirst": "Stop the service to rename this node",
+      "renameNode": "Rename node",
+      "securityGroupTitle": "Configure Security Group (Firewall)",
+      "online": "Online",
+      "error": "Error",
+      "offline": "Offline",
+      "stopNode": "Stop Node",
+      "startNode": "Start Node",
+      "start": "Start",
+      "deleteNode": "Delete Node"
+    },
+    "schema": {
+      "offlineUnreachable": "Database offline/unreachable"
+    },
+    "resources": {
+      "baseline": "Database operating at baseline resources: 1 vCPU, 512MB RAM, 50GB storage. Handles standard query throughput.",
+      "impactUpStorageUp": "now the database can handle more concurrent requests/transactions and store more data (expanded persistent disk).",
+      "impactDownStorageDown": "now the database will handle fewer requests (higher risk of CPU/RAM throttling) and store less data (reduced storage space).",
+      "impactUpStorageDown": "now the database can handle more requests (faster query performance) but will store less data due to reduced storage limit.",
+      "impactDownStorageUp": "now the database server will handle fewer requests (slower processing capacity) but can store more persistent data.",
+      "impactUp": "now the database can handle more requests and process queries faster.",
+      "impactDown": "now the database will handle fewer requests and experience increased latency under query loads.",
+      "impactStorageUp": "now the database can store more data with expanded disk capacity.",
+      "impactStorageDown": "now the database storage capacity is reduced.",
+      "impactNone": "no resource limits were changed.",
+      "scalingLog": "RESOURCE SCALING UPDATE: Vertical limits applied. Configured: CPU={{cpu}} Cores, RAM={{ram}}MB, Storage={{storage}}GB. Impact: {{impact}}",
+      "limitsApplied": "Limits Applied! Impact: {{impact}}"
+    },
+    "netsim": {
+      "simulationError": "Simulation Error",
+      "selectBothNodes": "Please select both source and destination nodes.",
+      "loopbackConnection": "Loopback Connection",
+      "loopbackDetails": "Local loopback connection (localhost) is always allowed.",
+      "nodesNotFound": "Selected nodes could not be found.",
+      "connectionBlocked": "Connection Blocked",
+      "differentVpcs": "Blocked: Nodes are in different VPCs. Inter-VPC traffic is isolated by default.",
+      "noVpc": "Blocked: Nodes must be assigned to subnets inside a VPC to communicate.",
+      "connectionAllowed": "Connection Allowed",
+      "allowedByRule": "Allowed by rule: Inbound ALLOW port {{port}} from {{source}}.",
+      "anywhere": "Anywhere",
+      "authorizedSource": "authorized source",
+      "blockedBySecurityGroup": "Blocked by Security Group",
+      "implicitDeny": "Implicit Deny: No security group rule on \"{{dest}}\" allows inbound traffic on port {{port}} from \"{{source}}\".",
+      "title": "Traffic Route Simulator",
+      "sourceNode": "Source Node",
+      "destinationNode": "Destination Node",
+      "destPort": "Dest Port",
+      "selectSource": "-- Select Source --",
+      "selectDestination": "-- Select Destination --",
+      "subnet": "Subnet",
+      "noSubnet": "No Subnet",
+      "portPlaceholder": "e.g. 80, 5432",
+      "testPacket": "Test Packet"
+    }
+  },
+  "nodeLibrary": {
+    "title": "Node Library",
+    "search": "Search nodes...",
+    "expand": "Expand Sidebar",
+    "collapse": "Collapse Sidebar",
+    "noMatch": "No matching nodes found",
+    "dragNode": "Drag {{name}}",
+    "categories": {
+      "networking": "Networking",
+      "compute": "Compute",
+      "databases": "Databases"
+    },
+    "types": {
+      "subnet-public": {
+        "name": "Public Subnet",
+        "desc": "Allows public access"
+      },
+      "subnet-private": {
+        "name": "Private Subnet",
+        "desc": "Internal instances only"
+      },
+      "nat": {
+        "name": "NAT Gateway",
+        "desc": "Outbound internet routing"
+      },
+      "loadbalancer": {
+        "name": "Load Balancer",
+        "desc": "Inbound HTTP proxying"
+      },
+      "ubuntu": {
+        "name": "Server",
+        "desc": "Standard terminal shell"
+      },
+      "autoscalinggroup": {
+        "name": "Auto Scaling Group",
+        "desc": "Dynamic instance pool"
+      },
+      "postgres": {
+        "name": "SQL Database",
+        "desc": "Relational DB + Shell"
+      },
+      "nosql": {
+        "name": "NoSQL Database",
+        "desc": "Document DB + Shell"
+      },
+      "redis": {
+        "name": "Cache Store",
+        "desc": "In-memory key-value cache"
+      }
+    },
+    "createNode": {
+      "label": "Give your new container a descriptive name.",
+      "submit": "Create Node",
+      "titles": {
+        "ubuntu": "Create Ubuntu Node",
+        "postgres": "Create SQL Database Node",
+        "nosql": "Create NoSQL Database Node",
+        "redis": "Create Cache Store Node",
+        "nat": "Create NAT Gateway Node",
+        "loadbalancer": "Create Load Balancer Node",
+        "autoscalinggroup": "Create Auto Scaling Group Node"
+      },
+      "placeholders": {
+        "ubuntu": "e.g. server-1",
+        "postgres": "e.g. sql-1",
+        "nosql": "e.g. nosql-1",
+        "redis": "e.g. redis-1",
+        "nat": "e.g. nat-1",
+        "loadbalancer": "e.g. alb-1",
+        "autoscalinggroup": "e.g. asg-1"
+      }
     }
   }
 }

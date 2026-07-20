@@ -1,6 +1,7 @@
 import { Handle, Position } from '@xyflow/react';
 import { Play, Square, Trash2, Shield, Pencil } from 'lucide-react';
 import React from 'react';
+import { useTranslation } from 'react-i18next';
 import styles from '../ServiceNode.module.css';
 
 interface BaseNodeProps {
@@ -54,6 +55,7 @@ export default function BaseNode({
   subtitle,
   errorMessage
 }: BaseNodeProps) {
+  const { t } = useTranslation();
 
   const titleColor = customTitleColor || 'var(--color-text-primary)';
   const hasError = Boolean(errorMessage) && !isRunning;
@@ -88,7 +90,7 @@ export default function BaseNode({
                 }
               }}
               className={`${styles.renameBtn} ${isRunning ? styles.disabled : ''}`}
-              data-tooltip={isRunning ? "Stop the service to rename this node" : "Rename node"}
+              data-tooltip={isRunning ? t('nodeshared.base.renameStopFirst') : t('nodeshared.base.renameNode')}
             >
               <Pencil size={12} />
             </button>
@@ -109,7 +111,7 @@ export default function BaseNode({
                 alignItems: 'center',
                 marginLeft: '4px',
               }}
-              title="Configure Security Group (Firewall)"
+              title={t('nodeshared.base.securityGroupTitle')}
             >
               <Shield size={13} color="#EF4444" fill="rgba(239, 68, 68, 0.1)" />
             </button>
@@ -124,7 +126,7 @@ export default function BaseNode({
               boxShadow: `0 0 8px ${shadowColor}`
             }}
           />
-          <span className={styles.statusText}>{isRunning ? 'Online' : hasError ? 'Error' : 'Offline'}</span>
+          <span className={styles.statusText}>{isRunning ? t('nodeshared.base.online') : hasError ? t('nodeshared.base.error') : t('nodeshared.base.offline')}</span>
         </div>
       </div>
 
@@ -166,7 +168,7 @@ export default function BaseNode({
             <button
               onClick={() => onStop(id)}
               className={`${styles.btn} ${styles.btnSecondary}`}
-              title="Stop Node"
+              title={t('nodeshared.base.stopNode')}
             >
               <Square size={14} fill="#9CA3AF" />
             </button>
@@ -175,17 +177,17 @@ export default function BaseNode({
           <button
             onClick={() => onStart(id)}
             className={`${styles.btn} ${styles.btnSuccess}`}
-            title="Start Node"
+            title={t('nodeshared.base.startNode')}
           >
             <Play size={14} style={{ marginRight: 4 }} fill="#10B981" />
-            Start
+            {t('nodeshared.base.start')}
           </button>
         )}
 
         <button
           onClick={() => onDelete(id)}
           className={`${styles.btn} ${styles.btnDanger}`}
-          title="Delete Node"
+          title={t('nodeshared.base.deleteNode')}
         >
           <Trash2 size={14} />
         </button>

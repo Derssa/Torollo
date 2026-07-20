@@ -1,14 +1,16 @@
 import { Folder } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 
 export default function EmptyState() {
+  const { t } = useTranslation();
   return (
     <div style={styles.empty}>
       <div style={styles.emptyIcon}>
         <Folder size={40} color="var(--color-text-muted)" strokeWidth={1.2} />
       </div>
-      <p style={styles.emptyTitle}>No projects yet</p>
+      <p style={styles.emptyTitle}>{t('projects.emptyTitle')}</p>
       <p style={styles.emptyDesc}>
-        Click "New Project" to create your first infrastructure stack.
+        {t('projects.emptyDesc')}
       </p>
     </div>
   );

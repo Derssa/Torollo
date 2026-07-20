@@ -1,4 +1,5 @@
 import { useCallback, useRef } from 'react';
+import { useTranslation } from 'react-i18next';
 import type { MutableRefObject, Dispatch, SetStateAction } from 'react';
 import type { Node, ReactFlowInstance } from '@xyflow/react';
 import type { ContainerData } from '../../../shared/types';
@@ -39,6 +40,7 @@ export function useCanvasDragDrop({
   fetchContainers,
   onRequestCreateNode,
 }: UseCanvasDragDropArgs) {
+  const { t } = useTranslation();
   const dragStartPositionsRef = useRef<Record<string, { x: number; y: number; parentId?: string }>>({});
   const draggingNodeIdRef = useRef<string | null>(null);
 
@@ -160,7 +162,7 @@ export function useCanvasDragDrop({
 
       // Check if dropped inside another subnet
       if (findSubnetAtPoint(subnetCenter, networkConfig.subnets, draggedNode.id)) {
-        revertNode({ type: 'error', text: 'Invalid placement: Subnets cannot be nested inside other subnets.' });
+        revertNode({ type: 'error', text: t('toasts.subnetNestingInvalid') });
         return;
       }
 
@@ -191,17 +193,17 @@ export function useCanvasDragDrop({
         const oldSubnet = networkConfig.subnets.find(s => s.id === oldParentId);
 
         if (oldParentId && oldParentId.startsWith('subnet-')) {
-          showNotification({ type: 'warning', message: `Node "${draggedNode.data.name}" removed from Subnet "${oldSubnet?.name || 'Subnet'}"` });
+          showNotification({ type: 'warning', message: t('toasts.nodeRemovedFromSubnet', { node: draggedNode.data.name, subnet: oldSubnet?.name || t('toasts.subnetFallback') }) });
         }
 
         if (newParentId && newParentId.startsWith('subnet-')) {
-          showNotification({ type: 'success', message: `Node "${draggedNode.data.name}" added to Subnet "${targetSubnet?.name || 'Subnet'}"` });
+          showNotification({ type: 'success', message: t('toasts.nodeAddedToSubnet', { node: draggedNode.data.name, subnet: targetSubnet?.name || t('toasts.subnetFallback') }) });
         }
       }
 
       if (!targetSubnet) {
         // Revert container node drag to its original subnet position
-        revertNode({ type: 'warning', text: 'Nodes must reside within a subnet.' });
+        revertNode({ type: 'warning', text: t('toasts.nodesMustResideInSubnet') });
         return;
       }
 
@@ -216,7 +218,7 @@ export function useCanvasDragDrop({
       saveNetworkConfig(newConfig);
       triggerArchitectureAudit(newConfig);
     }
-  }, [reactFlowInstance, networkConfig, projectId, positionsRef, saveNetworkConfig, setNodes, triggerArchitectureAudit, showNotification]);
+  }, [reactFlowInstance, networkConfig, projectId, positionsRef, saveNetworkConfig, setNodes, triggerArchitectureAudit, showNotification, t]);
 
   const onNodesDelete = useCallback((deleted: Node[]) => {
     const blockedNode = deleted.find(node => {
@@ -230,7 +232,7 @@ export function useCanvasDragDrop({
     if (blockedNode) {
       showNotification({
         type: 'error',
-        message: `Cannot delete node "${blockedNode.data?.name || 'Node'}": it is used as a template by an active Auto Scaling Group. Please stop the ASG first.`
+        message: t('toasts.asgTemplateDeleteBlocked', { name: blockedNode.data?.name || t('toasts.nodeFallback') })
       });
       fetchContainers();
       return;
@@ -265,7 +267,7 @@ export function useCanvasDragDrop({
         nodeIpMap: updatedNodeIpMap
       });
     }
-  }, [networkConfig, saveNetworkConfig, containers, fetchContainers, showNotification]);
+  }, [networkConfig, saveNetworkConfig, containers, fetchContainers, showNotification, t]);
 
   // React Flow Drag-and-Drop handlers
   const onDragOver = useCallback((event: React.DragEvent) => {
@@ -298,7 +300,7 @@ export function useCanvasDragDrop({
         // Check if dropped inside another subnet
         const subnetCenter = { x: position.x + newSubnet.width / 2, y: position.y + newSubnet.height / 2 };
         if (findSubnetAtPoint(subnetCenter, networkConfig.subnets)) {
-          showNotification({ type: 'error', message: 'Invalid placement: Subnets cannot be nested inside other subnets.' });
+          showNotification({ type: 'error', message: t('toasts.subnetNestingInvalid') });
           return;
         }
 
@@ -313,7 +315,7 @@ export function useCanvasDragDrop({
         const targetSubnet = findSubnetAtPoint(nodeCenter, networkConfig.subnets);
 
         if (!targetSubnet) {
-          showNotification({ type: 'error', message: 'Nodes must reside within a subnet.' });
+          showNotification({ type: 'error', message: t('toasts.nodesMustResideInSubnet') });
           return;
         }
 
@@ -326,7 +328,7 @@ export function useCanvasDragDrop({
         onRequestCreateNode({ position: finalDropPos, type, subnetId: targetSubnet.id });
       }
     },
-    [reactFlowInstance, networkConfig, saveNetworkConfig, showNotification, triggerArchitectureAudit, onRequestCreateNode]
+    [reactFlowInstance, networkConfig, saveNetworkConfig, showNotification, triggerArchitectureAudit, onRequestCreateNode, t]
   );
 
   return {

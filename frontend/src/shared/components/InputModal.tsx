@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
+import { useTranslation } from 'react-i18next';
 import Modal from './Modal';
 import { Loader2 } from 'lucide-react';
 
@@ -19,12 +20,13 @@ export default function InputModal({
   label,
   placeholder = '',
   defaultValue = '',
-  submitText = 'Create',
+  submitText,
   maxLength,
   restrictPattern,
   onSubmit,
   onCancel,
 }: InputModalProps) {
+  const { t } = useTranslation();
   const [value, setValue] = useState(defaultValue);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState('');
@@ -53,7 +55,7 @@ export default function InputModal({
       try {
         await onSubmit(value.trim());
       } catch (err: any) {
-        setError(err.message || 'An error occurred');
+        setError(err.message || t('common.genericError'));
       } finally {
         setIsSubmitting(false);
       }
@@ -86,7 +88,7 @@ export default function InputModal({
         )}
         <div style={styles.actions}>
           <button type="button" onClick={onCancel} style={styles.cancelBtn} disabled={isSubmitting}>
-            Cancel
+            {t('common.cancel')}
           </button>
           <button type="submit" disabled={!value.trim() || isSubmitting} style={{
             ...styles.submitBtn,
@@ -99,9 +101,9 @@ export default function InputModal({
             {isSubmitting ? (
               <>
                 <Loader2 size={14} className="spin" />
-                Creating...
+                {t('common.creating')}
               </>
-            ) : submitText}
+            ) : (submitText ?? t('common.create'))}
           </button>
         </div>
       </form>

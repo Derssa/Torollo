@@ -1,4 +1,5 @@
 import { GitFork, Settings } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 import BaseNode from '../components/BaseNode';
 import styles from '../ServiceNode.module.css';
 
@@ -24,6 +25,7 @@ interface LoadBalancerNodeProps {
 }
 
 export default function LoadBalancerNode({ data }: LoadBalancerNodeProps) {
+  const { t } = useTranslation();
   const isRunning = data.state === 'running';
 
   return (
@@ -37,8 +39,8 @@ export default function LoadBalancerNode({ data }: LoadBalancerNodeProps) {
       customTitleColor="#DC2626"
       subtitle={
         <>
-          <span className={styles.label}>IP Address:</span>
-          <span className={styles.value} style={{ color: data.ip ? '#10B981' : undefined }}>{data.ip || 'Private'}</span>
+          <span className={styles.label}>{t('nodeviz.ipAddress')}</span>
+          <span className={styles.value} style={{ color: data.ip ? '#10B981' : undefined }}>{data.ip || t('nodeviz.private')}</span>
         </>
       }
       onStart={data.onStart}
@@ -47,11 +49,11 @@ export default function LoadBalancerNode({ data }: LoadBalancerNodeProps) {
       onRename={data.onRename}
       onSecurityGroupOpen={data.onSecurityGroupOpen}
       primaryAction={{
-        label: 'Configure',
+        label: t('nodeviz.configure'),
         icon: <Settings size={14} />,
         color: '#EF4444',
         onClick: data.onInspect,
-        title: 'Configure Load Balancer rules & targets',
+        title: t('nodeviz.loadBalancerConfigTitle'),
       }}
     />
   );

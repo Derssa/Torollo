@@ -141,7 +141,6 @@ describe('LearningPanel', () => {
 
     expect(await screen.findByText('Your first architecture')).toBeInTheDocument();
     expect(screen.getByText('Build a minimal two-tier architecture.')).toBeInTheDocument();
-    expect(screen.getByText('EN')).toBeInTheDocument();
   });
 
   it('shows a retry path when the catalogue cannot be loaded', async () => {

@@ -1,4 +1,5 @@
 import { ArrowRightLeft } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 import BaseNode from '../components/BaseNode';
 import styles from '../ServiceNode.module.css';
 
@@ -18,6 +19,7 @@ interface NatNodeProps {
 }
 
 export default function NatNode({ data }: NatNodeProps) {
+  const { t } = useTranslation();
   const isRunning = data.state === 'running';
 
   return (
@@ -32,8 +34,8 @@ export default function NatNode({ data }: NatNodeProps) {
       hideHandles={true}
       subtitle={
         <>
-          <span className={styles.label}>IP Address:</span>
-          <span className={styles.value} style={{ color: data.ip ? '#10B981' : undefined }}>{data.ip || 'Private'}</span>
+          <span className={styles.label}>{t('nodeviz.ipAddress')}</span>
+          <span className={styles.value} style={{ color: data.ip ? '#10B981' : undefined }}>{data.ip || t('nodeviz.private')}</span>
         </>
       }
       onStart={data.onStart}
@@ -41,11 +43,11 @@ export default function NatNode({ data }: NatNodeProps) {
       onDelete={data.onDelete}
       onRename={data.onRename}
       primaryAction={{
-        label: 'Info & Guide',
+        label: t('nodeviz.infoGuide'),
         icon: <ArrowRightLeft size={14} />,
         color: '#8B5CF6',
         onClick: data.onInspect,
-        title: 'View NAT Gateway details & guide',
+        title: t('nodeviz.natInfoGuideTitle'),
       }}
     />
   );

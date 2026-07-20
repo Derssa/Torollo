@@ -14,18 +14,19 @@ export function useToast() {
     return () => clearTimeout(timer);
   }, []);
 
-  const showToast = useCallback((message: string, duration = 4000) => {
-    let type: 'error' | 'warning' | 'success' = 'success';
-    const lower = message.toLowerCase();
-    if (lower.includes('failed') || lower.includes('error') || lower.includes('invalid') || lower.includes('cannot')) {
-      type = 'error';
-    } else if (lower.includes('warning') || lower.includes('expose') || lower.includes('risk') || lower.includes('alert')) {
-      type = 'warning';
-    }
-    setToast({ type, message });
-    const timer = setTimeout(() => setToast(null), duration);
-    return () => clearTimeout(timer);
-  }, []);
+  // A convenience wrapper for the common case: a positive confirmation toast.
+  // The severity is passed explicitly (default 'success') rather than inferred
+  // from the message text — the old keyword sniffing broke the moment messages
+  // were translated (a French "échec" is not "failed"). Callers that need a
+  // different severity pass it, or use showNotification directly.
+  const showToast = useCallback(
+    (message: string, type: 'error' | 'warning' | 'success' = 'success', duration = 4000) => {
+      setToast({ type, message });
+      const timer = setTimeout(() => setToast(null), duration);
+      return () => clearTimeout(timer);
+    },
+    []
+  );
 
   const dismissToast = useCallback(() => setToast(null), []);
 

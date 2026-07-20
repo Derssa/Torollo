@@ -43,35 +43,21 @@ describe('useToast', () => {
   });
 
   it.each([
-    ['Save failed', 'error'],
-    ['An error occurred', 'error'],
-    ['Invalid configuration', 'error'],
-    ['Cannot delete node', 'error'],
-  ])('showToast classifies "%s" as %s', (message, expectedType) => {
+    ['error'],
+    ['warning'],
+    ['success'],
+  ] as const)('showToast honours the explicit "%s" type', (type) => {
     const { result } = renderHook(() => useToast());
     act(() => {
-      result.current.showToast(message);
+      result.current.showToast('Une notification', type);
     });
-    expect(result.current.toast?.type).toBe(expectedType);
+    expect(result.current.toast).toEqual({ type, message: 'Une notification' });
   });
 
-  it.each([
-    ['This is a warning', 'warning'],
-    ['Database is exposed publicly', 'warning'],
-    ['Security risk detected', 'warning'],
-    ['Alert: check your config', 'warning'],
-  ])('showToast classifies "%s" as %s', (message, expectedType) => {
+  it('showToast defaults to success when no type is given', () => {
     const { result } = renderHook(() => useToast());
     act(() => {
-      result.current.showToast(message);
-    });
-    expect(result.current.toast?.type).toBe(expectedType);
-  });
-
-  it('showToast defaults to success when no error/warning keywords match', () => {
-    const { result } = renderHook(() => useToast());
-    act(() => {
-      result.current.showToast('Node created successfully');
+      result.current.showToast('Nœud créé avec succès');
     });
     expect(result.current.toast?.type).toBe('success');
   });

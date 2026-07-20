@@ -1,4 +1,5 @@
 import { Folder, Trash2, ArrowRight, Loader2 } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 import type { Project } from '../../../shared/types';
 
 interface ProjectCardProps {
@@ -9,6 +10,7 @@ interface ProjectCardProps {
 }
 
 export default function ProjectCard({ project, onSelect, onDelete, isDeleting }: ProjectCardProps) {
+  const { t } = useTranslation();
   return (
     <div
       onClick={() => !isDeleting && onSelect(project.id, project.name)}
@@ -23,7 +25,7 @@ export default function ProjectCard({ project, onSelect, onDelete, isDeleting }:
       {isDeleting && (
         <div style={styles.loadingOverlay}>
           <Loader2 className="spin" size={24} color="var(--color-accent)" />
-          <span style={{ fontSize: '11px', marginTop: '6px', color: 'var(--color-text-secondary)', fontWeight: 600 }}>Deleting...</span>
+          <span style={{ fontSize: '11px', marginTop: '6px', color: 'var(--color-text-secondary)', fontWeight: 600 }}>{t('projects.deleting')}</span>
         </div>
       )}
       <div style={styles.cardHeader}>
@@ -33,7 +35,7 @@ export default function ProjectCard({ project, onSelect, onDelete, isDeleting }:
         <button
           onClick={(e) => !isDeleting && onDelete(project, e)}
           style={styles.deleteBtn}
-          title="Delete project"
+          title={t('projects.deleteProjectTooltip')}
           id={`delete-project-${project.id}`}
           disabled={isDeleting}
         >
@@ -51,7 +53,7 @@ export default function ProjectCard({ project, onSelect, onDelete, isDeleting }:
         </p>
       </div>
       <div style={styles.cardFooter}>
-        <span>Open Stack</span>
+        <span>{t('projects.openStack')}</span>
         <ArrowRight size={14} style={{ marginLeft: 6 }} />
       </div>
     </div>
