@@ -34,13 +34,13 @@ export default function LoadBalancerNode({ data }: LoadBalancerNodeProps) {
       name={data.name}
       isRunning={isRunning}
       errorMessage={data.lastError}
-      icon={<GitFork size={18} color={isRunning ? '#EF4444' : '#6B7280'} />}
-      customBorder="2px solid #EF4444"
-      customTitleColor="#DC2626"
+      icon={<GitFork size={18} color={isRunning ? 'var(--color-danger)' : 'var(--neutral-500)'} />}
+      customBorder="2px solid var(--color-danger)"
+      customTitleColor="var(--color-danger)"
       subtitle={
         <>
           <span className={styles.label}>{t('nodeviz.ipAddress')}</span>
-          <span className={styles.value} style={{ color: data.ip ? '#10B981' : undefined }}>{data.ip || t('nodeviz.private')}</span>
+          <span className={styles.value} style={{ color: data.ip ? 'var(--color-success)' : undefined }}>{data.ip || t('nodeviz.private')}</span>
         </>
       }
       onStart={data.onStart}
@@ -51,7 +51,7 @@ export default function LoadBalancerNode({ data }: LoadBalancerNodeProps) {
       primaryAction={{
         label: t('nodeviz.configure'),
         icon: <Settings size={14} />,
-        color: '#EF4444',
+        color: 'var(--color-danger)',
         onClick: data.onInspect,
         title: t('nodeviz.loadBalancerConfigTitle'),
       }}

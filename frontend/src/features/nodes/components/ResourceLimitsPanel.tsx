@@ -79,13 +79,13 @@ export default function ResourceLimitsPanel({ labels, onScalingLog }: ResourceLi
   };
 
   return (
-    <div style={{ border: '1px solid #E2E8F0', borderRadius: '8px', padding: '16px' }}>
-      <h4 style={{ margin: '0 0 16px 0', fontSize: '14px', color: '#334155' }}>{labels.title}</h4>
+    <div style={{ border: '1px solid var(--neutral-200)', borderRadius: '8px', padding: '16px' }}>
+      <h4 style={{ margin: '0 0 16px 0', fontSize: '14px', color: 'var(--neutral-700)' }}>{labels.title}</h4>
 
       <div style={{ marginBottom: '16px' }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '6px' }}>
           <span style={{ fontSize: '12px', fontWeight: 600 }}>{labels.cpu}</span>
-          <span style={{ fontSize: '12px', color: '#2563EB', fontWeight: 'bold' }}>{cpuLimit} vCPU</span>
+          <span style={{ fontSize: '12px', color: 'var(--color-accent)', fontWeight: 'bold' }}>{cpuLimit} vCPU</span>
         </div>
         <input
           type="range"
@@ -101,7 +101,7 @@ export default function ResourceLimitsPanel({ labels, onScalingLog }: ResourceLi
       <div style={{ marginBottom: '20px' }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '6px' }}>
           <span style={{ fontSize: '12px', fontWeight: 600 }}>{labels.ram}</span>
-          <span style={{ fontSize: '12px', color: '#2563EB', fontWeight: 'bold' }}>{memoryLimit} MB</span>
+          <span style={{ fontSize: '12px', color: 'var(--color-accent)', fontWeight: 'bold' }}>{memoryLimit} MB</span>
         </div>
         <input
           type="range"
@@ -117,7 +117,7 @@ export default function ResourceLimitsPanel({ labels, onScalingLog }: ResourceLi
       <div style={{ marginBottom: '20px' }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '6px' }}>
           <span style={{ fontSize: '12px', fontWeight: 600 }}>{labels.storage}</span>
-          <span style={{ fontSize: '12px', color: '#2563EB', fontWeight: 'bold' }}>{storageLimit} GB</span>
+          <span style={{ fontSize: '12px', color: 'var(--color-accent)', fontWeight: 'bold' }}>{storageLimit} GB</span>
         </div>
         <input
           type="range"
@@ -135,8 +135,8 @@ export default function ResourceLimitsPanel({ labels, onScalingLog }: ResourceLi
         disabled={scalingLoading}
         style={{
           width: '100%',
-          backgroundColor: '#2563EB',
-          color: 'white',
+          backgroundColor: 'var(--color-accent)',
+          color: 'var(--color-white)',
           border: 'none',
           padding: '8px',
           borderRadius: '6px',
@@ -152,10 +152,10 @@ export default function ResourceLimitsPanel({ labels, onScalingLog }: ResourceLi
           marginTop: '12px',
           padding: '10px',
           borderRadius: '6px',
-          backgroundColor: '#F0F9FF',
-          border: '1px solid #BAE6FD',
+          backgroundColor: 'var(--color-info-subtle)',
+          border: '1px solid var(--color-info-border)',
           fontSize: '12px',
-          color: '#0369A1',
+          color: 'var(--color-info)',
           lineHeight: '1.4'
         }}>
           <div style={{ fontWeight: 600, marginBottom: '2px' }}>{labels.sysStatus}</div>

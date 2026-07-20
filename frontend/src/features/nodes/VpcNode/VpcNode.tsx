@@ -15,10 +15,10 @@ export default function VpcNode({ data }: VpcNodeProps) {
   const { t } = useTranslation();
   const isHovered = data.hoverStatus === 'valid' || data.hoverStatus === 'invalid';
   const borderColor = isHovered 
-    ? (data.hoverStatus === 'valid' ? '#10B981' : '#EF4444') 
+    ? (data.hoverStatus === 'valid' ? 'var(--color-success)' : 'var(--color-danger)')
     : 'var(--color-accent)';
-  const boxShadow = isHovered 
-    ? (data.hoverStatus === 'valid' ? '0 0 20px rgba(16, 185, 129, 0.5)' : '0 0 20px rgba(239, 68, 68, 0.5)') 
+  const boxShadow = isHovered
+    ? (data.hoverStatus === 'valid' ? '0 0 20px color-mix(in srgb, var(--color-success) 50%, transparent)' : '0 0 20px color-mix(in srgb, var(--color-danger) 50%, transparent)')
     : 'none';
 
   return (
@@ -28,8 +28,8 @@ export default function VpcNode({ data }: VpcNodeProps) {
       border: `2px dashed ${borderColor}`,
       borderRadius: '12px',
       backgroundColor: isHovered 
-        ? (data.hoverStatus === 'valid' ? 'rgba(16, 185, 129, 0.05)' : 'rgba(239, 68, 68, 0.05)') 
-        : 'rgba(37, 99, 235, 0.02)',
+        ? (data.hoverStatus === 'valid' ? 'color-mix(in srgb, var(--color-success) 5%, transparent)' : 'color-mix(in srgb, var(--color-danger) 5%, transparent)')
+        : 'color-mix(in srgb, var(--color-accent) 2%, transparent)',
       boxShadow,
       position: 'relative',
       transition: 'all 0.2s ease',
@@ -39,7 +39,7 @@ export default function VpcNode({ data }: VpcNodeProps) {
         top: '-12px',
         left: '16px',
         backgroundColor: 'var(--color-accent)',
-        color: '#FFFFFF',
+        color: 'var(--color-white)',
         fontSize: '11px',
         fontWeight: 700,
         padding: '2px 10px',
@@ -92,9 +92,9 @@ export default function VpcNode({ data }: VpcNodeProps) {
           position: 'absolute',
           top: '-12px',
           right: '16px',
-          backgroundColor: '#EF4444',
+          backgroundColor: 'var(--color-danger)',
           border: 'none',
-          color: '#FFFFFF',
+          color: 'var(--color-white)',
           padding: '3px 4px',
           borderRadius: '4px',
           cursor: 'pointer',
@@ -116,7 +116,7 @@ export default function VpcNode({ data }: VpcNodeProps) {
         left: '16px',
         right: '16px',
         height: '48px',
-        border: '2px dashed rgba(37, 99, 235, 0.25)',
+        border: '2px dashed color-mix(in srgb, var(--color-accent) 25%, transparent)',
         borderRadius: '8px',
         display: 'flex',
         alignItems: 'center',
@@ -127,7 +127,7 @@ export default function VpcNode({ data }: VpcNodeProps) {
         letterSpacing: '0.5px',
         gap: '6px',
         pointerEvents: 'none',
-        backgroundColor: 'rgba(37, 99, 235, 0.02)',
+        backgroundColor: 'color-mix(in srgb, var(--color-accent) 2%, transparent)',
         transition: 'all 0.2s ease',
       }}>
         <span style={{ fontSize: '14px' }}>+</span>

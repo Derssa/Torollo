@@ -22,7 +22,7 @@ interface RabbitMqNodeProps {
 export default function RabbitMqNode({ data }: RabbitMqNodeProps) {
   const { t } = useTranslation();
   const isRunning = data.state === 'running';
-  const accentColor = '#FF6600'; // RabbitMQ Orange
+  const accentColor = 'var(--color-orange)'; // RabbitMQ Orange
 
   return (
     <BaseNode
@@ -30,12 +30,12 @@ export default function RabbitMqNode({ data }: RabbitMqNodeProps) {
       name={data.name}
       isRunning={isRunning}
       errorMessage={data.lastError}
-      icon={<MessageSquare size={18} color={isRunning ? accentColor : '#6B7280'} />}
+      icon={<MessageSquare size={18} color={isRunning ? accentColor : 'var(--neutral-500)'} />}
       customBorder={isRunning ? `1px solid ${accentColor}` : undefined}
       subtitle={
         <>
           <span className={styles.label}>{t('nodeviz.ipPort')}</span>
-          <span className={styles.value} style={{ color: data.ip ? '#10B981' : undefined }}>
+          <span className={styles.value} style={{ color: data.ip ? 'var(--color-success)' : undefined }}>
             {data.ip ? `${data.ip}:5672` : '5672 / 15672'}
           </span>
         </>

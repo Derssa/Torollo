@@ -42,8 +42,8 @@ export default function CommandCard({ command }: CommandCardProps) {
             <button style={styles.copyBtn} onClick={handleCopy}>
               {copied ? (
                 <>
-                  <Check size={13} color="#10B981" style={{ marginRight: 4 }} />
-                  <span style={{ color: '#10B981' }}>{t('terminal.cheatsheet.copied')}</span>
+                  <Check size={13} color="var(--color-success)" style={{ marginRight: 4 }} />
+                  <span style={{ color: 'var(--color-success)' }}>{t('terminal.cheatsheet.copied')}</span>
                 </>
               ) : (
                 <>
@@ -68,7 +68,7 @@ const styles: Record<string, React.CSSProperties> = {
     borderRadius: '8px',
     padding: '12px 16px',
     marginBottom: '10px',
-    backgroundColor: '#FFFFFF',
+    backgroundColor: 'var(--bg-surface-solid)',
     cursor: 'pointer',
     transition: 'all 0.2s',
   },

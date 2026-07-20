@@ -125,7 +125,7 @@ const styles: Record<string, React.CSSProperties> = {
     fontFamily: 'var(--font-sans)',
     borderRadius: '10px',
     border: 'none',
-    color: '#FFF',
+    color: 'var(--color-white)',
     cursor: 'pointer',
     transition: 'opacity 0.15s, transform 0.1s',
   },

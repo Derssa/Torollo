@@ -75,7 +75,7 @@ export const inspectorStyles: Record<string, React.CSSProperties> = {
   body: {
     flex: 1,
     overflow: 'hidden',
-    backgroundColor: '#FFFFFF',
+    backgroundColor: 'var(--bg-surface-solid)',
   },
   tabContent: {
     height: '100%',
@@ -131,7 +131,7 @@ export const inspectorStyles: Record<string, React.CSSProperties> = {
   inlineViewBtn: {
     marginLeft: 'auto',
     backgroundColor: 'var(--color-accent-glow)',
-    border: '1px solid rgba(37, 99, 235, 0.2)',
+    border: '1px solid color-mix(in srgb, var(--color-accent) 20%, transparent)',
     borderRadius: '4px',
     color: 'var(--color-accent)',
     fontSize: '11px',
@@ -157,7 +157,7 @@ export const inspectorStyles: Record<string, React.CSSProperties> = {
   },
   retryBtn: {
     backgroundColor: 'var(--color-accent)',
-    color: '#FFF',
+    color: 'var(--color-white)',
     border: 'none',
     borderRadius: '6px',
     padding: '6px 16px',
@@ -186,8 +186,8 @@ export const inspectorStyles: Record<string, React.CSSProperties> = {
     fontFamily: 'var(--font-mono)',
   },
   runBtn: {
-    backgroundColor: '#10B981',
-    color: '#FFF',
+    backgroundColor: 'var(--color-success)',
+    color: 'var(--color-white)',
     border: 'none',
     borderRadius: '6px',
     padding: '8px 16px',
@@ -196,7 +196,7 @@ export const inspectorStyles: Record<string, React.CSSProperties> = {
     cursor: 'pointer',
     display: 'flex',
     alignItems: 'center',
-    boxShadow: '0 1px 3px rgba(16, 185, 129, 0.3)',
+    boxShadow: '0 1px 3px color-mix(in srgb, var(--color-success) 30%, transparent)',
   },
   queryTextarea: {
     width: '100%',
@@ -224,8 +224,8 @@ export const inspectorStyles: Record<string, React.CSSProperties> = {
     flex: 1,
     margin: 0,
     padding: '12px',
-    backgroundColor: '#0F172A',
-    color: '#E2E8F0',
+    backgroundColor: 'var(--neutral-900)',
+    color: 'var(--neutral-200)',
     borderRadius: '8px',
     fontFamily: 'var(--font-mono)',
     fontSize: '13px',

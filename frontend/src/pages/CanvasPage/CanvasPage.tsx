@@ -598,13 +598,13 @@ export default function CanvasPage({ projectId, projectName, onBackToProjects, o
           {/* Floating VPC Header */}
           <div style={styles.floatingHeader} className="glass">
             <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-              <span style={{ fontWeight: 600, color: '#111827' }}>Project:</span>
-              <span style={{ color: '#374151' }}>{projectName}</span>
+              <span style={{ fontWeight: 600, color: 'var(--neutral-900)' }}>Project:</span>
+              <span style={{ color: 'var(--neutral-700)' }}>{projectName}</span>
             </div>
             <div style={{ display: 'flex', alignItems: 'center', gap: '8px', borderLeft: '1px solid rgba(0, 0, 0, 0.1)', paddingLeft: '12px' }}>
-              <span style={{ fontWeight: 600, color: '#111827' }}>VPC:</span>
-              <span style={{ color: '#2563EB', fontWeight: 500 }}>{networkConfig.vpcConfig.name}</span>
-              <span style={{ fontSize: '11px', color: '#4B5563', backgroundColor: 'rgba(59, 130, 246, 0.1)', padding: '2px 6px', borderRadius: '4px', border: '1px solid rgba(59, 130, 246, 0.2)' }}>
+              <span style={{ fontWeight: 600, color: 'var(--neutral-900)' }}>VPC:</span>
+              <span style={{ color: 'var(--color-accent)', fontWeight: 500 }}>{networkConfig.vpcConfig.name}</span>
+              <span style={{ fontSize: '11px', color: 'var(--neutral-600)', backgroundColor: 'color-mix(in srgb, var(--color-accent) 10%, transparent)', padding: '2px 6px', borderRadius: '4px', border: '1px solid color-mix(in srgb, var(--color-accent) 20%, transparent)' }}>
                 {networkConfig.vpcConfig.cidr}
               </span>
             </div>
@@ -625,7 +625,7 @@ export default function CanvasPage({ projectId, projectName, onBackToProjects, o
             onInit={setReactFlowInstance}
             fitView
           >
-            <Background variant={BackgroundVariant.Dots} color="#C0C0C0" gap={24} size={1.5} />
+            <Background variant={BackgroundVariant.Dots} color="var(--canvas-dots)" gap={24} size={1.5} />
             <Controls />
           </ReactFlow>
         </div>

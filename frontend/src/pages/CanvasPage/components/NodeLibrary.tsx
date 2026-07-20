@@ -30,29 +30,29 @@ export default function NodeLibrary({ onCollapseChange }: NodeLibraryProps) {
           type: 'subnet-public',
           name: t('nodeLibrary.types.subnet-public.name'),
           desc: t('nodeLibrary.types.subnet-public.desc'),
-          icon: <Network size={18} color="#10B981" />,
-          collapsedIcon: <Network size={20} color="#10B981" />
+          icon: <Network size={18} color="var(--color-success)" />,
+          collapsedIcon: <Network size={20} color="var(--color-success)" />
         },
         {
           type: 'subnet-private',
           name: t('nodeLibrary.types.subnet-private.name'),
           desc: t('nodeLibrary.types.subnet-private.desc'),
-          icon: <Network size={18} color="#F59E0B" />,
-          collapsedIcon: <Network size={20} color="#F59E0B" />
+          icon: <Network size={18} color="var(--color-warning)" />,
+          collapsedIcon: <Network size={20} color="var(--color-warning)" />
         },
         {
           type: 'nat',
           name: t('nodeLibrary.types.nat.name'),
           desc: t('nodeLibrary.types.nat.desc'),
-          icon: <ArrowRightLeft size={18} color="#8B5CF6" />,
-          collapsedIcon: <ArrowRightLeft size={20} color="#8B5CF6" />
+          icon: <ArrowRightLeft size={18} color="var(--color-violet)" />,
+          collapsedIcon: <ArrowRightLeft size={20} color="var(--color-violet)" />
         },
         {
           type: 'loadbalancer',
           name: t('nodeLibrary.types.loadbalancer.name'),
           desc: t('nodeLibrary.types.loadbalancer.desc'),
-          icon: <GitFork size={18} color="#EF4444" />,
-          collapsedIcon: <GitFork size={20} color="#EF4444" />
+          icon: <GitFork size={18} color="var(--color-danger)" />,
+          collapsedIcon: <GitFork size={20} color="var(--color-danger)" />
         }
       ]
     },
@@ -63,15 +63,15 @@ export default function NodeLibrary({ onCollapseChange }: NodeLibraryProps) {
           type: 'ubuntu',
           name: t('nodeLibrary.types.ubuntu.name'),
           desc: t('nodeLibrary.types.ubuntu.desc'),
-          icon: <Cpu size={18} color="#3B82F6" />,
-          collapsedIcon: <Cpu size={20} color="#3B82F6" />
+          icon: <Cpu size={18} color="var(--color-accent)" />,
+          collapsedIcon: <Cpu size={20} color="var(--color-accent)" />
         },
         {
           type: 'autoscalinggroup',
           name: t('nodeLibrary.types.autoscalinggroup.name'),
           desc: t('nodeLibrary.types.autoscalinggroup.desc'),
-          icon: <Layers size={18} color="#EC4899" />,
-          collapsedIcon: <Layers size={20} color="#EC4899" />
+          icon: <Layers size={18} color="var(--color-pink)" />,
+          collapsedIcon: <Layers size={20} color="var(--color-pink)" />
         }
       ]
     },
@@ -82,22 +82,22 @@ export default function NodeLibrary({ onCollapseChange }: NodeLibraryProps) {
           type: 'postgres',
           name: t('nodeLibrary.types.postgres.name'),
           desc: t('nodeLibrary.types.postgres.desc'),
-          icon: <Database size={18} color="#64748B" />,
-          collapsedIcon: <Database size={20} color="#64748B" />
+          icon: <Database size={18} color="var(--neutral-500)" />,
+          collapsedIcon: <Database size={20} color="var(--neutral-500)" />
         },
         {
           type: 'nosql',
           name: t('nodeLibrary.types.nosql.name'),
           desc: t('nodeLibrary.types.nosql.desc'),
-          icon: <Braces size={18} color="#475569" />,
-          collapsedIcon: <Braces size={20} color="#475569" />
+          icon: <Braces size={18} color="var(--neutral-600)" />,
+          collapsedIcon: <Braces size={20} color="var(--neutral-600)" />
         },
         {
           type: 'redis',
           name: t('nodeLibrary.types.redis.name'),
           desc: t('nodeLibrary.types.redis.desc'),
-          icon: <Database size={18} color="#DC2626" />,
-          collapsedIcon: <Database size={20} color="#DC2626" />
+          icon: <Database size={18} color="var(--color-danger)" />,
+          collapsedIcon: <Database size={20} color="var(--color-danger)" />
         }
       ]
     },
@@ -108,8 +108,8 @@ export default function NodeLibrary({ onCollapseChange }: NodeLibraryProps) {
           type: 'rabbitmq',
           name: t('nodeLibrary.types.rabbitmq.name'),
           desc: t('nodeLibrary.types.rabbitmq.desc'),
-          icon: <MessageSquare size={18} color="#FF6600" />,
-          collapsedIcon: <MessageSquare size={20} color="#FF6600" />
+          icon: <MessageSquare size={18} color="var(--color-orange)" />,
+          collapsedIcon: <MessageSquare size={20} color="var(--color-orange)" />
         }
       ]
     }

@@ -82,7 +82,7 @@ export default function RabbitMqModal({ nodeName, port, ipAddress, state, onClos
                   <span style={styles.detailLabel}>{t('rabbitmq.details.stateLabel')}</span>
                   <span style={{
                     ...styles.detailValue,
-                    color: isRunning ? '#10B981' : '#EF4444',
+                    color: isRunning ? 'var(--color-success)' : 'var(--color-danger)',
                     fontWeight: 700
                   }}>
                     {isRunning ? t('rabbitmq.details.running') : t('rabbitmq.details.stopped')}
@@ -126,8 +126,8 @@ export default function RabbitMqModal({ nodeName, port, ipAddress, state, onClos
 
               {isRunning && (
                 <div style={styles.warningCard}>
-                  <AlertCircle size={18} color="#B45309" style={{ marginRight: '10px', flexShrink: 0, marginTop: '2px' }} />
-                  <div style={{ fontSize: '13px', color: '#B45309', lineHeight: '1.5' }}>
+                  <AlertCircle size={18} color="var(--color-warning-strong)" style={{ marginRight: '10px', flexShrink: 0, marginTop: '2px' }} />
+                  <div style={{ fontSize: '13px', color: 'var(--color-warning-strong)', lineHeight: '1.5' }}>
                     <strong>{t('rabbitmq.details.warning.title')}</strong>
                     <ul style={{ margin: '4px 0 0 0', paddingLeft: '20px' }}>
                       <li>
@@ -137,7 +137,7 @@ export default function RabbitMqModal({ nodeName, port, ipAddress, state, onClos
                           onMouseLeave={() => setShowTooltip(false)}
                           style={{ position: 'relative', cursor: 'pointer', marginLeft: '6px', display: 'inline-flex', alignItems: 'center', verticalAlign: 'middle' }}
                         >
-                          <HelpCircle size={13} color="#B45309" />
+                          <HelpCircle size={13} color="var(--color-warning-strong)" />
                           {showTooltip && (
                             <span style={styles.tooltip}>
                               {t('rabbitmq.details.warning.tooltip')}
@@ -166,7 +166,7 @@ export default function RabbitMqModal({ nodeName, port, ipAddress, state, onClos
                 </div>
               ) : (
                 <div style={styles.alertCard}>
-                  <p style={{ margin: 0, fontSize: '13px', color: '#64748B', textAlign: 'center' }}>
+                  <p style={{ margin: 0, fontSize: '13px', color: 'var(--neutral-500)', textAlign: 'center' }}>
                     {t('rabbitmq.details.startPrompt')}
                   </p>
                 </div>
@@ -206,7 +206,7 @@ export default function RabbitMqModal({ nodeName, port, ipAddress, state, onClos
                         onClick={() => handleCopyCheat(item.example, idx)}
                         style={styles.copyBtn}
                       >
-                        {copiedIndex === idx ? <Check size={14} color="#10B981" /> : <Copy size={14} />}
+                        {copiedIndex === idx ? <Check size={14} color="var(--color-success)" /> : <Copy size={14} />}
                       </button>
                     </div>
                   </div>
@@ -297,7 +297,7 @@ const styles: Record<string, React.CSSProperties> = {
   body: {
     flex: 1,
     overflow: 'hidden',
-    backgroundColor: '#FFFFFF',
+    backgroundColor: 'var(--bg-surface-solid)',
   },
   tabContent: {
     height: '100%',
@@ -308,21 +308,21 @@ const styles: Record<string, React.CSSProperties> = {
   title: {
     margin: '0 0 8px 0',
     fontSize: '16px',
-    color: '#1E293B',
+    color: 'var(--neutral-800)',
   },
   desc: {
     margin: '0 0 20px 0',
     fontSize: '13px',
-    color: '#64748B',
+    color: 'var(--neutral-500)',
   },
   infoCard: {
-    border: '1px solid #E2E8F0',
+    border: '1px solid var(--neutral-200)',
     borderRadius: '8px',
     padding: '16px',
     display: 'flex',
     flexDirection: 'column',
     gap: '12px',
-    backgroundColor: '#FAFAFA'
+    backgroundColor: 'var(--neutral-50)'
   },
   detailRow: {
     display: 'flex',
@@ -339,8 +339,8 @@ const styles: Record<string, React.CSSProperties> = {
     fontFamily: 'var(--font-mono)',
   },
   actionBtn: {
-    backgroundColor: '#FF6600',
-    color: '#FFF',
+    backgroundColor: 'var(--color-orange)',
+    color: 'var(--color-white)',
     border: 'none',
     borderRadius: '6px',
     padding: '10px 20px',
@@ -350,15 +350,15 @@ const styles: Record<string, React.CSSProperties> = {
     display: 'flex',
     alignItems: 'center',
     textDecoration: 'none',
-    boxShadow: '0 4px 6px -1px rgba(255, 102, 0, 0.2), 0 2px 4px -1px rgba(255, 102, 0, 0.1)',
+    boxShadow: '0 4px 6px -1px color-mix(in srgb, var(--color-orange) 20%, transparent), 0 2px 4px -1px color-mix(in srgb, var(--color-orange) 10%, transparent)',
     transition: 'background-color 0.2s, transform 0.2s',
   },
   alertCard: {
-    border: '1px dashed #E2E8F0',
+    border: '1px dashed var(--neutral-200)',
     borderRadius: '8px',
     padding: '20px',
     marginTop: '24px',
-    backgroundColor: '#FAFAFA'
+    backgroundColor: 'var(--neutral-50)'
   },
   searchBar: {
     marginBottom: '16px',
@@ -404,7 +404,7 @@ const styles: Record<string, React.CSSProperties> = {
   cheatName: {
     fontSize: '14px',
     fontWeight: 700,
-    color: '#FF6600',
+    color: 'var(--color-orange)',
   },
   cheatCategory: {
     fontSize: '11px',
@@ -447,11 +447,11 @@ const styles: Record<string, React.CSSProperties> = {
     borderRadius: '4px',
   },
   warningCard: {
-    border: '1px solid #FDE68A',
+    border: '1px solid var(--color-warning-border)',
     borderRadius: '8px',
     padding: '12px 16px',
     marginTop: '16px',
-    backgroundColor: '#FFFBEB',
+    backgroundColor: 'var(--color-warning-subtle)',
     display: 'flex',
     alignItems: 'flex-start',
   },
@@ -460,8 +460,8 @@ const styles: Record<string, React.CSSProperties> = {
     bottom: '135%',
     left: '50%',
     transform: 'translateX(-50%)',
-    backgroundColor: '#1E293B',
-    color: '#FFFFFF',
+    backgroundColor: 'var(--neutral-800)',
+    color: 'var(--color-white)',
     padding: '8px 12px',
     borderRadius: '6px',
     fontSize: '11px',

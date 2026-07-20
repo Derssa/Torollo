@@ -140,8 +140,8 @@ export default function PostgresModal({ containerId, nodeName, projectId, onClos
     <InspectorModal tabs={tabs} activeTab={activeTab} onTabChange={setActiveTab} onClose={onClose}>
       <TabPanel visible={activeTab === 'details'}>
         <div style={inspectorStyles.tabContent}>
-          <h3 style={{ margin: '0 0 8px 0', fontSize: '16px', color: '#1E293B' }}>{t('postgres.details.title')}</h3>
-          <p style={{ margin: '0 0 20px 0', fontSize: '13px', color: '#64748B' }}>
+          <h3 style={{ margin: '0 0 8px 0', fontSize: '16px', color: 'var(--neutral-800)' }}>{t('postgres.details.title')}</h3>
+          <p style={{ margin: '0 0 20px 0', fontSize: '13px', color: 'var(--neutral-500)' }}>
             {t('postgres.details.desc')}
           </p>
 
@@ -159,8 +159,8 @@ export default function PostgresModal({ containerId, nodeName, projectId, onClos
               onScalingLog={appendSysLog}
             />
 
-            <div style={{ border: '1px solid #E2E8F0', borderRadius: '8px', padding: '16px' }}>
-              <h4 style={{ margin: '0 0 16px 0', fontSize: '14px', color: '#334155' }}>{t('postgres.details.horizontalTitle')}</h4>
+            <div style={{ border: '1px solid var(--neutral-200)', borderRadius: '8px', padding: '16px' }}>
+              <h4 style={{ margin: '0 0 16px 0', fontSize: '14px', color: 'var(--neutral-700)' }}>{t('postgres.details.horizontalTitle')}</h4>
 
               <div style={{ marginBottom: '16px', display: 'flex', gap: '24px' }}>
                 <div>
@@ -206,13 +206,13 @@ export default function PostgresModal({ containerId, nodeName, projectId, onClos
                 </div>
               </div>
 
-              <span style={{ fontSize: '11px', color: '#64748B', display: 'block', marginBottom: '12px' }}>
+              <span style={{ fontSize: '11px', color: 'var(--neutral-500)', display: 'block', marginBottom: '12px' }}>
                 {t('postgres.details.scaleDesc')}
               </span>
 
-              <div style={{ backgroundColor: '#F8FAFC', borderRadius: '6px', padding: '12px', borderLeft: '3px solid #2563EB' }}>
-                <h5 style={{ margin: '0 0 4px 0', fontSize: '11px', textTransform: 'uppercase', color: '#475569' }}>{t('postgres.details.topologyTitle')}</h5>
-                <span style={{ fontSize: '11px', color: '#64748B' }}>
+              <div style={{ backgroundColor: 'var(--neutral-50)', borderRadius: '6px', padding: '12px', borderLeft: '3px solid var(--color-accent)' }}>
+                <h5 style={{ margin: '0 0 4px 0', fontSize: '11px', textTransform: 'uppercase', color: 'var(--neutral-600)' }}>{t('postgres.details.topologyTitle')}</h5>
+                <span style={{ fontSize: '11px', color: 'var(--neutral-500)' }}>
                   {t('postgres.details.topologyDesc')}
                 </span>
               </div>
@@ -295,14 +295,14 @@ const styles: Record<string, React.CSSProperties> = {
     borderRadius: '6px',
     border: '1px solid var(--border-color)',
     fontSize: '13px',
-    backgroundColor: '#FFF',
+    backgroundColor: 'var(--bg-surface-solid)',
     outline: 'none',
   },
   counterBtn: {
     width: '32px',
     height: '32px',
     borderRadius: '6px',
-    border: '1px solid #CBD5E1',
+    border: '1px solid var(--neutral-300)',
     cursor: 'pointer',
     fontWeight: 'bold',
   },
