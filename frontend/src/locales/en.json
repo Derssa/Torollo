@@ -236,6 +236,41 @@
       "placeholder": "Search Redis commands or concepts..."
     }
   },
+  "rabbitmq": {
+    "tabs": {
+      "details": "Details",
+      "cheatsheet": "Cheat Sheet"
+    },
+    "details": {
+      "title": "RabbitMQ Broker Details",
+      "desc": "Message broker and queues backed by a real RabbitMQ container with the Management Console enabled.",
+      "imageLabel": "Image",
+      "nodeNameLabel": "Node Name",
+      "internalIpLabel": "Internal IP",
+      "notAssigned": "Not Assigned",
+      "amqpPortLabel": "AMQP Port",
+      "mgmtPortLabel": "Management Port",
+      "consoleUrlLabel": "Console URL",
+      "usernameLabel": "Username",
+      "passwordLabel": "Password",
+      "stateLabel": "State",
+      "openConsoleBtn": "Open Management Console",
+      "running": "Running",
+      "stopped": "Stopped",
+      "startPrompt": "Start the node to access the RabbitMQ Management Console link.",
+      "warning": {
+        "title": "Console connection issue?",
+        "tooltip": "Click the security shield icon on the node in the canvas to configure it",
+        "sgRule": "Ensure you have configured an Inbound Security Group Rule allowing TCP/ALL traffic on port 15672 from source 0.0.0.0/0.",
+        "bootDelay": "Allow 10-15 seconds after starting the container for the RabbitMQ Management UI server to fully initialize.",
+        "amqpRule": "Applications in other subnets connecting via AMQP must have an inbound Security Group rule allowing traffic on port 5672."
+      }
+    },
+    "cheatsheet": {
+      "placeholder": "Search RabbitMQ concepts or commands...",
+      "noMatch": "No matching cheat sheet items found."
+    }
+  },
   "nosql": {
     "tabs": {
       "details": "Details & Config",
@@ -562,6 +597,7 @@
     "natInfoGuideTitle": "View NAT Gateway details & guide",
     "inspectDatabaseTitle": "Inspect Database Explorer / Shell",
     "inspectRedisTitle": "Inspect Redis Keys / Shell",
+    "inspectRabbitmqTitle": "Inspect RabbitMQ / Console",
     "terminal": "Terminal",
     "openTerminal": "Open Terminal",
     "publicSubnet": "Public Subnet",
@@ -646,7 +682,8 @@
     "categories": {
       "networking": "Networking",
       "compute": "Compute",
-      "databases": "Databases"
+      "databases": "Databases",
+      "messageBrokers": "Message Brokers"
     },
     "types": {
       "subnet-public": {
@@ -684,6 +721,10 @@
       "redis": {
         "name": "Cache Store",
         "desc": "In-memory key-value cache"
+      },
+      "rabbitmq": {
+        "name": "RabbitMQ",
+        "desc": "Message broker & queues"
       }
     },
     "createNode": {
@@ -694,6 +735,7 @@
         "postgres": "Create SQL Database Node",
         "nosql": "Create NoSQL Database Node",
         "redis": "Create Cache Store Node",
+        "rabbitmq": "Create Message Broker Node",
         "nat": "Create NAT Gateway Node",
         "loadbalancer": "Create Load Balancer Node",
         "autoscalinggroup": "Create Auto Scaling Group Node"
@@ -703,6 +745,7 @@
         "postgres": "e.g. sql-1",
         "nosql": "e.g. nosql-1",
         "redis": "e.g. redis-1",
+        "rabbitmq": "e.g. mq-1",
         "nat": "e.g. nat-1",
         "loadbalancer": "e.g. alb-1",
         "autoscalinggroup": "e.g. asg-1"

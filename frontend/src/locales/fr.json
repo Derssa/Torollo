@@ -236,6 +236,41 @@
       "placeholder": "Rechercher des commandes ou concepts Redis..."
     }
   },
+  "rabbitmq": {
+    "tabs": {
+      "details": "Détails",
+      "cheatsheet": "Aide-mémoire"
+    },
+    "details": {
+      "title": "Détails du Courtier RabbitMQ",
+      "desc": "Courtier de messages et files d'attente adossé à un vrai conteneur RabbitMQ avec la console de gestion activée.",
+      "imageLabel": "Image",
+      "nodeNameLabel": "Nom du Nœud",
+      "internalIpLabel": "IP Interne",
+      "notAssigned": "Non assignée",
+      "amqpPortLabel": "Port AMQP",
+      "mgmtPortLabel": "Port de Gestion",
+      "consoleUrlLabel": "URL de la Console",
+      "usernameLabel": "Identifiant",
+      "passwordLabel": "Mot de passe",
+      "stateLabel": "État",
+      "openConsoleBtn": "Ouvrir la Console de Gestion",
+      "running": "En cours d'exécution",
+      "stopped": "Arrêté",
+      "startPrompt": "Démarrez le nœud pour accéder au lien de la Console de Gestion RabbitMQ.",
+      "warning": {
+        "title": "Problème de connexion à la console ?",
+        "tooltip": "Cliquez sur l'icône du bouclier de sécurité sur le nœud dans le canvas pour la configurer",
+        "sgRule": "Assurez-vous d'avoir configuré une règle de groupe de sécurité entrante autorisant le trafic TCP/ALL sur le port 15672 depuis la source 0.0.0.0/0.",
+        "bootDelay": "Laissez 10 à 15 secondes après le démarrage du conteneur pour que le serveur de l'interface de gestion RabbitMQ s'initialise complètement.",
+        "amqpRule": "Les applications d'autres sous-réseaux se connectant via AMQP doivent avoir une règle de groupe de sécurité entrante autorisant le trafic sur le port 5672."
+      }
+    },
+    "cheatsheet": {
+      "placeholder": "Rechercher des concepts ou commandes RabbitMQ...",
+      "noMatch": "Aucun élément d'aide-mémoire correspondant trouvé."
+    }
+  },
   "nosql": {
     "tabs": {
       "details": "Détails & Config",
@@ -562,6 +597,7 @@
     "natInfoGuideTitle": "Voir les détails et le guide de la passerelle NAT",
     "inspectDatabaseTitle": "Inspecter l'explorateur de base de données / le shell",
     "inspectRedisTitle": "Inspecter les clés Redis / le shell",
+    "inspectRabbitmqTitle": "Inspecter RabbitMQ / la console",
     "terminal": "Terminal",
     "openTerminal": "Ouvrir le terminal",
     "publicSubnet": "Sous-réseau public",
@@ -646,7 +682,8 @@
     "categories": {
       "networking": "Réseau",
       "compute": "Calcul",
-      "databases": "Bases de données"
+      "databases": "Bases de données",
+      "messageBrokers": "Courtiers de messages"
     },
     "types": {
       "subnet-public": {
@@ -684,6 +721,10 @@
       "redis": {
         "name": "Cache",
         "desc": "Cache clé-valeur en mémoire"
+      },
+      "rabbitmq": {
+        "name": "RabbitMQ",
+        "desc": "Courtier de messages & files"
       }
     },
     "createNode": {
@@ -694,6 +735,7 @@
         "postgres": "Créer un nœud Base de données SQL",
         "nosql": "Créer un nœud Base de données NoSQL",
         "redis": "Créer un nœud Cache",
+        "rabbitmq": "Créer un nœud Courtier de messages",
         "nat": "Créer un nœud Passerelle NAT",
         "loadbalancer": "Créer un nœud Répartiteur de charge",
         "autoscalinggroup": "Créer un nœud Groupe d'auto-scaling"
@@ -703,6 +745,7 @@
         "postgres": "ex. sql-1",
         "nosql": "ex. nosql-1",
         "redis": "ex. redis-1",
+        "rabbitmq": "ex. mq-1",
         "nat": "ex. nat-1",
         "loadbalancer": "ex. alb-1",
         "autoscalinggroup": "ex. asg-1"

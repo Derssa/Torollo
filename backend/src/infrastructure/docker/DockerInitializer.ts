@@ -25,6 +25,19 @@ export class DockerInitializer {
   }
 
   /**
+   * Ensures a single node image is available locally, applying the same
+   * pull-then-build fallback as startup: the custom `derssa/*` images may not
+   * be published to a registry, so when the pull fails they are rebuilt from
+   * their public base + iptables. Lets callers (e.g. integration tests) get one
+   * image ready without running the full startup routine.
+   */
+  public static async ensureImageAvailable(tag: string): Promise<void> {
+    const images = await docker.listImages();
+    const existingTags = images.flatMap(img => img.RepoTags || []);
+    await this.ensureImage(existingTags, tag, tag);
+  }
+
+  /**
    * Names of subnet networks referenced by current projects, or null when
    * projects.json exists but cannot be parsed. A missing file means no
    * projects, so every subnet network is a genuine orphan.
@@ -132,6 +145,7 @@ export class DockerInitializer {
       await this.ensureImage(tags, NODE_TYPES.postgres.image, 'PostgreSQL');
       await this.ensureImage(tags, NODE_TYPES.mongo.image, 'MongoDB');
       await this.ensureImage(tags, NODE_TYPES.redis.image, 'Redis');
+      await this.ensureImage(tags, NODE_TYPES.rabbitmq.image, 'RabbitMQ');
     } catch (err) {
       console.error('[DockerInitializer] Docker check failed. Is Docker running?');
       throw err;
@@ -300,6 +314,65 @@ export class DockerInitializer {
         console.log(`[DockerInitializer] Cleaning up temporary build container...`);
         await tempContainer.remove({ force: true });
         console.log(`[DockerInitializer] Custom Redis image with iptables created successfully.`);
+      } else if (tag === NODE_TYPES.rabbitmq.image) {
+        const fallbackTag = 'rabbitmq:3-management-alpine';
+        console.log(`[DockerInitializer] Tag ${tag} not found. Building custom RabbitMQ image locally...`);
+
+        // Ensure base rabbitmq:3-management-alpine is pulled
+        const imagesList = await docker.listImages();
+        const localTags = imagesList.flatMap(img => img.RepoTags || []);
+        if (!localTags.includes(fallbackTag)) {
+          console.log(`[DockerInitializer] Pulling base rabbitmq:3-management-alpine image...`);
+          await new Promise<void>((resolve, reject) => {
+            docker.pull(fallbackTag, {}, (err, stream) => {
+              if (err) return reject(err);
+              if (!stream) return reject(new Error('Pull stream is undefined'));
+              docker.modem.followProgress(stream, (finishedErr) => finishedErr ? reject(finishedErr) : resolve());
+            });
+          });
+        }
+
+        // Clean up any stale temp containers from previous runs
+        try {
+          const oldContainer = docker.getContainer('akal-lab-temp-rabbitmq-build');
+          await oldContainer.remove({ force: true });
+        } catch {
+          // Ignore if old container doesn't exist
+        }
+
+        console.log(`[DockerInitializer] Creating temporary build container for RabbitMQ...`);
+        const tempContainer = await docker.createContainer({
+          Image: fallbackTag,
+          name: 'akal-lab-temp-rabbitmq-build',
+          Entrypoint: ['tail', '-f', '/dev/null']
+        });
+        await tempContainer.start();
+
+        console.log(`[DockerInitializer] Installing iptables inside build container...`);
+        const exec = await tempContainer.exec({
+          Cmd: ['sh', '-c', 'apk update && apk add --no-cache iptables iproute2'],
+          AttachStdout: true,
+          AttachStderr: true
+        });
+        const stream = await exec.start({});
+        await new Promise<void>((resolve) => {
+          stream.on('data', () => {});
+          stream.on('end', () => resolve());
+        });
+
+        console.log(`[DockerInitializer] Committing custom RabbitMQ image as ${tag}...`);
+        await tempContainer.commit({
+          repo: 'derssa/backend-lab-rabbitmq',
+          tag: 'v1',
+          changes: [
+            'ENTRYPOINT ["docker-entrypoint.sh"]',
+            'CMD ["rabbitmq-server"]'
+          ]
+        });
+
+        console.log(`[DockerInitializer] Cleaning up temporary build container...`);
+        await tempContainer.remove({ force: true });
+        console.log(`[DockerInitializer] Custom RabbitMQ image with iptables created successfully.`);
       } else {
         throw pullErr;
       }

@@ -2,6 +2,7 @@ import { useTranslation } from 'react-i18next';
 import PostgresModal from '../../../features/nodes/PostgresNode/PostgresModal';
 import NoSqlModal from '../../../features/nodes/NoSqlNode/NoSqlModal';
 import RedisModal from '../../../features/nodes/RedisNode/RedisModal';
+import RabbitMqModal from '../../../features/nodes/RabbitMqNode/RabbitMqModal';
 import NatGatewayModal from '../../../features/nodes/NatNode/NatGatewayModal';
 import LoadBalancerModal from '../../../features/nodes/LoadBalancerNode/LoadBalancerModal';
 import AsgModal from '../../../features/nodes/AsgNode/AsgModal';
@@ -16,7 +17,7 @@ import type { NetworkConfig } from '../../../shared/types/network';
 
 /** Which inspector modal is open. They are mutually exclusive, hence one state. */
 export interface InspectorState {
-  kind: 'postgres' | 'nosql' | 'redis' | 'nat' | 'loadbalancer' | 'asg' | 'subnet-routes' | 'security-group';
+  kind: 'postgres' | 'nosql' | 'redis' | 'rabbitmq' | 'nat' | 'loadbalancer' | 'asg' | 'subnet-routes' | 'security-group';
   id: string;
   name: string;
   /** Only set for kind 'security-group' (the modal displays the node type). */
@@ -136,6 +137,16 @@ export default function CanvasModals({
           containerId={inspector.id}
           nodeName={inspector.name}
           projectId={projectId}
+          onClose={onCloseInspector}
+        />
+      )}
+
+      {inspector?.kind === 'rabbitmq' && (
+        <RabbitMqModal
+          nodeName={inspector.name}
+          port={containers.find(c => c.id === inspector.id)?.port}
+          ipAddress={networkConfig.nodeIpMap?.[inspector.id]}
+          state={containers.find(c => c.id === inspector.id)?.state || 'stopped'}
           onClose={onCloseInspector}
         />
       )}

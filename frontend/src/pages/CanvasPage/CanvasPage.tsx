@@ -9,6 +9,7 @@ import NatNode from '../../features/nodes/NatNode/NatNode';
 import PostgresNode from '../../features/nodes/PostgresNode/PostgresNode';
 import NoSqlNode from '../../features/nodes/NoSqlNode/NoSqlNode';
 import RedisNode from '../../features/nodes/RedisNode/RedisNode';
+import RabbitMqNode from '../../features/nodes/RabbitMqNode/RabbitMqNode';
 import LoadBalancerNode from '../../features/nodes/LoadBalancerNode/LoadBalancerNode';
 import AsgNode from '../../features/nodes/AsgNode/AsgNode';
 import VpcNode from '../../features/nodes/VpcNode/VpcNode';
@@ -50,6 +51,7 @@ const INSPECTOR_KIND_BY_NODE_TYPE: Record<string, InspectorState['kind']> = {
   sql: 'postgres',
   nosql: 'nosql',
   redis: 'redis',
+  rabbitmq: 'rabbitmq',
   nat: 'nat',
   loadbalancer: 'loadbalancer',
   autoscalinggroup: 'asg',
@@ -129,6 +131,7 @@ export default function CanvasPage({ projectId, projectName, onBackToProjects, o
     sql: PostgresNode,
     nosql: NoSqlNode,
     redis: RedisNode,
+    rabbitmq: RabbitMqNode,
     nat: NatNode,
     vpc: VpcNode,
     subnet: SubnetNode,

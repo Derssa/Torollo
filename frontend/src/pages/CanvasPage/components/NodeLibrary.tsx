@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { ChevronLeft, ChevronRight, Database, Library, Network, Search, GitFork, Braces, Layers, ArrowRightLeft, Cpu } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Database, Library, Network, Search, GitFork, Braces, Layers, ArrowRightLeft, Cpu, MessageSquare } from 'lucide-react';
 
 interface NodeLibraryProps {
   onCollapseChange?: (collapsed: boolean) => void;
@@ -98,6 +98,18 @@ export default function NodeLibrary({ onCollapseChange }: NodeLibraryProps) {
           desc: t('nodeLibrary.types.redis.desc'),
           icon: <Database size={18} color="#DC2626" />,
           collapsedIcon: <Database size={20} color="#DC2626" />
+        }
+      ]
+    },
+    {
+      title: t('nodeLibrary.categories.messageBrokers'),
+      nodes: [
+        {
+          type: 'rabbitmq',
+          name: t('nodeLibrary.types.rabbitmq.name'),
+          desc: t('nodeLibrary.types.rabbitmq.desc'),
+          icon: <MessageSquare size={18} color="#FF6600" />,
+          collapsedIcon: <MessageSquare size={20} color="#FF6600" />
         }
       ]
     }

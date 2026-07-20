@@ -212,11 +212,14 @@ export class DockerNetworkProvider implements NetworkProvider {
     const nodeType = containerInfo.Labels?.['akal.node.type'] || 'ubuntu';
     const isLoadBalancer = nodeType === 'loadbalancer';
     const isPublicUbuntu = nodeType === 'ubuntu' && subnet.type === 'public';
+    // RabbitMQ publishes its management console (15672) to a host port, which
+    // requires staying attached to the default bridge network.
+    const isRabbitMq = nodeType === 'rabbitmq';
 
     for (const netName of currentNetworks) {
       if (netName === targetNetwork || (!netName.startsWith('akal-subnet-') && netName !== 'akal-lab-network')) continue;
 
-      if (netName === 'akal-lab-network' && (isLoadBalancer || isPublicUbuntu)) {
+      if (netName === 'akal-lab-network' && (isLoadBalancer || isPublicUbuntu || isRabbitMq)) {
         continue; // Keep connected to default bridge network for port mappings
       }
 
@@ -274,8 +277,9 @@ export class DockerNetworkProvider implements NetworkProvider {
       }
     }
 
-    // Reconnect to default akal-lab-network if node is public (loadbalancer or public ubuntu) and disconnected
-    if ((isLoadBalancer || isPublicUbuntu) && !currentNetworks.includes('akal-lab-network')) {
+    // Reconnect to default akal-lab-network if node needs a host port mapping
+    // (loadbalancer, public ubuntu, or rabbitmq) and it was disconnected.
+    if ((isLoadBalancer || isPublicUbuntu || isRabbitMq) && !currentNetworks.includes('akal-lab-network')) {
       console.log(`[DockerNetworkProvider] Reconnecting public container ${ep.containerName} to default network akal-lab-network...`);
       try {
         await docker.getNetwork('akal-lab-network').connect({ Container: containerInfo.Id });

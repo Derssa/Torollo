@@ -1,5 +1,6 @@
 import docker from './DockerClient';
 import { NODE_TYPES } from './nodeTypes';
+import { DockerInitializer } from './DockerInitializer';
 
 /**
  * Integration tests (run with `npm run test:integration`, requires a Docker daemon).
@@ -13,24 +14,6 @@ import { NODE_TYPES } from './nodeTypes';
  */
 
 const images = [...new Set(Object.values(NODE_TYPES).map(t => t.image))];
-
-async function ensureImage(image: string): Promise<void> {
-  try {
-    await docker.getImage(image).inspect();
-    return;
-  } catch {
-    // Image not present locally: pull it below.
-  }
-  await new Promise<void>((resolve, reject) => {
-    docker.pull(image, {}, (err, stream) => {
-      if (err) return reject(err);
-      if (!stream) return reject(new Error('Pull stream is undefined'));
-      docker.modem.followProgress(stream, (finishedErr) =>
-        finishedErr ? reject(finishedErr) : resolve()
-      );
-    });
-  });
-}
 
 async function runInImage(image: string, cmd: string): Promise<{ exitCode: number; output: string }> {
   const container = await docker.createContainer({
@@ -65,7 +48,9 @@ describe('node image requirements', () => {
   it.each(images)(
     '%s ships iptables and iproute2, and iptables works under CAP_NET_ADMIN',
     async (image) => {
-      await ensureImage(image);
+      // Build the custom `derssa/*` images locally when they are not published
+      // to a registry (same pull-then-build fallback the backend runs at startup).
+      await DockerInitializer.ensureImageAvailable(image);
       const result = await runInImage(image, 'command -v iptables && command -v ip && iptables -S');
       expect(result).toMatchObject({ exitCode: 0 });
     }

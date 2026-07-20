@@ -32,12 +32,13 @@ export function createDefaultRules(): SecurityGroupRule[] {
 
 /** Inbound ALLOW rule for a manual connection, with the target type's default port. */
 export function buildConnectionRule(sourceId: string, targetType: string): SecurityGroupRule {
-  const isDb = ['postgres', 'sql', 'nosql', 'mysql', 'redis'].includes(targetType);
+  const isDb = ['postgres', 'sql', 'nosql', 'mysql', 'redis', 'rabbitmq'].includes(targetType);
   const port =
     (targetType === 'postgres' || targetType === 'sql') ? '5432'
       : targetType === 'nosql' ? '27017'
       : targetType === 'mysql' ? '3306'
       : targetType === 'redis' ? '6379'
+      : targetType === 'rabbitmq' ? '5672'
       : 'ALL';
 
   return {

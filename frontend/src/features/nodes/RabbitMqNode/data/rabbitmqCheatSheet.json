@@ -1,0 +1,68 @@
+[
+  {
+    "name": "Exchange",
+    "category": "Concepts",
+    "description": "Receives messages from producers and routes them to queues based on exchange type and bindings.",
+    "example": "Types: Direct (routing key match), Fanout (broadcast), Topic (pattern match), Headers."
+  },
+  {
+    "name": "Queue",
+    "category": "Concepts",
+    "description": "A buffer that stores messages. Messages are pushed to queues by exchanges and consumed by clients.",
+    "example": "Queues can be Durable (survive broker restart), Auto-delete, or Exclusive."
+  },
+  {
+    "name": "Binding",
+    "category": "Concepts",
+    "description": "A link that connects a queue to an exchange. It defines the routing rules for incoming messages.",
+    "example": "Queue 'orders-queue' bound to exchange 'amq.direct' with routing key 'order.created'."
+  },
+  {
+    "name": "List Queues",
+    "category": "CLI Administration",
+    "description": "List all active queues along with the count of ready and unacknowledged messages.",
+    "example": "rabbitmqctl list_queues name messages_ready messages_unacknowledged"
+  },
+  {
+    "name": "List Exchanges",
+    "category": "CLI Administration",
+    "description": "List all declared exchanges along with their type and durability settings.",
+    "example": "rabbitmqctl list_exchanges name type durable"
+  },
+  {
+    "name": "List Bindings",
+    "category": "CLI Administration",
+    "description": "List all bindings showing how exchanges route messages to queues.",
+    "example": "rabbitmqctl list_bindings"
+  },
+  {
+    "name": "Broker Status",
+    "category": "CLI Administration",
+    "description": "Check the health and runtime status of the RabbitMQ node.",
+    "example": "rabbitmqctl status"
+  },
+  {
+    "name": "Node.js Publish",
+    "category": "JavaScript (amqplib)",
+    "description": "Publish a message to an exchange with a routing key using the amqplib package.",
+    "example": "const amqp = require('amqplib');\nconst conn = await amqp.connect('amqp://localhost');\nconst ch = await conn.createChannel();\nconst ex = 'logs';\nawait ch.assertExchange(ex, 'fanout', { durable: false });\nch.publish(ex, '', Buffer.from('Hello World!'));\nconsole.log('Sent Hello World!');\nsetTimeout(() => { conn.close(); }, 500);"
+  },
+  {
+    "name": "Node.js Consume",
+    "category": "JavaScript (amqplib)",
+    "description": "Declare a queue and consume messages asynchronously from it.",
+    "example": "const amqp = require('amqplib');\nconst conn = await amqp.connect('amqp://localhost');\nconst ch = await conn.createChannel();\nconst q = 'hello';\nawait ch.assertQueue(q, { durable: false });\nconsole.log('Waiting for messages...');\nch.consume(q, (msg) => {\n  console.log('Received:', msg.content.toString());\n}, { noAck: true });"
+  },
+  {
+    "name": "Python Publish",
+    "category": "Python (pika)",
+    "description": "Connect to RabbitMQ and publish a message to a direct queue using pika.",
+    "example": "import pika\nconnection = pika.BlockingConnection(pika.ConnectionParameters('localhost'))\nchannel = connection.channel()\nchannel.queue_declare(queue='hello')\nchannel.basic_publish(exchange='', routing_key='hello', body='Hello World!')\nprint(\"Sent 'Hello World!'\")\nconnection.close()"
+  },
+  {
+    "name": "Python Consume",
+    "category": "Python (pika)",
+    "description": "Subscribe to a queue and print received messages.",
+    "example": "import pika, sys\nconnection = pika.BlockingConnection(pika.ConnectionParameters('localhost'))\nchannel = connection.channel()\nchannel.queue_declare(queue='hello')\ndef callback(ch, method, properties, body):\n    print(f\"Received {body.decode()}\")\nchannel.basic_consume(queue='hello', on_message_callback=callback, auto_ack=True)\nprint('Waiting for messages. To exit press CTRL+C')\nchannel.start_consuming()"
+  }
+]

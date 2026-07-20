@@ -8,6 +8,7 @@ const META_BY_TYPE: Record<string, { titleKey: string; placeholderKey: string; p
   sql: { titleKey: 'nodeLibrary.createNode.titles.postgres', placeholderKey: 'nodeLibrary.createNode.placeholders.postgres', prefix: 'sql-' },
   nosql: { titleKey: 'nodeLibrary.createNode.titles.nosql', placeholderKey: 'nodeLibrary.createNode.placeholders.nosql', prefix: 'nosql-' },
   redis: { titleKey: 'nodeLibrary.createNode.titles.redis', placeholderKey: 'nodeLibrary.createNode.placeholders.redis', prefix: 'redis-' },
+  rabbitmq: { titleKey: 'nodeLibrary.createNode.titles.rabbitmq', placeholderKey: 'nodeLibrary.createNode.placeholders.rabbitmq', prefix: 'mq-' },
   nat: { titleKey: 'nodeLibrary.createNode.titles.nat', placeholderKey: 'nodeLibrary.createNode.placeholders.nat', prefix: 'nat-' },
   loadbalancer: { titleKey: 'nodeLibrary.createNode.titles.loadbalancer', placeholderKey: 'nodeLibrary.createNode.placeholders.loadbalancer', prefix: 'alb-' },
   autoscalinggroup: { titleKey: 'nodeLibrary.createNode.titles.autoscalinggroup', placeholderKey: 'nodeLibrary.createNode.placeholders.autoscalinggroup', prefix: 'asg-' },

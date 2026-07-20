@@ -173,6 +173,7 @@ export class DockerContainerProvider implements ContainerProvider {
     }
 
     const publishPublicPort = desc.publicPort === 'always' || (desc.publicPort === 'whenPublic' && isPublic);
+    const portKey = `${desc.defaultPrivatePort ?? 80}/tcp`;
 
     const createOpts: any = {
       Image: image,
@@ -191,7 +192,7 @@ export class DockerContainerProvider implements ContainerProvider {
         NetworkMode: 'akal-lab-network',
         CapAdd: ['NET_ADMIN'],
         ...(desc.hostConfigExtras || {}),
-        ...(publishPublicPort ? { PortBindings: { '80/tcp': [{ HostPort: '' }] } } : {})
+        ...(publishPublicPort ? { PortBindings: { [portKey]: [{ HostPort: '' }] } } : {})
       },
       NetworkingConfig: {
         EndpointsConfig: {
@@ -211,7 +212,7 @@ export class DockerContainerProvider implements ContainerProvider {
     const inspectData = await container.inspect();
     if (publishPublicPort) {
       const ports = inspectData.NetworkSettings.Ports;
-      const targetPortKey = '80/tcp';
+      const targetPortKey = portKey;
       if (ports && ports[targetPortKey] && ports[targetPortKey][0]) {
         port = ports[targetPortKey][0].HostPort;
       }

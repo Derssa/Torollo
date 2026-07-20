@@ -30,9 +30,10 @@ export function validateArchitecture(
   const successes: ValidationMessage[] = [];
 
   const dbTypes = ['postgres', 'sql', 'nosql', 'mysql'];
-  // Data stores that should be kept private and never exposed publicly. Redis is a
-  // cache rather than a relational DB tier, so it is tracked separately from dbTypes.
-  const sensitiveTypes = [...dbTypes, 'redis'];
+  // Data stores and message brokers that should be kept private and never exposed
+  // publicly. Redis (cache) and RabbitMQ (broker) are not relational DB tiers, so
+  // they are tracked separately from dbTypes.
+  const sensitiveTypes = [...dbTypes, 'redis', 'rabbitmq'];
 
   // --- 1. ERROR CHECKS ---
   

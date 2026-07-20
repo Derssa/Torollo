@@ -16,9 +16,9 @@ export interface NodeTypeDescriptor {
   interactiveTty?: boolean;
   /** Merged into HostConfig after the common base (AutoRemove/NetworkMode/CapAdd). */
   hostConfigExtras?: Record<string, unknown>;
-  /** When to publish container port 80 to a random host port. */
+  /** When to publish the container's `defaultPrivatePort` to a random host port. */
   publicPort: 'always' | 'whenPublic' | 'never';
-  /** Private port whose PublicPort is surfaced in container listings. */
+  /** Private port that is published to / surfaced from the host (defaults to 80). */
   defaultPrivatePort?: number;
 }
 
@@ -69,7 +69,13 @@ export const NODE_TYPES = {
     hostConfigExtras: { Privileged: true, Sysctls: { 'net.ipv4.ip_forward': '1' } },
     publicPort: 'never'
   },
-  autoscalinggroup: { ...ubuntu, label: 'Auto Scaling Group' }
+  autoscalinggroup: { ...ubuntu, label: 'Auto Scaling Group' },
+  rabbitmq: {
+    label: 'RabbitMQ',
+    image: 'derssa/backend-lab-rabbitmq:v1',
+    publicPort: 'always',
+    defaultPrivatePort: 15672
+  }
 } satisfies Record<string, NodeTypeDescriptor>;
 
 /** Alternate type names accepted from callers, kept verbatim in container labels. */
