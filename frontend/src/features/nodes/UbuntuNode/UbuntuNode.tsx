@@ -31,12 +31,12 @@ export default function UbuntuNode({ data }: UbuntuNodeProps) {
       name={data.name}
       isRunning={isRunning}
       errorMessage={data.lastError}
-      icon={<Cpu size={18} color={isRunning ? '#3B82F6' : '#6B7280'} />}
+      icon={<Cpu size={18} color={isRunning ? 'var(--color-accent)' : 'var(--neutral-500)'} />}
       customTitleColor="var(--color-text-primary)"
       subtitle={
         <>
           <span className={styles.label}>{t('nodeviz.ipAddress')}</span>
-          <span className={styles.value} style={{ color: data.ip ? '#10B981' : undefined }}>{data.ip || t('nodeviz.private')}</span>
+          <span className={styles.value} style={{ color: data.ip ? 'var(--color-success)' : undefined }}>{data.ip || t('nodeviz.private')}</span>
         </>
       }
       onStart={data.onStart}

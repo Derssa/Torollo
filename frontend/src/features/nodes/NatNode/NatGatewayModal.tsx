@@ -23,7 +23,7 @@ export default function NatGatewayModal({
       <div style={styles.container} className="glass">
         <div style={styles.header}>
           <div style={styles.titleRow}>
-            <Globe size={18} color="#8B5CF6" />
+            <Globe size={18} color="var(--color-violet)" />
             <span style={styles.title}>{nodeName}{t('nat.title')}</span>
           </div>
           <button onClick={onClose} style={styles.closeBtn}>
@@ -77,7 +77,7 @@ export default function NatGatewayModal({
                   <span style={styles.label}>{t('nat.details.statusLabel')}</span>
                   <span style={{ 
                     ...styles.value, 
-                    color: state === 'running' ? '#10B981' : '#EF4444',
+                    color: state === 'running' ? 'var(--color-success)' : 'var(--color-danger)',
                     fontWeight: 'bold' 
                   }}>
                     {state === 'running' ? t('nat.details.active') : t('nat.details.offline')}
@@ -264,8 +264,8 @@ const styles: Record<string, React.CSSProperties> = {
     padding: '12px 16px',
     background: 'none',
     border: 'none',
-    borderBottom: '2px solid #8B5CF6',
-    color: '#8B5CF6',
+    borderBottom: '2px solid var(--color-violet)',
+    color: 'var(--color-violet)',
     fontSize: '13px',
     fontWeight: 700,
     cursor: 'pointer',
@@ -275,7 +275,7 @@ const styles: Record<string, React.CSSProperties> = {
     gap: '6px',
   },
   body: {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: 'var(--bg-surface-solid)',
     padding: '20px',
     maxHeight: '450px',
     overflowY: 'auto',
@@ -301,7 +301,7 @@ const styles: Record<string, React.CSSProperties> = {
     display: 'grid',
     gridTemplateColumns: '1fr 1fr',
     gap: '12px',
-    backgroundColor: '#F9FAFB',
+    backgroundColor: 'var(--neutral-50)',
     padding: '16px',
     borderRadius: '8px',
     border: '1px solid var(--border-color)',
@@ -322,8 +322,8 @@ const styles: Record<string, React.CSSProperties> = {
     color: 'var(--color-text-primary)',
   },
   infoBox: {
-    backgroundColor: 'rgba(139, 92, 246, 0.05)',
-    border: '1px solid rgba(139, 92, 246, 0.15)',
+    backgroundColor: 'color-mix(in srgb, var(--color-violet) 5%, transparent)',
+    border: '1px solid color-mix(in srgb, var(--color-violet) 15%, transparent)',
     borderRadius: '8px',
     padding: '12px',
     marginTop: '8px',
@@ -361,8 +361,8 @@ const styles: Record<string, React.CSSProperties> = {
     width: '24px',
     height: '24px',
     borderRadius: '50%',
-    backgroundColor: '#8B5CF6',
-    color: '#FFF',
+    backgroundColor: 'var(--color-violet)',
+    color: 'var(--color-white)',
     fontSize: '12px',
     fontWeight: 700,
     display: 'flex',

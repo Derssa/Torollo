@@ -34,7 +34,7 @@ export default function LinuxCheatSheet() {
           style={{
             ...styles.categoryBtn,
             backgroundColor: selectedCategory === null ? 'var(--color-accent)' : 'rgba(255,255,255,0.05)',
-            color: selectedCategory === null ? '#FFF' : 'var(--color-text-secondary)',
+            color: selectedCategory === null ? 'var(--color-white)' : 'var(--color-text-secondary)',
           }}
           onClick={() => setSelectedCategory(null)}
         >
@@ -46,7 +46,7 @@ export default function LinuxCheatSheet() {
             style={{
               ...styles.categoryBtn,
               backgroundColor: selectedCategory === cat ? 'var(--color-accent)' : 'rgba(255,255,255,0.05)',
-              color: selectedCategory === cat ? '#FFF' : 'var(--color-text-secondary)',
+              color: selectedCategory === cat ? 'var(--color-white)' : 'var(--color-text-secondary)',
             }}
             onClick={() => setSelectedCategory(cat)}
           >
@@ -75,7 +75,7 @@ const styles: Record<string, React.CSSProperties> = {
     display: 'flex',
     flexDirection: 'column',
     height: '100%',
-    backgroundColor: '#FFFFFF',
+    backgroundColor: 'var(--bg-surface-solid)',
     boxSizing: 'border-box',
     padding: '16px',
     overflowY: 'hidden',

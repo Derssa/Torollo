@@ -42,9 +42,9 @@ export default function AsgNode({ data }: AsgNodeProps) {
       name={data.name}
       isRunning={isRunning}
       errorMessage={data.lastError}
-      icon={<Layers size={18} color={isRunning ? '#EC4899' : '#6B7280'} />}
-      customBorder="2px dashed #EC4899"
-      customTitleColor="#DB2777"
+      icon={<Layers size={18} color={isRunning ? 'var(--color-pink)' : 'var(--neutral-500)'} />}
+      customBorder="2px dashed var(--color-pink)"
+      customTitleColor="var(--color-pink-hover)"
       hideHandles={true}
       subtitle={
         <>
@@ -59,7 +59,7 @@ export default function AsgNode({ data }: AsgNodeProps) {
       primaryAction={{
         label: t('nodeviz.inspect'),
         icon: <Settings size={14} />,
-        color: '#EC4899',
+        color: 'var(--color-pink)',
         onClick: data.onInspect,
         title: t('nodeviz.asgInspectTitle'),
       }}

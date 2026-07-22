@@ -78,7 +78,7 @@ export default function SecurityGroupsModal({
       <div style={styles.container} className="glass">
         <div style={styles.header}>
           <div style={styles.titleRow}>
-            <ShieldAlert size={18} color="#EF4444" />
+            <ShieldAlert size={18} color="var(--color-danger)" />
             <span style={styles.title}>{t('sg.title')} {nodeName} ({nodeType})</span>
           </div>
           <button onClick={onClose} style={styles.closeBtn}>
@@ -124,8 +124,8 @@ export default function SecurityGroupsModal({
                           <td style={styles.td}>
                             <span style={{ 
                               ...styles.badge, 
-                              backgroundColor: rule.type === 'inbound' ? '#DBEAFE' : '#F3E8FF',
-                              color: rule.type === 'inbound' ? '#1E40AF' : '#6B21A8'
+                              backgroundColor: rule.type === 'inbound' ? 'var(--color-accent-soft)' : 'var(--color-violet-soft)',
+                              color: rule.type === 'inbound' ? 'var(--color-accent-strong)' : 'var(--color-violet-strong)'
                             }}>
                               {rule.type === 'inbound' ? t('sg.inbound').toUpperCase() : t('sg.outbound').toUpperCase()}
                             </span>
@@ -133,8 +133,8 @@ export default function SecurityGroupsModal({
                           <td style={styles.td}>
                             <span style={{ 
                               ...styles.badge, 
-                              backgroundColor: rule.action === 'ALLOW' ? '#D1FAE5' : '#FEE2E2',
-                              color: rule.action === 'ALLOW' ? '#065F46' : '#991B1B'
+                              backgroundColor: rule.action === 'ALLOW' ? 'var(--color-success-soft)' : 'var(--color-danger-soft)',
+                              color: rule.action === 'ALLOW' ? 'var(--color-success-strong)' : 'var(--color-danger-strong)'
                             }}>
                               {rule.action}
                             </span>
@@ -323,7 +323,7 @@ const styles: Record<string, React.CSSProperties> = {
     transition: 'background-color 0.2s',
   },
   body: {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: 'var(--bg-surface-solid)',
     padding: '20px',
     display: 'flex',
     flexDirection: 'column',
@@ -332,8 +332,8 @@ const styles: Record<string, React.CSSProperties> = {
     maxHeight: '80vh',
   },
   infoBox: {
-    backgroundColor: 'rgba(239, 68, 68, 0.03)',
-    border: '1px solid rgba(239, 68, 68, 0.1)',
+    backgroundColor: 'color-mix(in srgb, var(--color-danger) 3%, transparent)',
+    border: '1px solid color-mix(in srgb, var(--color-danger) 10%, transparent)',
     borderRadius: '8px',
     padding: '12px',
   },
@@ -432,7 +432,7 @@ const styles: Record<string, React.CSSProperties> = {
   deleteBtn: {
     background: 'none',
     border: 'none',
-    color: '#EF4444',
+    color: 'var(--color-danger)',
     cursor: 'pointer',
     padding: '4px',
     borderRadius: '4px',
@@ -484,7 +484,7 @@ const styles: Record<string, React.CSSProperties> = {
     border: '1px solid var(--border-color)',
     borderRadius: '6px',
     fontSize: '12px',
-    backgroundColor: '#FFF',
+    backgroundColor: 'var(--bg-surface-solid)',
     outline: 'none',
     height: '32px',
   },
@@ -499,7 +499,7 @@ const styles: Record<string, React.CSSProperties> = {
   },
   addBtn: {
     backgroundColor: 'var(--color-accent)',
-    color: '#FFF',
+    color: 'var(--color-white)',
     border: 'none',
     borderRadius: '6px',
     padding: '0 16px',

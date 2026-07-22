@@ -129,7 +129,7 @@ const styles: Record<string, React.CSSProperties> = {
     color: 'var(--color-accent)',
     padding: '2px 10px',
     borderRadius: '12px',
-    border: '1px solid rgba(37, 99, 235, 0.2)',
+    border: '1px solid color-mix(in srgb, var(--color-accent) 20%, transparent)',
   },
   actions: {
     display: 'flex',
@@ -166,7 +166,7 @@ const styles: Record<string, React.CSSProperties> = {
   },
   addBtn: {
     backgroundColor: 'var(--color-accent)',
-    color: '#FFF',
+    color: 'var(--color-white)',
     border: 'none',
     borderRadius: '10px',
     padding: '0 18px',
@@ -178,13 +178,13 @@ const styles: Record<string, React.CSSProperties> = {
     display: 'flex',
     alignItems: 'center',
     transition: 'background-color 0.2s, transform 0.1s',
-    boxShadow: '0 1px 3px rgba(37, 99, 235, 0.3)',
+    boxShadow: '0 1px 3px color-mix(in srgb, var(--color-accent) 30%, transparent)',
   },
   iconWrap: {
     width: '32px',
     height: '32px',
     borderRadius: '50%',
-    background: '#FFFFFF',
+    background: 'var(--bg-surface-solid)',
     border: '1px solid rgba(0, 0, 0, 0.08)',
     boxShadow: '0 2px 6px rgba(0, 0, 0, 0.05)',
     display: 'flex',

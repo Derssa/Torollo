@@ -249,7 +249,7 @@ const styles: Record<string, React.CSSProperties> = {
     transition: 'background-color 0.2s',
   },
   body: {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: 'var(--bg-surface-solid)',
     padding: '20px',
     display: 'flex',
     flexDirection: 'column',
@@ -258,8 +258,8 @@ const styles: Record<string, React.CSSProperties> = {
   infoBox: {
     display: 'flex',
     gap: '10px',
-    backgroundColor: 'rgba(37, 99, 235, 0.05)',
-    border: '1px solid rgba(37, 99, 235, 0.15)',
+    backgroundColor: 'color-mix(in srgb, var(--color-accent) 5%, transparent)',
+    border: '1px solid color-mix(in srgb, var(--color-accent) 15%, transparent)',
     borderRadius: '8px',
     padding: '12px',
   },
@@ -318,7 +318,7 @@ const styles: Record<string, React.CSSProperties> = {
   deleteBtn: {
     background: 'none',
     border: 'none',
-    color: '#EF4444',
+    color: 'var(--color-danger)',
     fontSize: '11px',
     fontWeight: 600,
     cursor: 'pointer',
@@ -354,7 +354,7 @@ const styles: Record<string, React.CSSProperties> = {
     borderRadius: '6px',
     fontSize: '12px',
     outline: 'none',
-    backgroundColor: '#FFFFFF',
+    backgroundColor: 'var(--bg-surface-solid)',
     cursor: 'pointer',
   },
   inputWide: {
@@ -367,7 +367,7 @@ const styles: Record<string, React.CSSProperties> = {
   },
   addBtn: {
     backgroundColor: 'var(--color-accent)',
-    color: '#FFF',
+    color: 'var(--color-white)',
     border: 'none',
     borderRadius: '6px',
     padding: '6px 16px',
@@ -384,7 +384,7 @@ const styles: Record<string, React.CSSProperties> = {
   },
   saveBtn: {
     backgroundColor: 'var(--color-accent)',
-    color: '#FFF',
+    color: 'var(--color-white)',
     border: 'none',
     borderRadius: '6px',
     padding: '8px 20px',

@@ -112,7 +112,7 @@ export default function LoadBalancerModal({
       <div style={styles.container} className="glass">
         <div style={styles.header}>
           <div style={styles.titleRow}>
-            <GitFork size={18} color="#EF4444" />
+            <GitFork size={18} color="var(--color-danger)" />
             <span style={styles.title}>{nodeName}{t('lb.title')}</span>
           </div>
           <button onClick={onClose} style={styles.closeBtn}>
@@ -166,7 +166,7 @@ export default function LoadBalancerModal({
                   <span style={styles.label}>{t('lb.details.statusLabel')}</span>
                   <span style={{ 
                     ...styles.value, 
-                    color: state === 'running' ? '#10B981' : '#EF4444',
+                    color: state === 'running' ? 'var(--color-success)' : 'var(--color-danger)',
                     fontWeight: 'bold' 
                   }}>
                     {state === 'running' ? t('lb.details.active') : t('lb.details.offline')}
@@ -178,13 +178,13 @@ export default function LoadBalancerModal({
                 </div>
                 <div style={styles.gridItem}>
                   <span style={styles.label}>{t('lb.details.portLabel')}</span>
-                  <span style={{ ...styles.value, fontWeight: 'bold', color: '#3B82F6' }}>
+                  <span style={{ ...styles.value, fontWeight: 'bold', color: 'var(--color-accent)' }}>
                     {port ? t('lb.details.portValueMapped').replace('{{port}}', port) : t('lb.details.portValueNone')}
                   </span>
                 </div>
                 <div style={styles.gridItem}>
                   <span style={styles.label}>{t('lb.details.endpointLabel')}</span>
-                  <span style={{ ...styles.value, color: '#3B82F6', fontWeight: 600 }}>
+                  <span style={{ ...styles.value, color: 'var(--color-accent)', fontWeight: 600 }}>
                     {port ? `http://localhost:${port}` : t('lb.details.endpointNone')}
                   </span>
                 </div>
@@ -244,8 +244,8 @@ export default function LoadBalancerModal({
                           fontSize: '11px',
                           padding: '2px 6px',
                           borderRadius: '4px',
-                          backgroundColor: node.state === 'running' ? 'rgba(16, 185, 129, 0.1)' : 'rgba(239, 68, 68, 0.1)',
-                          color: node.state === 'running' ? '#10B981' : '#EF4444',
+                          backgroundColor: node.state === 'running' ? 'color-mix(in srgb, var(--color-success) 10%, transparent)' : 'color-mix(in srgb, var(--color-danger) 10%, transparent)',
+                          color: node.state === 'running' ? 'var(--color-success)' : 'var(--color-danger)',
                         }}>
                           {node.state === 'running' ? t('lb.details.targetOnline') : t('lb.details.targetOffline')}
                         </span>
@@ -262,9 +262,9 @@ export default function LoadBalancerModal({
                     onClick={handleAddRule}
                     style={{
                       padding: '4px 8px',
-                      backgroundColor: 'rgba(59, 130, 246, 0.1)',
-                      color: '#2563EB',
-                      border: '1px solid rgba(59, 130, 246, 0.2)',
+                      backgroundColor: 'color-mix(in srgb, var(--color-accent) 10%, transparent)',
+                      color: 'var(--color-accent)',
+                      border: '1px solid color-mix(in srgb, var(--color-accent) 20%, transparent)',
                       borderRadius: '4px',
                       fontSize: '11px',
                       fontWeight: 'bold',
@@ -289,7 +289,7 @@ export default function LoadBalancerModal({
                           placeholder={t('lb.details.pathPlaceholder')}
                           style={{ ...styles.select, flex: 1, padding: '4px 8px', fontSize: '12px' }}
                         />
-                        <ArrowRight size={14} color="#6B7280" />
+                        <ArrowRight size={14} color="var(--neutral-500)" />
                         <select
                           value={rule.targetId}
                           onChange={(e) => handleRuleTargetChange(idx, e.target.value)}
@@ -304,8 +304,8 @@ export default function LoadBalancerModal({
                           onClick={() => handleRemoveRule(idx)}
                           style={{
                             padding: '4px 8px',
-                            backgroundColor: 'rgba(239, 68, 68, 0.1)',
-                            color: '#EF4444',
+                            backgroundColor: 'color-mix(in srgb, var(--color-danger) 10%, transparent)',
+                            color: 'var(--color-danger)',
                             border: 'none',
                             borderRadius: '4px',
                             cursor: 'pointer',
@@ -462,7 +462,7 @@ const styles = {
     justifyContent: 'space-between',
     padding: '16px 20px',
     borderBottom: '1px solid var(--border-color)',
-    backgroundColor: 'var(--bg-surface-solid, #1F2937)',
+    backgroundColor: 'var(--bg-surface-solid, var(--neutral-800))',
   },
   titleRow: {
     display: 'flex',
@@ -472,12 +472,12 @@ const styles = {
   title: {
     fontSize: '15px',
     fontWeight: 700,
-    color: 'var(--color-text-primary, #F9FAFB)',
+    color: 'var(--color-text-primary, var(--neutral-50))',
   },
   closeBtn: {
     background: 'none',
     border: 'none',
-    color: 'var(--color-text-muted, #9CA3AF)',
+    color: 'var(--color-text-muted, var(--neutral-400))',
     cursor: 'pointer',
     padding: '6px',
     borderRadius: '50%',
@@ -488,7 +488,7 @@ const styles = {
   tabBar: {
     display: 'flex',
     borderBottom: '1px solid var(--border-color)',
-    backgroundColor: '#111827',
+    backgroundColor: 'var(--neutral-900)',
   },
   tab: {
     flex: 1,
@@ -496,7 +496,7 @@ const styles = {
     background: 'none',
     border: 'none',
     borderBottom: '2px solid transparent',
-    color: '#9CA3AF',
+    color: 'var(--neutral-400)',
     fontSize: '13px',
     fontWeight: 600,
     cursor: 'pointer',
@@ -510,8 +510,8 @@ const styles = {
     padding: '12px 16px',
     background: 'none',
     border: 'none',
-    borderBottom: '2px solid #EF4444',
-    color: '#EF4444',
+    borderBottom: '2px solid var(--color-danger)',
+    color: 'var(--color-danger)',
     fontSize: '13px',
     fontWeight: 700,
     cursor: 'pointer',
@@ -521,7 +521,7 @@ const styles = {
     gap: '6px',
   },
   body: {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: 'var(--bg-surface-solid)',
     padding: '20px',
     maxHeight: '480px',
     overflowY: 'auto' as const,
@@ -535,22 +535,22 @@ const styles = {
     margin: '0 0 4px 0',
     fontSize: '14px',
     fontWeight: 700,
-    color: '#111827',
+    color: 'var(--neutral-900)',
   },
   subSectionTitle: {
     margin: '10px 0 4px 0',
     fontSize: '12px',
     fontWeight: 700,
-    color: '#111827',
+    color: 'var(--neutral-900)',
   },
   grid: {
     display: 'grid',
     gridTemplateColumns: '1fr 1fr',
     gap: '12px',
-    backgroundColor: '#F9FAFB',
+    backgroundColor: 'var(--neutral-50)',
     padding: '16px',
     borderRadius: '8px',
-    border: '1px solid #E5E7EB',
+    border: '1px solid var(--neutral-200)',
   },
   gridItem: {
     display: 'flex',
@@ -559,13 +559,13 @@ const styles = {
   },
   label: {
     fontSize: '11px',
-    color: '#6B7280',
+    color: 'var(--neutral-500)',
     fontWeight: 600,
     textTransform: 'uppercase' as const,
   },
   value: {
     fontSize: '13px',
-    color: '#1F2937',
+    color: 'var(--neutral-800)',
   },
   formGroup: {
     display: 'flex',
@@ -576,15 +576,15 @@ const styles = {
   formLabel: {
     fontSize: '12px',
     fontWeight: 600,
-    color: '#374151',
+    color: 'var(--neutral-700)',
   },
   select: {
     padding: '8px 12px',
     borderRadius: '6px',
-    border: '1px solid #D1D5DB',
-    backgroundColor: '#FFF',
+    border: '1px solid var(--neutral-300)',
+    backgroundColor: 'var(--bg-surface-solid)',
     fontSize: '13px',
-    color: '#1F2937',
+    color: 'var(--neutral-800)',
     outline: 'none',
   },
   targetsList: {
@@ -593,28 +593,28 @@ const styles = {
     gap: '8px',
     maxHeight: '150px',
     overflowY: 'auto' as const,
-    border: '1px solid #E5E7EB',
+    border: '1px solid var(--neutral-200)',
     borderRadius: '6px',
     padding: '8px',
-    backgroundColor: '#F9FAFB',
+    backgroundColor: 'var(--neutral-50)',
   },
   targetItem: {
     display: 'flex',
     alignItems: 'center',
     padding: '8px',
-    border: '1px solid #E5E7EB',
+    border: '1px solid var(--neutral-200)',
     borderRadius: '4px',
-    backgroundColor: '#FFF',
+    backgroundColor: 'var(--bg-surface-solid)',
     cursor: 'pointer',
   },
   noNodesMessage: {
     fontSize: '12px',
-    color: '#9CA3AF',
+    color: 'var(--neutral-400)',
     fontStyle: 'italic',
     padding: '12px',
     textAlign: 'center' as const,
-    backgroundColor: '#F9FAFB',
-    border: '1px dashed #D1D5DB',
+    backgroundColor: 'var(--neutral-50)',
+    border: '1px dashed var(--neutral-300)',
     borderRadius: '6px',
   },
   saveBtn: {
@@ -623,8 +623,8 @@ const styles = {
     justifyContent: 'center',
     gap: '8px',
     padding: '10px 16px',
-    backgroundColor: '#EF4444',
-    color: '#FFF',
+    backgroundColor: 'var(--color-danger)',
+    color: 'var(--color-white)',
     border: 'none',
     borderRadius: '6px',
     fontSize: '13px',
@@ -634,8 +634,8 @@ const styles = {
     transition: 'background-color 0.2s',
   },
   infoBox: {
-    backgroundColor: 'rgba(239, 68, 68, 0.05)',
-    border: '1px solid rgba(239, 68, 68, 0.15)',
+    backgroundColor: 'color-mix(in srgb, var(--color-danger) 5%, transparent)',
+    border: '1px solid color-mix(in srgb, var(--color-danger) 15%, transparent)',
     borderRadius: '8px',
     padding: '12px',
     marginTop: '8px',
@@ -643,20 +643,20 @@ const styles = {
   infoText: {
     margin: 0,
     fontSize: '12px',
-    color: '#4B5563',
+    color: 'var(--neutral-600)',
     lineHeight: '1.5',
   },
   para: {
     margin: 0,
     fontSize: '13px',
-    color: '#4B5563',
+    color: 'var(--neutral-600)',
     lineHeight: '1.6',
   },
   list: {
     margin: 0,
     paddingLeft: '20px',
     fontSize: '13px',
-    color: '#4B5563',
+    color: 'var(--neutral-600)',
     lineHeight: '1.6',
   },
   steps: {
@@ -673,8 +673,8 @@ const styles = {
     width: '24px',
     height: '24px',
     borderRadius: '50%',
-    backgroundColor: '#EF4444',
-    color: '#FFF',
+    backgroundColor: 'var(--color-danger)',
+    color: 'var(--color-white)',
     fontSize: '12px',
     fontWeight: 700,
     display: 'flex',
@@ -685,12 +685,12 @@ const styles = {
   },
   stepText: {
     fontSize: '13px',
-    color: '#4B5563',
+    color: 'var(--neutral-600)',
     lineHeight: '1.5',
   },
   codeBlock: {
-    backgroundColor: '#1F2937',
-    color: '#10B981',
+    backgroundColor: 'var(--neutral-800)',
+    color: 'var(--color-success)',
     padding: '8px 12px',
     borderRadius: '6px',
     fontFamily: 'Courier New, Courier, monospace',

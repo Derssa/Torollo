@@ -22,13 +22,13 @@ export default function SubnetNode({ id, data }: SubnetNodeProps) {
   const defaultName = isPublic ? t('nodeviz.publicSubnet') : t('nodeviz.privateSubnet');
   const isHovered = data.hoverStatus === 'valid' || data.hoverStatus === 'invalid';
   
-  const defaultColor = isPublic ? '#10B981' : '#F59E0B';
-  const borderColor = isHovered 
-    ? (data.hoverStatus === 'valid' ? '#10B981' : '#EF4444') 
+  const defaultColor = isPublic ? 'var(--color-success)' : 'var(--color-warning)';
+  const borderColor = isHovered
+    ? (data.hoverStatus === 'valid' ? 'var(--color-success)' : 'var(--color-danger)')
     : defaultColor;
-    
-  const boxShadow = isHovered 
-    ? (data.hoverStatus === 'valid' ? '0 0 15px rgba(16, 185, 129, 0.4)' : '0 0 15px rgba(239, 68, 68, 0.4)') 
+
+  const boxShadow = isHovered
+    ? (data.hoverStatus === 'valid' ? '0 0 15px color-mix(in srgb, var(--color-success) 40%, transparent)' : '0 0 15px color-mix(in srgb, var(--color-danger) 40%, transparent)')
     : 'none';
 
   const cols = data.columns || 2;
@@ -51,7 +51,7 @@ export default function SubnetNode({ id, data }: SubnetNodeProps) {
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
-            color: isPublic ? 'rgba(16, 185, 129, 0.35)' : 'rgba(245, 158, 11, 0.35)',
+            color: isPublic ? 'color-mix(in srgb, var(--color-success) 35%, transparent)' : 'color-mix(in srgb, var(--color-warning) 35%, transparent)',
             fontSize: '24px',
             fontWeight: 300,
             pointerEvents: 'none',
@@ -69,7 +69,7 @@ export default function SubnetNode({ id, data }: SubnetNodeProps) {
   const btnStyle = {
     backgroundColor: 'rgba(255, 255, 255, 0.2)',
     border: 'none',
-    color: '#FFFFFF',
+    color: 'var(--color-white)',
     width: '16px',
     height: '16px',
     display: 'flex',
@@ -89,8 +89,8 @@ export default function SubnetNode({ id, data }: SubnetNodeProps) {
       border: `2px dotted ${borderColor}`,
       borderRadius: '8px',
       backgroundColor: isHovered 
-        ? (data.hoverStatus === 'valid' ? 'rgba(16, 185, 129, 0.04)' : 'rgba(239, 68, 68, 0.04)') 
-        : (isPublic ? 'rgba(16, 185, 129, 0.015)' : 'rgba(245, 158, 11, 0.015)'),
+        ? (data.hoverStatus === 'valid' ? 'color-mix(in srgb, var(--color-success) 4%, transparent)' : 'color-mix(in srgb, var(--color-danger) 4%, transparent)')
+        : (isPublic ? 'color-mix(in srgb, var(--color-success) 1.5%, transparent)' : 'color-mix(in srgb, var(--color-warning) 1.5%, transparent)'),
       boxShadow,
       position: 'relative',
       transition: 'all 0.2s ease',
@@ -100,8 +100,8 @@ export default function SubnetNode({ id, data }: SubnetNodeProps) {
         position: 'absolute',
         top: '-16px',
         left: '12px',
-        backgroundColor: isPublic ? '#10B981' : '#F59E0B',
-        color: '#FFFFFF',
+        backgroundColor: isPublic ? 'var(--color-success)' : 'var(--color-warning)',
+        color: 'var(--color-white)',
         fontSize: '12px',
         fontWeight: 700,
         padding: '4px 10px',
@@ -152,7 +152,7 @@ export default function SubnetNode({ id, data }: SubnetNodeProps) {
                 width: '28px',
                 background: 'rgba(255,255,255,0.15)',
                 border: 'none',
-                color: '#ffffff',
+                color: 'var(--color-white)',
                 fontSize: '11px',
                 padding: '0 2px',
                 textAlign: 'center',
@@ -193,7 +193,7 @@ export default function SubnetNode({ id, data }: SubnetNodeProps) {
                 width: '28px',
                 background: 'rgba(255,255,255,0.15)',
                 border: 'none',
-                color: '#ffffff',
+                color: 'var(--color-white)',
                 fontSize: '11px',
                 padding: '0 2px',
                 textAlign: 'center',
@@ -252,9 +252,9 @@ export default function SubnetNode({ id, data }: SubnetNodeProps) {
           position: 'absolute',
           top: '-16px',
           right: '12px',
-          backgroundColor: '#EF4444',
+          backgroundColor: 'var(--color-danger)',
           border: 'none',
-          color: '#FFFFFF',
+          color: 'var(--color-white)',
           padding: '4px 6px',
           borderRadius: '4px',
           cursor: 'pointer',
@@ -276,7 +276,7 @@ export default function SubnetNode({ id, data }: SubnetNodeProps) {
           left: '12px',
           backgroundColor: 'rgba(255, 255, 255, 0.85)',
           border: '1px solid rgba(0, 0, 0, 0.1)',
-          color: '#374151',
+          color: 'var(--neutral-700)',
           fontSize: '11px',
           fontWeight: 600,
           padding: '2px 6px',

@@ -347,7 +347,7 @@ export default function AsgModal({
       <div style={styles.container} className="glass">
         <div style={styles.header}>
           <div style={styles.titleRow}>
-            <Cpu size={18} color="#EC4899" />
+            <Cpu size={18} color="var(--color-pink)" />
             <span style={styles.title}>{nodeName}{t('asg.title')}</span>
           </div>
           <button onClick={onClose} style={styles.closeBtn}>
@@ -378,7 +378,7 @@ export default function AsgModal({
                 {/* Launch Template select */}
                 <div style={styles.section}>
                   <h3 style={styles.sectionTitle}>{t('asg.details.step1Title')}</h3>
-                  <p style={{ fontSize: '11px', color: '#6B7280', marginBottom: '8px' }}>
+                  <p style={{ fontSize: '11px', color: 'var(--neutral-500)', marginBottom: '8px' }}>
                     {t('asg.details.step1Desc')}
                   </p>
                   <div style={{ marginTop: '12px' }}>
@@ -399,7 +399,7 @@ export default function AsgModal({
                 {/* Subnet settings */}
                 <div style={styles.section}>
                   <h3 style={styles.sectionTitle}>{t('asg.details.step2Title')}</h3>
-                  <p style={{ fontSize: '11px', color: '#6B7280', marginBottom: '8px' }}>
+                  <p style={{ fontSize: '11px', color: 'var(--neutral-500)', marginBottom: '8px' }}>
                     {t('asg.details.step2Desc')}
                   </p>
                   <div style={styles.subnetList}>
@@ -413,7 +413,7 @@ export default function AsgModal({
                         />
                         <div>
                           <span style={{ fontWeight: '600', fontSize: '12px' }}>{subnet.name}</span>
-                          <span style={{ fontSize: '10px', color: '#9CA3AF', marginLeft: '6px' }}>({subnet.type})</span>
+                          <span style={{ fontSize: '10px', color: 'var(--neutral-400)', marginLeft: '6px' }}>({subnet.type})</span>
                         </div>
                       </label>
                     ))}
@@ -512,7 +512,7 @@ export default function AsgModal({
                       <button
                         onClick={handleSave}
                         disabled={saving || !parentId || selectedSubnets.length === 0}
-                        style={{ ...styles.actionBtn, backgroundColor: '#3B82F6' }}
+                        style={{ ...styles.actionBtn, backgroundColor: 'var(--color-accent)' }}
                       >
                         {saving ? t('asg.details.savingBtn') : t('asg.details.saveBtn')}
                       </button>
@@ -520,7 +520,7 @@ export default function AsgModal({
                     <button
                       onClick={handleStop}
                       disabled={stopping}
-                      style={{ ...styles.actionBtn, backgroundColor: '#EF4444' }}
+                      style={{ ...styles.actionBtn, backgroundColor: 'var(--color-danger)' }}
                     >
                       {stopping ? (
                         <>
@@ -538,8 +538,8 @@ export default function AsgModal({
                     disabled={deploying || !parentId || selectedSubnets.length === 0}
                     style={{
                       ...styles.actionBtn,
-                      backgroundColor: (!parentId || selectedSubnets.length === 0) ? '#D1D5DB' : '#EC4899',
-                      color: (!parentId || selectedSubnets.length === 0) ? '#9CA3AF' : '#FFFFFF',
+                      backgroundColor: (!parentId || selectedSubnets.length === 0) ? 'var(--neutral-300)' : 'var(--color-pink)',
+                      color: (!parentId || selectedSubnets.length === 0) ? 'var(--neutral-400)' : 'var(--color-white)',
                       cursor: (!parentId || selectedSubnets.length === 0) ? 'not-allowed' : 'pointer'
                     }}
                   >
@@ -559,20 +559,20 @@ export default function AsgModal({
             <div style={styles.tabContent}>
               {/* Simulation view */}
               <div style={styles.infoBanner}>
-                <Activity size={18} color="#3B82F6" />
-                <span style={{ fontSize: '12px', color: '#1E3A8A', fontWeight: '500' }}>
+                <Activity size={18} color="var(--color-accent)" />
+                <span style={{ fontSize: '12px', color: 'var(--color-accent-strong)', fontWeight: '500' }}>
                   {t('asg.simulation.infoBanner')}
                 </span>
               </div>
 
               {/* Automated Load & Traffic Simulator */}
-              <div style={{ ...styles.section, backgroundColor: isAutoSimulating ? 'rgba(236, 72, 153, 0.05)' : 'rgba(0,0,0,0.02)' }}>
+              <div style={{ ...styles.section, backgroundColor: isAutoSimulating ? 'color-mix(in srgb, var(--color-pink) 5%, transparent)' : 'rgba(0,0,0,0.02)' }}>
                 <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '12px' }}>
                   <div style={{ display: 'flex', flexDirection: 'column' }}>
-                    <span style={{ fontSize: '13px', fontWeight: 'bold', color: '#111827' }}>
+                    <span style={{ fontSize: '13px', fontWeight: 'bold', color: 'var(--neutral-900)' }}>
                       {t('asg.simulation.simTitle')}
                     </span>
-                    <span style={{ fontSize: '11px', color: '#6B7280', marginTop: '2px' }}>
+                    <span style={{ fontSize: '11px', color: 'var(--neutral-500)', marginTop: '2px' }}>
                       {t('asg.simulation.simDesc')}
                     </span>
                   </div>
@@ -581,8 +581,8 @@ export default function AsgModal({
                     disabled={asgInstances.length === 0}
                     style={{
                       ...styles.actionBtn,
-                      backgroundColor: isAutoSimulating ? '#EF4444' : (asgInstances.length === 0 ? '#D1D5DB' : '#10B981'),
-                      color: asgInstances.length === 0 ? '#9CA3AF' : '#FFFFFF',
+                      backgroundColor: isAutoSimulating ? 'var(--color-danger)' : (asgInstances.length === 0 ? 'var(--neutral-300)' : 'var(--color-success)'),
+                      color: asgInstances.length === 0 ? 'var(--neutral-400)' : 'var(--color-white)',
                       cursor: asgInstances.length === 0 ? 'not-allowed' : 'pointer',
                       padding: '6px 12px',
                     }}
@@ -594,7 +594,7 @@ export default function AsgModal({
                 {isAutoSimulating && (
                   <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', marginTop: '12px', borderTop: '1px solid rgba(0,0,0,0.05)', paddingTop: '10px' }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                      <span style={{ fontSize: '11px', fontWeight: 'bold', color: '#4B5563' }}>{t('asg.simulation.simControl')}</span>
+                      <span style={{ fontSize: '11px', fontWeight: 'bold', color: 'var(--neutral-600)' }}>{t('asg.simulation.simControl')}</span>
                       <button
                         onClick={() => setSimulationMode('normal')}
                         style={{
@@ -602,10 +602,10 @@ export default function AsgModal({
                           fontSize: '10px',
                           fontWeight: 'bold',
                           borderRadius: '3px',
-                          border: '1px solid #D1D5DB',
+                          border: '1px solid var(--neutral-300)',
                           cursor: 'pointer',
-                          backgroundColor: simulationMode === 'normal' ? '#3B82F6' : '#FFF',
-                          color: simulationMode === 'normal' ? '#FFF' : '#374151'
+                          backgroundColor: simulationMode === 'normal' ? 'var(--color-accent)' : 'var(--bg-surface-solid)',
+                          color: simulationMode === 'normal' ? 'var(--color-white)' : 'var(--neutral-700)'
                         }}
                       >
                         {t('asg.simulation.modeNormal')}
@@ -617,10 +617,10 @@ export default function AsgModal({
                           fontSize: '10px',
                           fontWeight: 'bold',
                           borderRadius: '3px',
-                          border: '1px solid #EF4444',
+                          border: '1px solid var(--color-danger)',
                           cursor: 'pointer',
-                          backgroundColor: simulationMode === 'spike' ? '#EF4444' : '#FFF',
-                          color: simulationMode === 'spike' ? '#FFF' : '#EF4444'
+                          backgroundColor: simulationMode === 'spike' ? 'var(--color-danger)' : 'var(--bg-surface-solid)',
+                          color: simulationMode === 'spike' ? 'var(--color-white)' : 'var(--color-danger)'
                         }}
                         title={t('asg.simulation.modeSpikeTitle')}
                       >
@@ -633,10 +633,10 @@ export default function AsgModal({
                           fontSize: '10px',
                           fontWeight: 'bold',
                           borderRadius: '3px',
-                          border: '1px solid #3B82F6',
+                          border: '1px solid var(--color-accent)',
                           cursor: 'pointer',
-                          backgroundColor: simulationMode === 'idle' ? '#3B82F6' : '#FFF',
-                          color: simulationMode === 'idle' ? '#FFF' : '#3B82F6'
+                          backgroundColor: simulationMode === 'idle' ? 'var(--color-accent)' : 'var(--bg-surface-solid)',
+                          color: simulationMode === 'idle' ? 'var(--color-white)' : 'var(--color-accent)'
                         }}
                         title={t('asg.simulation.modeIdleTitle')}
                       >
@@ -645,17 +645,17 @@ export default function AsgModal({
                     </div>
                     <div style={{ display: 'flex', gap: '24px' }}>
                       <div>
-                        <span style={{ fontSize: '11px', color: '#6B7280' }}>{t('asg.simulation.simCpu')}</span>
+                        <span style={{ fontSize: '11px', color: 'var(--neutral-500)' }}>{t('asg.simulation.simCpu')}</span>
                         <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginTop: '2px' }}>
-                          <div style={{ width: '80px', height: '8px', backgroundColor: '#E5E7EB', borderRadius: '4px', overflow: 'hidden' }}>
-                            <div style={{ width: `${simulatedCpu}%`, height: '100%', backgroundColor: simulatedCpu > 75 ? '#EF4444' : simulatedCpu < 35 ? '#3B82F6' : '#10B981' }} />
+                          <div style={{ width: '80px', height: '8px', backgroundColor: 'var(--neutral-200)', borderRadius: '4px', overflow: 'hidden' }}>
+                            <div style={{ width: `${simulatedCpu}%`, height: '100%', backgroundColor: simulatedCpu > 75 ? 'var(--color-danger)' : simulatedCpu < 35 ? 'var(--color-accent)' : 'var(--color-success)' }} />
                           </div>
-                          <strong style={{ fontSize: '12px', color: '#1F2937' }}>{simulatedCpu}%</strong>
+                          <strong style={{ fontSize: '12px', color: 'var(--neutral-800)' }}>{simulatedCpu}%</strong>
                         </div>
                       </div>
                       <div>
-                        <span style={{ fontSize: '11px', color: '#6B7280' }}>{t('asg.simulation.simTraffic')}</span>
-                        <div style={{ fontSize: '12px', fontWeight: 'bold', color: '#1F2937', marginTop: '2px' }}>
+                        <span style={{ fontSize: '11px', color: 'var(--neutral-500)' }}>{t('asg.simulation.simTraffic')}</span>
+                        <div style={{ fontSize: '12px', fontWeight: 'bold', color: 'var(--neutral-800)', marginTop: '2px' }}>
                           {t('asg.simulation.reqSec').replace('{{traffic}}', simulatedTraffic.toString())}
                         </div>
                       </div>
@@ -668,11 +668,11 @@ export default function AsgModal({
               <div style={styles.instanceGrid}>
                 {asgInstances.length === 0 ? (
                   <div style={styles.emptyState}>
-                    <AlertTriangle size={24} color="#F59E0B" />
-                    <span style={{ fontSize: '13px', color: '#4B5563', marginTop: '6px', fontWeight: 'bold' }}>
+                    <AlertTriangle size={24} color="var(--color-warning)" />
+                    <span style={{ fontSize: '13px', color: 'var(--neutral-600)', marginTop: '6px', fontWeight: 'bold' }}>
                       {t('asg.simulation.emptyStateTitle')}
                     </span>
-                    <span style={{ fontSize: '11px', color: '#9CA3AF' }}>
+                    <span style={{ fontSize: '11px', color: 'var(--neutral-400)' }}>
                       {t('asg.simulation.emptyStateDesc')}
                     </span>
                   </div>
@@ -683,12 +683,12 @@ export default function AsgModal({
                       <div key={instance.id} style={styles.instanceCard}>
                         <div style={styles.instanceHeader}>
                           <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                            <Server size={16} color={isRunning ? '#10B981' : '#EF4444'} />
+                            <Server size={16} color={isRunning ? 'var(--color-success)' : 'var(--color-danger)'} />
                             <span 
                               style={{ 
                                 fontWeight: 'bold', 
                                 fontSize: '11px', 
-                                color: '#1F2937',
+                                color: 'var(--neutral-800)',
                                 textOverflow: 'ellipsis',
                                 overflow: 'hidden',
                                 whiteSpace: 'nowrap',
@@ -701,8 +701,8 @@ export default function AsgModal({
                           </div>
                           <span style={{
                             fontSize: '9px',
-                            backgroundColor: isRunning ? 'rgba(16, 185, 129, 0.1)' : 'rgba(239, 68, 68, 0.1)',
-                            color: isRunning ? '#10B981' : '#EF4444',
+                            backgroundColor: isRunning ? 'color-mix(in srgb, var(--color-success) 10%, transparent)' : 'color-mix(in srgb, var(--color-danger) 10%, transparent)',
+                            color: isRunning ? 'var(--color-success)' : 'var(--color-danger)',
                             padding: '2px 6px',
                             borderRadius: '10px',
                             fontWeight: 'bold'
@@ -711,12 +711,12 @@ export default function AsgModal({
                           </span>
                         </div>
                         
-                        <div style={{ fontSize: '11px', color: '#6B7280', margin: '6px 0' }}>
+                        <div style={{ fontSize: '11px', color: 'var(--neutral-500)', margin: '6px 0' }}>
                           <div style={{ textOverflow: 'ellipsis', overflow: 'hidden', whiteSpace: 'nowrap' }}><strong>IP:</strong> {instance.ip || t('asg.simulation.resolving')}</div>
                           {isAutoSimulating && isRunning && (
                             <div style={{ marginTop: '2px' }}>
                               <strong>CPU:</strong>{' '}
-                              <span style={{ color: simulatedCpu > 75 ? '#EF4444' : simulatedCpu < 35 ? '#3B82F6' : '#10B981', fontWeight: 'bold' }}>
+                              <span style={{ color: simulatedCpu > 75 ? 'var(--color-danger)' : simulatedCpu < 35 ? 'var(--color-accent)' : 'var(--color-success)', fontWeight: 'bold' }}>
                                 {Math.max(10, Math.min(99, simulatedCpu + (instance.name.charCodeAt(instance.name.length - 1) % 7) - 3))}%
                               </span>
                             </div>
@@ -732,7 +732,7 @@ export default function AsgModal({
                             {terminatingId === instance.id ? t('asg.simulation.stoppingInstance') : t('asg.simulation.simulateFail')}
                           </button>
                         ) : (
-                          <div style={{ display: 'flex', alignItems: 'center', gap: '4px', fontSize: '11px', color: '#EF4444', fontWeight: 'bold' }}>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '4px', fontSize: '11px', color: 'var(--color-danger)', fontWeight: 'bold' }}>
                             <RotateCw size={12} className="spin" />
                             {t('asg.simulation.selfHealing')}
                           </div>
@@ -766,8 +766,8 @@ const styles: Record<string, React.CSSProperties> = {
   container: {
     width: '840px',
     height: '560px',
-    backgroundColor: 'var(--bg-surface-solid, #ffffff)',
-    border: '1px solid var(--border-color, #E5E7EB)',
+    backgroundColor: 'var(--bg-surface-solid, var(--color-white))',
+    border: '1px solid var(--border-color, var(--neutral-200))',
     borderRadius: '12px',
     boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.15)',
     display: 'flex',
@@ -776,7 +776,7 @@ const styles: Record<string, React.CSSProperties> = {
   },
   header: {
     padding: '16px',
-    borderBottom: '1px solid var(--border-color, #E5E7EB)',
+    borderBottom: '1px solid var(--border-color, var(--neutral-200))',
     display: 'flex',
     alignItems: 'center',
     justifyContent: 'space-between',
@@ -789,18 +789,18 @@ const styles: Record<string, React.CSSProperties> = {
   title: {
     fontWeight: 'bold',
     fontSize: '15px',
-    color: 'var(--color-text-primary, #111827)',
+    color: 'var(--color-text-primary, var(--neutral-900))',
   },
   closeBtn: {
     background: 'none',
     border: 'none',
     cursor: 'pointer',
-    color: '#9CA3AF',
+    color: 'var(--neutral-400)',
   },
   tabBar: {
     display: 'flex',
-    borderBottom: '1px solid var(--border-color, #E5E7EB)',
-    backgroundColor: 'var(--bg-sidebar, #F9FAFB)',
+    borderBottom: '1px solid var(--border-color, var(--neutral-200))',
+    backgroundColor: 'var(--bg-sidebar, var(--neutral-50))',
   },
   tab: {
     flex: 1,
@@ -810,7 +810,7 @@ const styles: Record<string, React.CSSProperties> = {
     background: 'none',
     fontSize: '13px',
     fontWeight: 500,
-    color: '#6B7280',
+    color: 'var(--neutral-500)',
     cursor: 'pointer',
     display: 'flex',
     alignItems: 'center',
@@ -826,13 +826,13 @@ const styles: Record<string, React.CSSProperties> = {
     background: 'none',
     fontSize: '13px',
     fontWeight: 'bold',
-    color: '#EC4899',
+    color: 'var(--color-pink)',
     cursor: 'pointer',
     display: 'flex',
     alignItems: 'center',
     justifyContent: 'center',
     gap: '6px',
-    borderBottom: '2px solid #EC4899',
+    borderBottom: '2px solid var(--color-pink)',
   },
   content: {
     padding: '20px',
@@ -851,21 +851,21 @@ const styles: Record<string, React.CSSProperties> = {
   },
   section: {
     backgroundColor: 'rgba(0, 0, 0, 0.02)',
-    border: '1px solid var(--border-color, #E5E7EB)',
+    border: '1px solid var(--border-color, var(--neutral-200))',
     borderRadius: '8px',
     padding: '14px',
   },
   sectionTitle: {
     fontSize: '13px',
     fontWeight: 'bold',
-    color: 'var(--color-text-primary, #374151)',
+    color: 'var(--color-text-primary, var(--neutral-700))',
     marginBottom: '10px',
     borderBottom: '1px solid rgba(0,0,0,0.05)',
     paddingBottom: '4px',
   },
   dropZone: {
     height: '110px',
-    border: '2px dashed #D1D5DB',
+    border: '2px dashed var(--neutral-300)',
     borderRadius: '6px',
     display: 'flex',
     flexDirection: 'column',
@@ -878,13 +878,13 @@ const styles: Record<string, React.CSSProperties> = {
     width: '100%',
     padding: '6px 10px',
     borderRadius: '4px',
-    border: '1px solid #D1D5DB',
+    border: '1px solid var(--neutral-300)',
     fontSize: '12px',
   },
   fieldLabel: {
     fontSize: '11px',
     fontWeight: 'bold',
-    color: '#6B7280',
+    color: 'var(--neutral-500)',
     marginBottom: '4px',
     display: 'block',
   },
@@ -909,9 +909,9 @@ const styles: Record<string, React.CSSProperties> = {
     flex: 1,
   },
   stepperBtn: {
-    backgroundColor: '#F3F4F6',
-    border: '1px solid #D1D5DB',
-    color: '#374151',
+    backgroundColor: 'var(--neutral-100)',
+    border: '1px solid var(--neutral-300)',
+    color: 'var(--neutral-700)',
     width: '32px',
     height: '32px',
     display: 'flex',
@@ -927,13 +927,13 @@ const styles: Record<string, React.CSSProperties> = {
   inputNum: {
     flex: 1,
     height: '32px',
-    borderTop: '1px solid #D1D5DB',
-    borderBottom: '1px solid #D1D5DB',
+    borderTop: '1px solid var(--neutral-300)',
+    borderBottom: '1px solid var(--neutral-300)',
     borderLeft: 'none',
     borderRight: 'none',
     fontSize: '13px',
     textAlign: 'center',
-    backgroundColor: '#FFFFFF',
+    backgroundColor: 'var(--bg-surface-solid)',
     fontWeight: '600',
     outline: 'none',
     width: '40px',
@@ -947,20 +947,20 @@ const styles: Record<string, React.CSSProperties> = {
     paddingTop: '16px',
   },
   errorBanner: {
-    backgroundColor: '#FEE2E2',
-    border: '1px solid #FECACA',
+    backgroundColor: 'var(--color-danger-soft)',
+    border: '1px solid var(--color-danger-border)',
     borderRadius: '6px',
     padding: '10px 14px',
     display: 'flex',
     alignItems: 'center',
     gap: '10px',
     marginTop: '12px',
-    color: '#B91C1C',
+    color: 'var(--color-danger-strong)',
     fontSize: '12px',
   },
   actionBtn: {
     padding: '8px 16px',
-    color: '#FFFFFF',
+    color: 'var(--color-white)',
     border: 'none',
     borderRadius: '6px',
     fontSize: '12px',
@@ -970,8 +970,8 @@ const styles: Record<string, React.CSSProperties> = {
     alignItems: 'center',
   },
   infoBanner: {
-    backgroundColor: '#EFF6FF',
-    border: '1px solid #BFDBFE',
+    backgroundColor: 'var(--color-accent-subtle)',
+    border: '1px solid var(--color-accent-border)',
     borderRadius: '6px',
     padding: '10px 14px',
     display: 'flex',
@@ -987,10 +987,10 @@ const styles: Record<string, React.CSSProperties> = {
   instanceCard: {
     width: 'calc(25% - 8px)',
     minWidth: '170px',
-    border: '1px solid #E5E7EB',
+    border: '1px solid var(--neutral-200)',
     borderRadius: '8px',
     padding: '10px',
-    backgroundColor: '#FFFFFF',
+    backgroundColor: 'var(--bg-surface-solid)',
     boxShadow: '0 2px 4px rgba(0,0,0,0.02)',
     boxSizing: 'border-box',
     display: 'flex',
@@ -1001,15 +1001,15 @@ const styles: Record<string, React.CSSProperties> = {
     display: 'flex',
     justifyContent: 'space-between',
     alignItems: 'center',
-    borderBottom: '1px solid #F3F4F6',
+    borderBottom: '1px solid var(--neutral-100)',
     paddingBottom: '8px',
   },
   killBtn: {
     width: '100%',
     padding: '6px',
-    backgroundColor: '#FEE2E2',
-    color: '#EF4444',
-    border: '1px solid #FCA5A5',
+    backgroundColor: 'var(--color-danger-soft)',
+    color: 'var(--color-danger)',
+    border: '1px solid var(--color-danger-light)',
     borderRadius: '4px',
     fontSize: '11px',
     fontWeight: 'bold',
@@ -1026,12 +1026,12 @@ const styles: Record<string, React.CSSProperties> = {
   },
   scaleSimBtn: {
     padding: '6px 12px',
-    backgroundColor: '#F3F4F6',
-    border: '1px solid #D1D5DB',
+    backgroundColor: 'var(--neutral-100)',
+    border: '1px solid var(--neutral-300)',
     borderRadius: '4px',
     fontSize: '11px',
     fontWeight: 'bold',
-    color: '#374151',
+    color: 'var(--neutral-700)',
     cursor: 'pointer',
     transition: 'all 0.15s',
   }

@@ -1,26 +1,89 @@
 @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap');
 
 :root {
-  --bg-main: #F3F4F6;
+  /* ============================================================
+     DESIGN TOKENS — single source of truth for the whole UI.
+     Every color in the app resolves to one of these. To reskin,
+     change the values here; nothing hard-codes hex in components.
+     ============================================================ */
+
+  /* --- Neutral scale (unified: Tailwind `gray`, absorbs `slate`) --- */
+  --neutral-0: #FFFFFF;
+  --neutral-50: #F9FAFB;
+  --neutral-100: #F3F4F6;
+  --neutral-200: #E5E7EB;
+  --neutral-300: #D1D5DB;
+  --neutral-400: #9CA3AF;
+  --neutral-500: #6B7280;
+  --neutral-600: #4B5563;
+  --neutral-700: #374151;
+  --neutral-800: #1F2937;
+  --neutral-900: #111827;
+  --neutral-950: #0B0F19;
+
+  /* --- Surfaces & borders --- */
+  --bg-main: var(--neutral-100);
   --bg-surface: rgba(255, 255, 255, 0.75);
-  --bg-surface-solid: #FFFFFF;
+  --bg-surface-solid: var(--neutral-0);
+  --bg-subtle: var(--neutral-50);
+  --bg-muted: var(--neutral-200);
   --border-color: rgba(0, 0, 0, 0.08);
   --border-color-hover: rgba(0, 0, 0, 0.16);
-  
-  --color-text-primary: #1F2937;
-  --color-text-secondary: #4B5563;
-  --color-text-muted: #9CA3AF;
-  
+  --color-white: var(--neutral-0);
+  --canvas-dots: #C0C0C0;
+
+  /* --- Text --- */
+  --color-text-strong: var(--neutral-900);
+  --color-text-primary: var(--neutral-800);
+  --color-text-secondary: var(--neutral-600);
+  --color-text-muted: var(--neutral-400);
+
+  /* --- Accent (blue) --- */
   --color-accent: #2563EB;
   --color-accent-glow: rgba(37, 99, 235, 0.1);
-  
+  --color-accent-strong: #1E40AF;
+  --color-accent-light: #93C5FD;
+  --color-accent-border: #BFDBFE;
+  --color-accent-soft: #DBEAFE;
+  --color-accent-subtle: #EFF6FF;
+
+  /* --- Success (green) --- */
   --color-success: #059669;
   --color-success-glow: rgba(5, 150, 105, 0.1);
+  --color-success-strong: #065F46;
+  --color-success-light: #6EE7B7;
+  --color-success-border: #A7F3D0;
+  --color-success-soft: #D1FAE5;
+
+  /* --- Danger (red) --- */
   --color-danger: #DC2626;
   --color-danger-glow: rgba(220, 38, 38, 0.1);
+  --color-danger-strong: #991B1B;
+  --color-danger-light: #FCA5A5;
+  --color-danger-border: #FECACA;
+  --color-danger-soft: #FEE2E2;
+
+  /* --- Warning (amber) --- */
   --color-warning: #F59E0B;
   --color-warning-glow: rgba(245, 158, 11, 0.1);
+  --color-warning-hover: #D97706;
   --color-warning-strong: #92400E;
+  --color-warning-border: #FDE68A;
+  --color-warning-soft: #FEF3C7;
+  --color-warning-subtle: #FFFBEB;
+
+  /* --- Info (sky) --- */
+  --color-info: #0369A1;
+  --color-info-border: #BAE6FD;
+  --color-info-subtle: #F0F9FF;
+
+  /* --- Node identity accents --- */
+  --color-violet: #8B5CF6;
+  --color-violet-strong: #6D28D9;
+  --color-violet-soft: #F3E8FF;
+  --color-pink: #EC4899;
+  --color-pink-hover: #DB2777;
+  --color-orange: #FF6600;
 
   --font-sans: 'Plus Jakarta Sans', system-ui, -apple-system, sans-serif;
   --font-mono: 'JetBrains Mono', monospace;

@@ -142,7 +142,7 @@ const styles: Record<string, React.CSSProperties> = {
     border: 'none',
     borderRadius: '6px',
     backgroundColor: 'var(--color-success)',
-    color: '#FFFFFF',
+    color: 'var(--color-white)',
     fontSize: '12px',
     fontWeight: 600,
     cursor: 'pointer',

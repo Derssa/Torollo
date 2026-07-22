@@ -28,14 +28,14 @@ export default function NatNode({ data }: NatNodeProps) {
       name={data.name}
       isRunning={isRunning}
       errorMessage={data.lastError}
-      icon={<ArrowRightLeft size={18} color={isRunning ? '#8B5CF6' : '#6B7280'} />}
-      customBorder="2px solid #8B5CF6"
-      customTitleColor="#6D28D9"
+      icon={<ArrowRightLeft size={18} color={isRunning ? 'var(--color-violet)' : 'var(--neutral-500)'} />}
+      customBorder="2px solid var(--color-violet)"
+      customTitleColor="var(--color-violet-strong)"
       hideHandles={true}
       subtitle={
         <>
           <span className={styles.label}>{t('nodeviz.ipAddress')}</span>
-          <span className={styles.value} style={{ color: data.ip ? '#10B981' : undefined }}>{data.ip || t('nodeviz.private')}</span>
+          <span className={styles.value} style={{ color: data.ip ? 'var(--color-success)' : undefined }}>{data.ip || t('nodeviz.private')}</span>
         </>
       }
       onStart={data.onStart}
@@ -45,7 +45,7 @@ export default function NatNode({ data }: NatNodeProps) {
       primaryAction={{
         label: t('nodeviz.infoGuide'),
         icon: <ArrowRightLeft size={14} />,
-        color: '#8B5CF6',
+        color: 'var(--color-violet)',
         onClick: data.onInspect,
         title: t('nodeviz.natInfoGuideTitle'),
       }}
