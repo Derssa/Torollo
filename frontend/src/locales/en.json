@@ -539,6 +539,7 @@
     "create": "Create",
     "genericError": "An error occurred",
     "dockerUnavailable": "Docker daemon unreachable — start Docker and the lab will reconnect automatically.",
+    "interSubnetBlocked": "This machine's firewall is dropping traffic between subnets — cross-subnet connections won't work here, even with correct ALLOW rules.",
     "deleteConnection": "Delete Connection"
   },
   "toasts": {

@@ -539,6 +539,7 @@
     "create": "Créer",
     "genericError": "Une erreur s'est produite",
     "dockerUnavailable": "Démon Docker injoignable — démarrez Docker et le lab se reconnectera automatiquement.",
+    "interSubnetBlocked": "Le pare-feu de cette machine bloque le trafic entre les sous-réseaux — les connexions inter-sous-réseaux ne fonctionneront pas ici, même avec des règles ALLOW correctes.",
     "deleteConnection": "Supprimer la connexion"
   },
   "toasts": {

@@ -20,6 +20,7 @@ import { useContainers } from '../../shared/hooks/useContainers';
 import { useToast } from '../../shared/hooks/useToast';
 import { ToastNotification } from '../../shared/components/Toast';
 import { DockerUnavailableBanner } from '../../shared/components/DockerUnavailableBanner';
+import { InterSubnetBlockedBanner } from '../../shared/components/InterSubnetBlockedBanner';
 import CanvasTopbar from './components/CanvasTopbar';
 import CanvasFooter from './components/CanvasFooter';
 import CanvasModals from './components/CanvasModals';
@@ -96,7 +97,7 @@ export default function CanvasPage({ projectId, projectName, onBackToProjects, o
   // Ref to track saved positions (avoids re-render loops)
   const positionsRef = useRef<Record<string, { x: number; y: number }>>({});
 
-  const { networkConfig, saveNetworkConfig, fetchNetworkConfig, triggerArchitectureAudit } =
+  const { networkConfig, saveNetworkConfig, fetchNetworkConfig, triggerArchitectureAudit, interSubnetBlocked } =
     useNetworkConfig({ projectId, containers, showNotification });
 
   // A service was dropped inside a subnet: stash the drop context and open the create modal
@@ -664,6 +665,7 @@ export default function CanvasPage({ projectId, projectName, onBackToProjects, o
       />
 
       {dockerUnavailable && <DockerUnavailableBanner />}
+      {!dockerUnavailable && interSubnetBlocked && <InterSubnetBlockedBanner />}
 
       {toast && (
         <ToastNotification type={toast.type} message={toast.message} onDismiss={dismissToast} />

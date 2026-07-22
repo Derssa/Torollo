@@ -17,6 +17,7 @@ export function makeContainer(overrides: Partial<ContainerInfo>): ContainerInfo 
 interface ContextOverrides {
   containers?: ContainerInfo[];
   networkConfig?: ValidatorNetworkConfig | null;
+  interSubnetStatus?: ReturnType<ValidatorContext['getInterSubnetStatus']>;
   executePsqlCommand?: ValidatorContext['executePsqlCommand'];
   executeRedisCommand?: ValidatorContext['executeRedisCommand'];
   executeMongoCommand?: ValidatorContext['executeMongoCommand'];
@@ -38,6 +39,7 @@ export function makeContext(overrides: ContextOverrides = {}): ValidatorContext 
     getNetworkConfig: () => Promise.resolve(config),
     getSemanticRules: () =>
       config ? NetworkService.computeSemanticRules('project-1', config) : Promise.resolve([]),
+    getInterSubnetStatus: () => overrides.interSubnetStatus ?? 'unknown',
     executePsqlCommand: overrides.executePsqlCommand ?? (() => Promise.resolve('')),
     executeRedisCommand: overrides.executeRedisCommand ?? (() => Promise.resolve('')),
     executeMongoCommand: overrides.executeMongoCommand ?? (() => Promise.resolve('')),

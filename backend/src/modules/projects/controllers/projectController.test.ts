@@ -3,6 +3,7 @@ import express from 'express';
 import { ProjectController } from './projectController';
 import { ProjectService } from '../services/projectService';
 import { NetworkService } from '../../network/services/networkService';
+import { setInterSubnetStatus, clearInterSubnetStatus } from '../../network/services/interSubnetHealth';
 
 // Mock Services
 jest.mock('../services/projectService');
@@ -16,6 +17,7 @@ app.post('/api/projects', ProjectController.create);
 app.delete('/api/projects/:id', ProjectController.delete);
 app.get('/api/projects/:id/network-config', ProjectController.getNetworkConfig);
 app.post('/api/projects/:id/network-config', ProjectController.saveNetworkConfig);
+app.get('/api/projects/:id/network-health', ProjectController.getNetworkHealth);
 
 describe('ProjectController', () => {
   beforeEach(() => {
@@ -182,6 +184,28 @@ describe('ProjectController', () => {
       expect(res.status).toBe(400);
       expect(res.body.code).toBe('INVALID_CAPACITY');
       expect(ProjectService.saveNetworkConfig).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('GET /api/projects/:id/network-health', () => {
+    afterEach(() => {
+      clearInterSubnetStatus('project-1');
+    });
+
+    it('reports unknown for a project that has not been probed', async () => {
+      const res = await request(app).get('/api/projects/project-1/network-health');
+
+      expect(res.status).toBe(200);
+      expect(res.body).toEqual({ interSubnet: 'unknown' });
+    });
+
+    it('reports the recorded inter-subnet self-test verdict', async () => {
+      setInterSubnetStatus('project-1', 'blocked');
+
+      const res = await request(app).get('/api/projects/project-1/network-health');
+
+      expect(res.status).toBe(200);
+      expect(res.body).toEqual({ interSubnet: 'blocked' });
     });
   });
 });
