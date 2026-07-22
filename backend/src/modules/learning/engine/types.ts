@@ -1,6 +1,7 @@
 import { ContainerInfo } from '../../../infrastructure/docker/providers/containerProvider';
 import { DockerErrorCode } from '../../../infrastructure/docker/dockerErrors';
 import { SemanticRule } from '../../network/models/networkPolicy';
+import { InterSubnetStatus } from '../../network/services/interSubnetHealth';
 
 export type ValidatorStatus = 'pass' | 'fail' | 'error';
 
@@ -66,6 +67,12 @@ export interface ValidatorContext {
   getNetworkConfig(): Promise<ValidatorNetworkConfig | null>;
   /** Lazy and memoized: the security-group rules expanded to real container ids. */
   getSemanticRules(): Promise<SemanticRule[]>;
+  /**
+   * Verdict of the host's real inter-subnet connectivity self-test (see
+   * `interSubnetHealth`). Lets connectivity validators refuse to report a
+   * pass for cross-subnet rules the host cannot actually honor.
+   */
+  getInterSubnetStatus(): InterSubnetStatus;
   executePsqlCommand(
     containerId: string,
     database: string,
@@ -86,6 +93,7 @@ export type ValidatorHandler = (
 export interface EngineDeps {
   listContainersByProject(projectId: string): Promise<ContainerInfo[]>;
   getNetworkConfig(projectId: string): Promise<ValidatorNetworkConfig | null>;
+  getInterSubnetStatus(projectId: string): InterSubnetStatus;
   executePsqlCommand(
     containerId: string,
     database: string,

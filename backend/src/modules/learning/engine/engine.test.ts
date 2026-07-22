@@ -21,6 +21,7 @@ function makeDeps(impl?: EngineDeps['listContainersByProject']): EngineDeps & {
   return {
     listContainersByProject: jest.fn(impl ?? (() => Promise.resolve([runningWeb]))),
     getNetworkConfig: () => Promise.resolve(null),
+    getInterSubnetStatus: () => 'unknown' as const,
     executePsqlCommand: () => Promise.resolve(''),
     executeRedisCommand: () => Promise.resolve(''),
     executeMongoCommand: () => Promise.resolve(''),
