@@ -1,6 +1,8 @@
 import { useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useRoadmaps } from '../hooks/useRoadmaps';
+import { filterByUiLanguage } from '../roadmapLanguage';
+import DifficultyChip from './DifficultyChip';
 import type { RoadmapSummary } from '../../../shared/types/roadmap';
 
 interface RoadmapCatalogProps {
@@ -15,14 +17,9 @@ export default function RoadmapCatalog({ onOpen }: RoadmapCatalogProps) {
     fetchRoadmaps();
   }, [fetchRoadmaps]);
 
-  // Only surface roadmaps authored in the active UI language: an English user
-  // sees English roadmaps only. Compare on the base subtag so 'en-US' still
-  // matches an 'en' roadmap. Re-evaluated on every render, so toggling the
-  // language in the topbar re-filters the catalogue immediately.
-  const uiLanguage = i18n.language.split('-')[0];
-  const visibleSummaries = summaries.filter(
-    summary => summary.language.split('-')[0] === uiLanguage
-  );
+  // Re-evaluated on every render, so toggling the language in the topbar
+  // re-filters the catalogue immediately.
+  const visibleSummaries = filterByUiLanguage(summaries, i18n.language);
 
   if (loading) {
     return <div style={styles.status}>{t('learning.catalog.loading')}</div>;
@@ -53,12 +50,10 @@ export default function RoadmapCatalog({ onOpen }: RoadmapCatalogProps) {
         >
           <div style={styles.cardHeader}>
             <span style={styles.cardTitle}>{summary.title}</span>
+            {summary.difficulty && <DifficultyChip difficulty={summary.difficulty} />}
           </div>
           <span style={styles.cardDescription}>{summary.description}</span>
           <div style={styles.cardMeta}>
-            {summary.difficulty && (
-              <span>{t(`learning.catalog.difficulty.${summary.difficulty}`)}</span>
-            )}
             <span>{t('learning.catalog.steps', { count: summary.stepCount })}</span>
             {summary.estimatedMinutes != null && (
               <span>{t('learning.catalog.minutes', { count: summary.estimatedMinutes })}</span>

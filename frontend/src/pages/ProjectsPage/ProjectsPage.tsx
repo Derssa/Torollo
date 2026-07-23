@@ -1,42 +1,49 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { AlertTriangle, Plus, X } from 'lucide-react';
+import { AlertTriangle, X } from 'lucide-react';
 import InputModal from '../../shared/components/InputModal';
 import ConfirmModal from '../../shared/components/ConfirmModal';
-import ProjectCard from './components/ProjectCard';
-import EmptyState from './components/EmptyState';
+import PageHeader from './components/PageHeader';
+import SideRail from './components/SideRail';
+import ProjectsSection from './components/ProjectsSection';
+import type { HomeView } from './components/SideRail';
+import ProjectPickerModal from './components/ProjectPickerModal';
+import LearningSection from './components/learning/LearningSection';
 import { API_BASE } from '../../shared/types';
-import type { Project } from '../../shared/types';
-import logo from '../../assets/logo.png';
+import type { LearningIntent, Project } from '../../shared/types';
+import type { ProgressEntrySummary, RoadmapSummary } from '../../shared/types/roadmap';
 
 interface ProjectsPageProps {
-  onSelectProject: (id: string, name: string) => void;
+  onSelectProject: (id: string, name: string, intent?: LearningIntent) => void;
 }
 
-declare const __APP_VERSION__: string;
-
 export default function ProjectsPage({ onSelectProject }: ProjectsPageProps) {
-  const { t, i18n } = useTranslation();
+  const { t } = useTranslation();
+  // Which home view the side rail is on; session-only, Projects first.
+  const [view, setView] = useState<HomeView>('projects');
   const [projects, setProjects] = useState<Project[]>([]);
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState(false);
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [deleteTarget, setDeleteTarget] = useState<Project | null>(null);
   const [deletingIds, setDeletingIds] = useState<string[]>([]);
   const [storeRecovered, setStoreRecovered] = useState(false);
-
-  const toggleLanguage = () => {
-    const nextLang = i18n.language === 'fr' ? 'en' : 'fr';
-    i18n.changeLanguage(nextLang);
-    localStorage.setItem('torollo_lang', nextLang);
-  };
+  // Roadmap waiting for a project choice in the picker modal.
+  const [pickerTarget, setPickerTarget] = useState<RoadmapSummary | null>(null);
+  // Learning intent to apply to the next project created through the input
+  // modal (picker → "New project", or a failed auto-create fallback).
+  const pendingIntentRef = useRef<LearningIntent | null>(null);
 
   const fetchProjects = async () => {
     try {
       setLoading(true);
+      setLoadError(false);
       const res = await fetch(`${API_BASE}/api/projects`);
       const data = await res.json();
-      if (Array.isArray(data?.projects)) {
+      if (res.ok && Array.isArray(data?.projects)) {
         setProjects(data.projects);
+      } else {
+        setLoadError(true);
       }
       // One-shot notice from the backend: the projects file was unreadable
       // and has been moved aside — keep the banner up until dismissed.
@@ -44,7 +51,8 @@ export default function ProjectsPage({ onSelectProject }: ProjectsPageProps) {
         setStoreRecovered(true);
       }
     } catch (err) {
-      console.error(err);
+      console.error('Failed to fetch projects:', err);
+      setLoadError(true);
     } finally {
       setLoading(false);
     }
@@ -60,13 +68,19 @@ export default function ProjectsPage({ onSelectProject }: ProjectsPageProps) {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ name }),
     });
-    if (res.ok) {
-      fetchProjects();
-      setShowCreateModal(false);
-    } else {
+    if (!res.ok) {
       const errorData = await res.json();
       throw new Error(errorData.error || 'Failed to create project');
     }
+    const project: Project = await res.json();
+    const intent = pendingIntentRef.current;
+    pendingIntentRef.current = null;
+    setShowCreateModal(false);
+    if (intent) {
+      onSelectProject(project.id, project.name, intent);
+      return;
+    }
+    fetchProjects();
   };
 
   const handleDeleteConfirmed = async () => {
@@ -83,74 +97,97 @@ export default function ProjectsPage({ onSelectProject }: ProjectsPageProps) {
       console.error(err);
     } finally {
       await fetchProjects();
-      setDeletingIds(prev => prev.filter((x) => x !== id));
+      setDeletingIds(prev => prev.filter(x => x !== id));
     }
   };
 
-  const handleDeleteClick = (project: Project, event: React.MouseEvent) => {
-    event.stopPropagation();
-    setDeleteTarget(project);
+  /** Creates a project without a dialog (DESIGN §4.1's "Start learning" path). */
+  const autoCreateAndOpen = async (intent: LearningIntent) => {
+    try {
+      const res = await fetch(`${API_BASE}/api/projects`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name: t('projects.firstLabName') }),
+      });
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      const project: Project = await res.json();
+      onSelectProject(project.id, project.name, intent);
+    } catch (err) {
+      // Fall back to the standard dialog, which surfaces submit errors itself.
+      console.error('Failed to auto-create a project:', err);
+      pendingIntentRef.current = intent;
+      setShowCreateModal(true);
+    }
+  };
+
+  /**
+   * A roadmap runs against one project's containers. Resolution order:
+   * resume where it was last played → the only project → ask → create one.
+   */
+  const startRoadmap = (summary: RoadmapSummary, progress?: ProgressEntrySummary) => {
+    const intent: LearningIntent = { roadmap: { id: summary.id, language: summary.language } };
+    if (progress) {
+      const played = projects.find(p => p.id === progress.projectId);
+      if (played) {
+        onSelectProject(played.id, played.name, intent);
+        return;
+      }
+    }
+    if (projects.length === 1) {
+      onSelectProject(projects[0].id, projects[0].name, intent);
+      return;
+    }
+    if (projects.length === 0) {
+      autoCreateAndOpen(intent);
+      return;
+    }
+    setPickerTarget(summary);
   };
 
   return (
-    <div style={styles.container}>
-      {/* Page header */}
-      <div style={styles.header}>
-        <div style={styles.logoRow}>
-          <div style={styles.iconWrap}>
-            <img src={logo} alt="Logo" style={{ width: '28px', height: '28px', objectFit: 'contain' }} />
-          </div>
-          <div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-              <h1 style={styles.title}>{t('projects.title')}</h1>
-              <span style={styles.badge}>v{__APP_VERSION__}</span>
-            </div>
-            <p style={styles.subtitle}>{t('projects.subtitle')}</p>
-          </div>
-        </div>
-        <div style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
-          <button 
-            onClick={toggleLanguage} 
-            style={{...styles.createBtn, background: 'var(--bg-surface-solid)', color: 'var(--color-text-primary)', border: '1px solid var(--border-color)', padding: '0 12px'}}
-            title={t('topbar.toggleLanguage')}
-          >
-            {i18n.language.toUpperCase()}
-          </button>
-          <button onClick={() => setShowCreateModal(true)} style={styles.createBtn} id="create-project-btn">
-            <Plus size={16} style={{ marginRight: 6 }} />
-            {t('projects.newProject')}
-          </button>
-        </div>
-      </div>
+    <div style={styles.shell}>
+      <SideRail view={view} onNavigate={setView} />
 
-      {storeRecovered && (
-        <div style={styles.noticeBox}>
-          <AlertTriangle size={13} color="var(--color-warning-strong)" style={{ flexShrink: 0 }} />
-          <span style={styles.noticeText}>{t('projects.storeRecovered')}</span>
-          <button
-            onClick={() => setStoreRecovered(false)}
-            style={styles.noticeDismiss}
-            aria-label={t('projects.dismissNotice')}
-          >
-            <X size={13} />
-          </button>
+      <div style={styles.content}>
+        <div style={styles.container}>
+          <PageHeader onNewProject={() => setShowCreateModal(true)} />
+
+          {view === 'projects' ? (
+            <>
+              {storeRecovered && (
+                <div style={styles.noticeBox}>
+                  <AlertTriangle
+                    size={13}
+                    color="var(--color-warning-strong)"
+                    style={{ flexShrink: 0 }}
+                  />
+                  <span style={styles.noticeText}>{t('projects.storeRecovered')}</span>
+                  <button
+                    onClick={() => setStoreRecovered(false)}
+                    style={styles.noticeDismiss}
+                    aria-label={t('projects.dismissNotice')}
+                  >
+                    <X size={13} />
+                  </button>
+                </div>
+              )}
+
+              <ProjectsSection
+                projects={projects}
+                loading={loading}
+                error={loadError}
+                onRetry={fetchProjects}
+                onSelect={onSelectProject}
+                onDelete={(project) => setDeleteTarget(project)}
+                deletingIds={deletingIds}
+                onStartLearning={() => setView('learning')}
+                onStartScratch={() => setShowCreateModal(true)}
+              />
+            </>
+          ) : (
+            <LearningSection onStartRoadmap={startRoadmap} />
+          )}
         </div>
-      )}
-
-      {loading && <p style={styles.loading}>{t('projects.loading')}</p>}
-
-      {/* Project grid */}
-      <div style={styles.grid}>
-        {projects.map((p) => (
-          <ProjectCard
-            key={p.id}
-            project={p}
-            onSelect={onSelectProject}
-            onDelete={handleDeleteClick}
-            isDeleting={deletingIds.includes(p.id)}
-          />
-        ))}
-        {!loading && projects.length === 0 && <EmptyState />}
       </div>
 
       {/* Modals */}
@@ -161,18 +198,43 @@ export default function ProjectsPage({ onSelectProject }: ProjectsPageProps) {
           placeholder={t('projects.createPlaceholder')}
           submitText={t('projects.createSubmit')}
           onSubmit={handleCreateProject}
-          onCancel={() => setShowCreateModal(false)}
+          onCancel={() => {
+            pendingIntentRef.current = null;
+            setShowCreateModal(false);
+          }}
         />
       )}
 
       {deleteTarget && (
         <ConfirmModal
           title={t('projects.deleteTitle')}
-          message={t('projects.deleteMessage').replace('{{name}}', deleteTarget.name)}
+          message={t('projects.deleteMessage', { name: deleteTarget.name })}
           confirmText={t('projects.deleteConfirm')}
           variant="danger"
           onConfirm={handleDeleteConfirmed}
           onCancel={() => setDeleteTarget(null)}
+        />
+      )}
+
+      {pickerTarget && (
+        <ProjectPickerModal
+          projects={projects}
+          roadmapTitle={pickerTarget.title}
+          onPick={(project) => {
+            const target = pickerTarget;
+            setPickerTarget(null);
+            onSelectProject(project.id, project.name, {
+              roadmap: { id: target.id, language: target.language },
+            });
+          }}
+          onNewProject={() => {
+            pendingIntentRef.current = {
+              roadmap: { id: pickerTarget.id, language: pickerTarget.language },
+            };
+            setPickerTarget(null);
+            setShowCreateModal(true);
+          }}
+          onCancel={() => setPickerTarget(null)}
         />
       )}
     </div>
@@ -180,92 +242,38 @@ export default function ProjectsPage({ onSelectProject }: ProjectsPageProps) {
 }
 
 const styles: Record<string, React.CSSProperties> = {
+  shell: {
+    display: 'flex',
+    height: '100%',
+    minHeight: 0,
+  },
+  content: {
+    flex: 1,
+    minWidth: 0,
+    overflowY: 'auto',
+  },
   container: {
-    padding: '48px 60px',
+    padding: 'var(--space-8) 60px',
     maxWidth: '1200px',
     margin: '0 auto',
     width: '100%',
     boxSizing: 'border-box',
-    overflowY: 'auto',
-    height: '100%',
-  },
-  header: {
     display: 'flex',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: '40px',
-  },
-  logoRow: {
-    display: 'flex',
-    alignItems: 'center',
-    gap: '14px',
-  },
-  iconWrap: {
-    width: '44px',
-    height: '44px',
-    borderRadius: '50%',
-    background: '#FFFFFF',
-    border: '1px solid rgba(0, 0, 0, 0.08)',
-    boxShadow: '0 2px 8px rgba(0, 0, 0, 0.05)',
-    display: 'flex',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  title: {
-    fontSize: '24px',
-    fontWeight: 700,
-    color: 'var(--color-text-primary)',
-    margin: 0,
-    letterSpacing: '-0.5px',
-  },
-  subtitle: {
-    fontSize: '13px',
-    color: 'var(--color-text-muted)',
-    margin: '2px 0 0 0',
-  },
-  badge: {
-    fontSize: '11px',
-    fontWeight: 600,
-    backgroundColor: 'var(--color-accent-glow)',
-    color: 'var(--color-accent)',
-    padding: '2px 10px',
-    borderRadius: '12px',
-    border: '1px solid rgba(37, 99, 235, 0.2)',
-    marginTop: '4px',
-  },
-  createBtn: {
-    backgroundColor: 'var(--color-accent)',
-    color: '#FFF',
-    border: 'none',
-    borderRadius: '10px',
-    padding: '0 20px',
-    height: '42px',
-    fontSize: '13px',
-    fontWeight: 600,
-    fontFamily: 'var(--font-sans)',
-    cursor: 'pointer',
-    display: 'flex',
-    alignItems: 'center',
-    transition: 'all 0.2s',
-    boxShadow: '0 1px 3px rgba(37, 99, 235, 0.3)',
-  },
-  loading: {
-    color: 'var(--color-text-secondary)',
-    fontSize: '14px',
+    flexDirection: 'column',
+    gap: 'var(--space-6)',
   },
   noticeBox: {
     display: 'flex',
     alignItems: 'flex-start',
-    gap: '6px',
-    padding: '8px 10px',
+    gap: 'var(--space-2)',
+    padding: 'var(--space-2) var(--space-3)',
     border: '1px solid var(--color-warning)',
-    borderRadius: '6px',
+    borderRadius: 'var(--radius-sm)',
     backgroundColor: 'var(--color-warning-glow)',
-    marginBottom: '20px',
   },
   noticeText: {
     flex: 1,
-    fontSize: '12px',
+    fontSize: 'var(--text-sm)',
     color: 'var(--color-warning-strong)',
     lineHeight: 1.5,
   },
@@ -278,10 +286,5 @@ const styles: Record<string, React.CSSProperties> = {
     padding: 0,
     cursor: 'pointer',
     color: 'var(--color-warning-strong)',
-  },
-  grid: {
-    display: 'grid',
-    gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))',
-    gap: '20px',
   },
 };

@@ -32,6 +32,15 @@ interface ProgressStore {
   entries: ProgressEntry[];
 }
 
+/** One item of GET /api/learning/progress — documented in docs/learning-api.md. */
+export interface ProgressEntrySummary {
+  projectId: string;
+  roadmapId: string;
+  updatedAt: string;
+  /** Count of steps whose latest validation passed. */
+  completedSteps: number;
+}
+
 /** Contract of GET /api/learning/progress/:projectId/:roadmapId — documented in docs/learning-api.md. */
 export interface RoadmapProgressResponse {
   projectId: string;
@@ -81,6 +90,21 @@ export class ProgressService {
       this.storeRecovered = false;
     }
     return response;
+  }
+
+  /**
+   * Summarizes every play-through in the store, for surfaces that show
+   * progress across projects (e.g. the landing page's roadmap cards).
+   * Deliberately leaves the one-shot `storeRecovered` flag untouched — that
+   * notice belongs to the player's getProgress, which can act on it.
+   */
+  public static listProgress(filePath: string = PROGRESS_PATH): ProgressEntrySummary[] {
+    return this.readStore(filePath).entries.map(entry => ({
+      projectId: entry.projectId,
+      roadmapId: entry.roadmapId,
+      updatedAt: entry.updatedAt,
+      completedSteps: Object.values(entry.steps).filter(step => step.passed).length,
+    }));
   }
 
   public static recordValidation(

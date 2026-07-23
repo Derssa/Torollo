@@ -22,9 +22,45 @@
   --color-warning-glow: rgba(245, 158, 11, 0.1);
   --color-warning-strong: #92400E;
 
+  --bg-subtle: #F9FAFB;
+
+  /* dark navigation rail (home shell chrome) */
+  --bg-rail: #0F172A;
+  --rail-text: #F8FAFC;
+  --rail-text-muted: rgba(248, 250, 252, 0.55);
+
+  /* overlays & shadows */
+  --overlay-scrim: rgba(15, 23, 42, 0.45);
+  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.05);
+  --shadow-md: 0 10px 15px -3px rgba(0, 0, 0, 0.08);
+  --shadow-lg: 0 24px 48px -12px rgba(0, 0, 0, 0.18);
+
+  /* radius */
+  --radius-sm: 6px;    /* inputs, small buttons, chips, receipts */
+  --radius-md: 10px;   /* buttons, cards inside panels */
+  --radius-lg: 14px;   /* node cards, panels, toasts */
+  --radius-xl: 18px;   /* modals */
+
+  /* spacing (4px grid) */
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-5: 20px;
+  --space-6: 24px;
+  --space-8: 32px;
+
+  /* type scale */
+  --text-xs: 11px;
+  --text-sm: 12px;
+  --text-md: 13px;
+  --text-lg: 15px;
+  --text-xl: 18px;
+  --text-2xl: 24px;
+
   --font-sans: 'Plus Jakarta Sans', system-ui, -apple-system, sans-serif;
   --font-mono: 'JetBrains Mono', monospace;
-  
+
   background-color: var(--bg-main);
   color: var(--color-text-primary);
   font-family: var(--font-sans);
@@ -149,6 +185,110 @@ body {
   to {
     opacity: 1;
     transform: translateX(0);
+  }
+}
+
+/* Shared Button primitive (shared/components/Button.tsx) — classes so hover
+   states stay in CSS. Also usable on <a> for link-shaped actions. */
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-2);
+  border-radius: var(--radius-md);
+  font-family: var(--font-sans);
+  font-weight: 600;
+  cursor: pointer;
+  text-decoration: none;
+  transition: background 0.15s ease, border-color 0.15s ease, filter 0.15s ease;
+}
+.btn:disabled {
+  opacity: 0.55;
+  cursor: default;
+}
+.btn-md {
+  height: 34px;
+  padding: 0 var(--space-3);
+  font-size: var(--text-md);
+}
+.btn-lg {
+  height: 42px;
+  padding: 0 var(--space-5);
+  font-size: var(--text-lg);
+}
+.btn-primary {
+  background: var(--color-accent);
+  color: var(--bg-surface-solid);
+  border: 1px solid transparent;
+  box-shadow: var(--shadow-sm);
+}
+.btn-primary:hover:not(:disabled) {
+  filter: brightness(0.94);
+}
+.btn-outline {
+  background: var(--bg-surface-solid);
+  color: var(--color-text-primary);
+  border: 1px solid var(--border-color);
+}
+.btn-outline:hover:not(:disabled) {
+  border-color: var(--border-color-hover);
+  background: var(--bg-subtle);
+}
+
+/* Navigation rail buttons (dark chrome — hover/active need CSS) */
+.rail-btn {
+  width: 40px;
+  height: 40px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: none;
+  border: none;
+  border-radius: var(--radius-md);
+  color: var(--rail-text-muted);
+  cursor: pointer;
+  transition: background 0.15s ease, color 0.15s ease;
+}
+.rail-btn:hover {
+  color: var(--rail-text);
+  background: color-mix(in srgb, var(--rail-text) 10%, transparent);
+}
+.rail-btn.active {
+  color: var(--rail-text);
+  background: var(--color-accent);
+}
+
+/* Loading skeleton block */
+@keyframes skeletonPulse {
+  0%, 100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.55;
+  }
+}
+.skeleton {
+  background: var(--bg-main);
+  border-radius: var(--radius-md);
+  animation: skeletonPulse 1.6s ease-in-out infinite;
+}
+
+/* Receipt fade-in (receipts never animate for attention — entry only) */
+@keyframes receiptFadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .skeleton {
+    animation: none;
+  }
+  .receipt-appear {
+    animation: none !important;
   }
 }
 

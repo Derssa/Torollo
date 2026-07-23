@@ -1,3 +1,4 @@
+import { useEffect, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
 import { GraduationCap, X } from 'lucide-react';
 import { useLearningPlayer } from '../hooks/useLearningPlayer';
@@ -8,6 +9,8 @@ import type { NetworkConfig } from '../../../shared/types/network';
 
 interface LearningPanelProps {
   projectId: string;
+  /** Deep-link from the landing page: open directly on this roadmap. One-shot, consumed on mount. */
+  initialRoadmap?: { id: string; language: string } | null;
   onClose: () => void;
   containers?: ContainerData[];
   networkConfig?: NetworkConfig;
@@ -20,6 +23,7 @@ interface LearningPanelProps {
  */
 export default function LearningPanel({
   projectId,
+  initialRoadmap,
   onClose,
   containers = [],
   networkConfig = {
@@ -31,6 +35,17 @@ export default function LearningPanel({
 }: LearningPanelProps) {
   const { t } = useTranslation();
   const player = useLearningPlayer({ projectId });
+
+  // Arrival intent: open the requested roadmap once on mount. openRoadmap
+  // hydrates persisted progress and resumes at the first incomplete step.
+  const arrivalRoadmapRef = useRef(initialRoadmap);
+  const openRoadmapRef = useRef(player.openRoadmap);
+  openRoadmapRef.current = player.openRoadmap;
+  useEffect(() => {
+    if (arrivalRoadmapRef.current) {
+      openRoadmapRef.current(arrivalRoadmapRef.current);
+    }
+  }, []);
 
   return (
     <div style={styles.sidebar}>

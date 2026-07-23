@@ -58,31 +58,58 @@
       "resetProgressError": "Impossible de réinitialiser la progression. Rien n'a été modifié — réessayez.",
       "progressRecovered": "Votre progression sauvegardée était illisible et a dû être réinitialisée. Désolé — cette roadmap repart de zéro.",
       "dismissNotice": "Fermer"
+    },
+    "landing": {
+      "title": "Apprentissage",
+      "subtitle": "Des parcours guidés, vérifiés sur de vrais conteneurs",
+      "heroTitle": "Apprenez le system design en exécutant une vraie infrastructure.",
+      "heroBody": "Suivez un parcours, construisez le système sur le canevas et validez chaque étape sur vos vrais conteneurs Docker.",
+      "startRoadmap": "Commencer un parcours",
+      "browseRoadmaps": "Parcourir tous les parcours",
+      "roadmapsTitle": "Parcours",
+      "continueLabel": "Continuer · étape {{current}} sur {{total}}",
+      "completedLabel": "Terminé",
+      "whyTitle": "Pourquoi c'est différent",
+      "whyContainersTitle": "De vrais conteneurs",
+      "whyContainersBody": "Chaque nœud que vous déposez est un vrai conteneur Docker qui tourne sur votre machine.",
+      "whyCommandsTitle": "De vraies commandes",
+      "whyCommandsBody": "Vous travaillez dans de vrais terminaux — redis-cli, psql, curl — pas dans une simulation.",
+      "whyReceiptsTitle": "De vrais reçus de validation",
+      "whyReceiptsBody": "Chaque vérification montre la commande exacte exécutée et ce qui a été observé.",
+      "sampleReceiptLabel": "Exemple de reçu de validation",
+      "pickProjectTitle": "Choisir un projet",
+      "pickProjectBody": "« {{roadmap}} » s'exécute sur les conteneurs d'un projet. Choisissez où travailler.",
+      "pickProjectNew": "Nouveau projet"
     }
   },
   "projects": {
     "title": "Projets Torollo",
     "subtitle": "Organisez vos laboratoires d'infrastructure",
-    "newProject": "Nouveau Projet",
-    "loading": "Chargement des projets...",
-    "createTitle": "Créer un Projet",
+    "newProject": "Nouveau projet",
+    "createTitle": "Créer un projet",
     "createLabel": "Donnez un nom descriptif à votre projet pour organiser vos conteneurs.",
     "createPlaceholder": "ex: Lab App Web, Test API Gateway",
-    "createSubmit": "Créer le Projet",
-    "deleteTitle": "Supprimer le Projet",
-    "deleteConfirm": "Supprimer le Projet",
+    "createSubmit": "Créer le projet",
+    "deleteTitle": "Supprimer le projet",
+    "deleteConfirm": "Supprimer le projet",
     "deleteMessage": "Cela supprimera définitivement \"{{name}}\" et arrêtera/supprimera tous les conteneurs Docker associés. Cette action est irréversible.",
-    "noProjects": "Aucun projet trouvé. Créez-en un nouveau !",
-    "lastUpdated": "Dernière mise à jour :",
-    "open": "Ouvrir",
-    "delete": "Supprimer",
     "storeRecovered": "Votre fichier de projets était illisible et a dû être réinitialisé. Le fichier illisible a été conservé sous projects.json.corrupt dans votre dossier .torollo.",
     "dismissNotice": "Fermer l'avertissement",
-    "emptyTitle": "Aucun projet pour l'instant",
-    "emptyDesc": "Cliquez sur « Nouveau projet » pour créer votre première stack d'infrastructure.",
     "deleting": "Suppression...",
     "deleteProjectTooltip": "Supprimer le projet",
-    "openStack": "Ouvrir la stack"
+    "openStack": "Ouvrir le projet",
+    "docsLink": "Docs",
+    "sectionTitle": "Projets",
+    "loadError": "Impossible de charger les projets. Le backend est-il démarré ?",
+    "retry": "Réessayer",
+    "loadingAria": "Chargement des projets",
+    "firstLabName": "Mon premier lab",
+    "firstRun": {
+      "title": "Construisez une vraie infrastructure sur votre machine.",
+      "body": "Glissez des bases de données, des load balancers et des réseaux sur un canevas — chaque nœud est un vrai conteneur Docker. Apprenez le system design en l'exécutant, pas en le dessinant.",
+      "startLearning": "Commencer à apprendre",
+      "startScratch": "Partir de zéro"
+    }
   },
   "vpc": {
     "titleInfo": "Paramètres VPC du Projet",
@@ -539,7 +566,9 @@
     "create": "Créer",
     "genericError": "Une erreur s'est produite",
     "dockerUnavailable": "Démon Docker injoignable — démarrez Docker et le lab se reconnectera automatiquement.",
-    "deleteConnection": "Supprimer la connexion"
+    "deleteConnection": "Supprimer la connexion",
+    "copy": "Copier",
+    "copied": "Copié"
   },
   "toasts": {
     "subnetDeleteBlocked": "Impossible de supprimer le sous-réseau : déplacez ou supprimez d'abord tous les nœuds qu'il contient.",
@@ -751,5 +780,10 @@
         "autoscalinggroup": "ex. asg-1"
       }
     }
+  },
+  "nav": {
+    "main": "Navigation principale",
+    "projects": "Projets",
+    "learning": "Apprentissage"
   }
 }

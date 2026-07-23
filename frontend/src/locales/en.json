@@ -58,31 +58,58 @@
       "resetProgressError": "Could not reset the progress. Nothing was changed — try again.",
       "progressRecovered": "Your saved progress could not be read and had to be reset. Sorry — this roadmap starts fresh.",
       "dismissNotice": "Dismiss"
+    },
+    "landing": {
+      "title": "Learning",
+      "subtitle": "Guided roadmaps, checked against real containers",
+      "heroTitle": "Learn system design by running real infrastructure.",
+      "heroBody": "Follow a roadmap, build the system on the canvas, and validate every step against your actual Docker containers.",
+      "startRoadmap": "Start a roadmap",
+      "browseRoadmaps": "Browse all roadmaps",
+      "roadmapsTitle": "Roadmaps",
+      "continueLabel": "Continue · step {{current}} of {{total}}",
+      "completedLabel": "Completed",
+      "whyTitle": "Why this is different",
+      "whyContainersTitle": "Real containers",
+      "whyContainersBody": "Every node you drag is a real Docker container running on your machine.",
+      "whyCommandsTitle": "Real commands",
+      "whyCommandsBody": "You work in real terminals — redis-cli, psql, curl — not a simulation.",
+      "whyReceiptsTitle": "Real validation receipts",
+      "whyReceiptsBody": "Every check shows the exact command it ran and what it observed.",
+      "sampleReceiptLabel": "Sample validation receipt",
+      "pickProjectTitle": "Choose a project",
+      "pickProjectBody": "\"{{roadmap}}\" runs against one project’s containers. Pick where to work on it.",
+      "pickProjectNew": "New project"
     }
   },
   "projects": {
     "title": "Torollo Projects",
     "subtitle": "Organize your infrastructure labs",
-    "newProject": "New Project",
-    "loading": "Loading projects...",
-    "createTitle": "Create Project Stack",
+    "newProject": "New project",
+    "createTitle": "Create a project",
     "createLabel": "Give your project a descriptive name to organize your containers.",
     "createPlaceholder": "e.g. Web App Lab, API Gateway Test",
-    "createSubmit": "Create Project",
-    "deleteTitle": "Delete Project",
-    "deleteConfirm": "Delete Project",
+    "createSubmit": "Create project",
+    "deleteTitle": "Delete project",
+    "deleteConfirm": "Delete project",
     "deleteMessage": "This will permanently delete \"{{name}}\" and stop/remove all associated Docker containers. This action cannot be undone.",
-    "noProjects": "No projects found. Create a new one!",
-    "lastUpdated": "Last updated:",
-    "open": "Open",
-    "delete": "Delete",
     "storeRecovered": "Your projects file could not be read and had to be reset. The unreadable file was kept as projects.json.corrupt in your .torollo folder.",
     "dismissNotice": "Dismiss notice",
-    "emptyTitle": "No projects yet",
-    "emptyDesc": "Click \"New Project\" to create your first infrastructure stack.",
     "deleting": "Deleting...",
     "deleteProjectTooltip": "Delete project",
-    "openStack": "Open Stack"
+    "openStack": "Open project",
+    "docsLink": "Docs",
+    "sectionTitle": "Projects",
+    "loadError": "Could not load projects. Is the backend running?",
+    "retry": "Retry",
+    "loadingAria": "Loading projects",
+    "firstLabName": "My first lab",
+    "firstRun": {
+      "title": "Build real infrastructure on your machine.",
+      "body": "Drag databases, load balancers and networks onto a canvas — every node is a real Docker container. Learn system design by running it, not by drawing it.",
+      "startLearning": "Start learning",
+      "startScratch": "Start from scratch"
+    }
   },
   "vpc": {
     "titleInfo": "Project VPC Settings",
@@ -539,7 +566,9 @@
     "create": "Create",
     "genericError": "An error occurred",
     "dockerUnavailable": "Docker daemon unreachable — start Docker and the lab will reconnect automatically.",
-    "deleteConnection": "Delete Connection"
+    "deleteConnection": "Delete Connection",
+    "copy": "Copy",
+    "copied": "Copied"
   },
   "toasts": {
     "subnetDeleteBlocked": "Cannot delete subnet: Move or delete all nodes inside the subnet first.",
@@ -751,5 +780,10 @@
         "autoscalinggroup": "e.g. asg-1"
       }
     }
+  },
+  "nav": {
+    "main": "Main navigation",
+    "projects": "Projects",
+    "learning": "Learning"
   }
 }

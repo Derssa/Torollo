@@ -89,6 +89,8 @@ async function renderCanvasPage(fetchMock: ReturnType<typeof vi.fn>, props: Part
     <CanvasPage
       projectId="p1"
       projectName="Test Project"
+      initialLearning={props.initialLearning}
+      onLearningIntentConsumed={props.onLearningIntentConsumed}
       onBackToProjects={props.onBackToProjects || vi.fn()}
       onTerminalOpen={props.onTerminalOpen || vi.fn()}
     />
@@ -115,6 +117,25 @@ describe('CanvasPage', () => {
   afterEach(() => {
     vi.unstubAllGlobals();
     vi.useRealTimers();
+  });
+
+  it('opens the learning panel on mount when an arrival intent is given, and consumes it once', async () => {
+    const fetchMock = buildFetchMock({ containers: [], networkConfig: { vpcConfig: validVpcConfig, subnets: [], nodeSubnetMap: {}, nodeSecurityGroups: {}, nodeIpMap: {} } });
+    const onLearningIntentConsumed = vi.fn();
+    await renderCanvasPage(fetchMock, { initialLearning: {}, onLearningIntentConsumed });
+
+    // Topbar button + panel header both say "Learning": 2 means the panel is open.
+    expect(screen.getAllByText('Learning')).toHaveLength(2);
+    expect(onLearningIntentConsumed).toHaveBeenCalledTimes(1);
+  });
+
+  it('keeps the learning panel closed without an arrival intent', async () => {
+    const fetchMock = buildFetchMock({ containers: [], networkConfig: { vpcConfig: validVpcConfig, subnets: [], nodeSubnetMap: {}, nodeSecurityGroups: {}, nodeIpMap: {} } });
+    await renderCanvasPage(fetchMock);
+
+    // The topbar button is labeled via topbar.learning; the panel header ("Learning")
+    // must not be there. Both resolve to the same string, so count occurrences.
+    expect(screen.getAllByText('Learning')).toHaveLength(1);
   });
 
   it('fetches containers and network config on mount and renders the project header', async () => {

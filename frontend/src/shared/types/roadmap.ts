@@ -6,7 +6,8 @@
  * API types:     backend/src/modules/learning/engine/types.ts (ValidatorResult),
  *                controllers/learningController.ts (StepValidationResponse),
  *                services/roadmapService.ts (RoadmapSummary),
- *                services/progressService.ts (StepProgress, RoadmapProgressResponse).
+ *                services/progressService.ts (StepProgress, RoadmapProgressResponse,
+ *                ProgressEntrySummary).
  * The duplication is deliberate: backend and frontend are separate npm
  * packages (same policy as the Project type in shared/types/index.ts).
  * Source of truth for the format is the JSON Schema:
@@ -117,4 +118,18 @@ export interface RoadmapProgressResponse {
   steps: Record<string, StepProgress>;
   /** Present (true) once after an unreadable store was moved aside — tell the user. */
   storeRecovered?: boolean;
+}
+
+/** One item of GET /api/learning/progress — a (project, roadmap) play-through summary. */
+export interface ProgressEntrySummary {
+  projectId: string;
+  roadmapId: string;
+  updatedAt: string;
+  /** Count of steps whose latest validation passed. */
+  completedSteps: number;
+}
+
+/** Response of GET /api/learning/progress. */
+export interface ProgressListResponse {
+  entries: ProgressEntrySummary[];
 }

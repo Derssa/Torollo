@@ -210,6 +210,31 @@ describe('LearningController', () => {
     });
   });
 
+  describe('GET /api/learning/progress', () => {
+    it('returns every play-through summary wrapped in entries', async () => {
+      const summaries = [
+        { projectId: 'project-1', roadmapId: 'roadmap-1', updatedAt: '2026-07-16T10:00:00.000Z', completedSteps: 3 },
+      ];
+      (ProgressService.listProgress as jest.Mock).mockReturnValue(summaries);
+
+      const res = await request(app).get('/api/learning/progress');
+
+      expect(res.status).toBe(200);
+      expect(res.body).toEqual({ entries: summaries });
+    });
+
+    it('returns 500 when the service throws', async () => {
+      (ProgressService.listProgress as jest.Mock).mockImplementation(() => {
+        throw new Error('disk exploded');
+      });
+
+      const res = await request(app).get('/api/learning/progress');
+
+      expect(res.status).toBe(500);
+      expect(res.body.error).toBe('disk exploded');
+    });
+  });
+
   describe('GET /api/learning/progress/:projectId/:roadmapId', () => {
     it('returns the stored progress for the pair', async () => {
       const progress = {

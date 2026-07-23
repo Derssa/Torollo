@@ -113,6 +113,10 @@ Roadmap progression is persisted locally in `~/.torollo/progress.json`, next to 
 
 `passed` is the verdict of the **latest** validation (same semantics as the player's in-session display); `attempts` counts the validation runs that reached evaluation; `revealedHints` is the absolute number of revealed rungs on the step's hint ladder `[...hints, solution?]`. Validator results are deliberately **not** persisted — they describe a past container state; only the verdict survives. The top-level `version` is the migration contract: a reader that finds an unknown version (or an unparseable file) must not guess — the server moves the file aside as `progress.json.corrupt`, starts fresh, and reports it once via `storeRecovered` on the next progress read so the UI can tell the user. Writes are write-then-rename, so a crash mid-write cannot truncate the store. Deleting a project deletes its progress entries.
 
+### `GET /api/learning/progress`
+
+Returns `{ "entries": [ { "projectId", "roadmapId", "updatedAt", "completedSteps" } ] }` — one summary per `(projectId, roadmapId)` play-through in the store, where `completedSteps` counts the steps whose latest validation passed. Used by surfaces that show progress across projects (e.g. the landing page's roadmap cards, which keep the most recent entry per roadmap). This endpoint never emits `storeRecovered` — that one-shot notice is reserved for the per-pair read below.
+
 ### `GET /api/learning/progress/:projectId/:roadmapId`
 
 Returns `{ projectId, roadmapId, steps }` — `steps` is the per-step record above, `{}` when nothing was ever recorded. `storeRecovered: true` is present once after a corrupt/unknown-version store was discarded. The player calls this when opening a roadmap and resumes on the first step whose `passed` is not true.

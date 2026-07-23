@@ -143,6 +143,33 @@ describe('LearningPanel', () => {
     expect(screen.getByText('Build a minimal two-tier architecture.')).toBeInTheDocument();
   });
 
+  it('opens directly on the roadmap named by initialRoadmap', async () => {
+    const fetchMock = buildFetchMock({});
+    vi.stubGlobal('fetch', fetchMock);
+    render(
+      <LearningPanel
+        projectId="p1"
+        initialRoadmap={{ id: roadmap.id, language: 'en' }}
+        onClose={() => {}}
+      />
+    );
+
+    await screen.findAllByText('Create the web server');
+    const urls = fetchMock.mock.calls.map(call => String(call[0]));
+    expect(urls.some(url => url.includes(`/api/learning/roadmaps/${roadmap.id}?language=en`))).toBe(true);
+    expect(urls.some(url => url.includes(`/api/learning/progress/p1/${roadmap.id}`))).toBe(true);
+  });
+
+  it('stays on the catalogue when no initialRoadmap is given', async () => {
+    const fetchMock = buildFetchMock({});
+    vi.stubGlobal('fetch', fetchMock);
+    render(<LearningPanel projectId="p1" onClose={() => {}} />);
+
+    expect(await screen.findByText('Your first architecture')).toBeInTheDocument();
+    const urls = fetchMock.mock.calls.map(call => String(call[0]));
+    expect(urls.some(url => url.includes('/api/learning/roadmaps/'))).toBe(false);
+  });
+
   it('shows a retry path when the catalogue cannot be loaded', async () => {
     const fetchMock = buildFetchMock({});
     fetchMock.mockRejectedValueOnce(new Error('network down'));

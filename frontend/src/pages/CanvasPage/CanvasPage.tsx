@@ -26,6 +26,7 @@ import CanvasModals from './components/CanvasModals';
 import type { InspectorState } from './components/CanvasModals';
 import ButtonEdge from './components/ButtonEdge';
 import { API_BASE } from '../../shared/types';
+import type { LearningIntent } from '../../shared/types';
 import { useNetworkConfig } from './hooks/useNetworkConfig';
 import { useCanvasDragDrop } from './hooks/useCanvasDragDrop';
 import { positionToCell, resolveSubnetChildPosition, subnetSize } from './utils/canvasGeometry';
@@ -41,6 +42,10 @@ import { assignNodeToSubnet, removeNodeFromConfig } from './utils/networkConfigO
 interface CanvasPageProps {
   projectId: string;
   projectName: string;
+  /** Arrival intent from the landing page: open the learning panel, optionally on one roadmap. */
+  initialLearning?: LearningIntent | null;
+  /** Called once on mount so the owner can clear the one-shot intent. */
+  onLearningIntentConsumed?: () => void;
   onBackToProjects: () => void;
   onTerminalOpen: (id: string, name: string) => void;
 }
@@ -57,7 +62,14 @@ const INSPECTOR_KIND_BY_NODE_TYPE: Record<string, InspectorState['kind']> = {
   autoscalinggroup: 'asg',
 };
 
-export default function CanvasPage({ projectId, projectName, onBackToProjects, onTerminalOpen }: CanvasPageProps) {
+export default function CanvasPage({
+  projectId,
+  projectName,
+  initialLearning,
+  onLearningIntentConsumed,
+  onBackToProjects,
+  onTerminalOpen,
+}: CanvasPageProps) {
   const { t } = useTranslation();
   const { toast, showNotification, showToast, dismissToast } = useToast();
 
@@ -123,7 +135,18 @@ export default function CanvasPage({ projectId, projectName, onBackToProjects, o
 
   const [showVpcSettings, setShowVpcSettings] = useState(false);
   const [showTrafficSimulator, setShowTrafficSimulator] = useState(false);
-  const [showLearning, setShowLearning] = useState(false);
+  const [showLearning, setShowLearning] = useState(() => Boolean(initialLearning));
+  // One-shot arrival intent (CanvasPage mounts fresh per project): the roadmap
+  // to auto-open is captured here, and the owner clears its copy right away so
+  // a later toggle of the panel can never replay it.
+  const initialRoadmapRef = useRef(initialLearning?.roadmap ?? null);
+  const intentConsumedRef = useRef(onLearningIntentConsumed);
+  useEffect(() => {
+    intentConsumedRef.current?.();
+    // Child effects ran first, so the panel (mounted on this same first render
+    // when an intent exists) has already captured its roadmap prop.
+    initialRoadmapRef.current = null;
+  }, []);
 
   const nodeTypes = useMemo(() => ({
     ubuntu: UbuntuNode,
@@ -583,6 +606,7 @@ export default function CanvasPage({ projectId, projectName, onBackToProjects, o
         {showLearning && (
           <LearningPanel
             projectId={projectId}
+            initialRoadmap={initialRoadmapRef.current}
             onClose={() => setShowLearning(false)}
             containers={containers}
             networkConfig={networkConfig}

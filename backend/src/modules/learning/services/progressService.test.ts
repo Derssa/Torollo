@@ -96,6 +96,38 @@ describe('ProgressService', () => {
     expect(ProgressService.getProgress('project-2', 'roadmap-1', file).steps).not.toEqual({});
   });
 
+  describe('listProgress', () => {
+    it('returns an empty list when no store exists', () => {
+      expect(ProgressService.listProgress(file)).toEqual([]);
+      expect(fs.existsSync(file)).toBe(false);
+    });
+
+    it('summarizes every entry with its count of passed steps', () => {
+      ProgressService.recordValidation('project-1', 'roadmap-1', 'step-a', true, '2026-07-16T10:00:00.000Z', file);
+      ProgressService.recordValidation('project-1', 'roadmap-1', 'step-b', false, '2026-07-16T10:01:00.000Z', file);
+      ProgressService.recordValidation('project-1', 'roadmap-1', 'step-c', true, '2026-07-16T10:02:00.000Z', file);
+      ProgressService.recordValidation('project-2', 'roadmap-2', 'step-a', false, '2026-07-16T10:03:00.000Z', file);
+
+      const summaries = ProgressService.listProgress(file);
+
+      expect(summaries).toHaveLength(2);
+      expect(summaries[0]).toMatchObject({ projectId: 'project-1', roadmapId: 'roadmap-1', completedSteps: 2 });
+      expect(summaries[0].updatedAt).not.toBe('');
+      expect(summaries[1]).toMatchObject({ projectId: 'project-2', roadmapId: 'roadmap-2', completedSteps: 0 });
+    });
+
+    it('does not consume the one-shot storeRecovered flag reserved for getProgress', () => {
+      const errorSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
+      fs.writeFileSync(file, 'not json at all {');
+
+      expect(ProgressService.listProgress(file)).toEqual([]);
+
+      // The recovery notice must still reach the player's next per-pair read.
+      expect(ProgressService.getProgress('project-1', 'roadmap-1', file).storeRecovered).toBe(true);
+      errorSpy.mockRestore();
+    });
+  });
+
   describe('unreadable store recovery', () => {
     let errorSpy: jest.SpyInstance;
 
