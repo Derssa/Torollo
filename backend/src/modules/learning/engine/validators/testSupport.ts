@@ -47,40 +47,5 @@ export function makeContext(overrides: ContextOverrides = {}): ValidatorContext 
   };
 }
 
-export interface SecurityGroupRuleFixture {
-  type: 'inbound' | 'outbound';
-  action: 'ALLOW' | 'DENY';
-  protocol: string;
-  port: string;
-  source: string;
-}
-
-/**
- * The default security group every node gets when dropped on the canvas —
- * mirror of `createDefaultRules` (frontend `CanvasPage/utils/securityRules.ts`):
- * deny all inbound, allow all outbound.
- */
-export function makeDefaultSgRules(): SecurityGroupRuleFixture[] {
-  return [
-    { type: 'inbound', action: 'DENY', protocol: 'ALL', port: 'ALL', source: '0.0.0.0/0' },
-    { type: 'outbound', action: 'ALLOW', protocol: 'ALL', port: 'ALL', source: '0.0.0.0/0' },
-  ];
-}
-
-/**
- * A realistic applied network config: every node sits in a subnet and carries
- * the default security group, with the learner's rules prepended — the UI
- * always inserts new rules at the top (highest first-match priority).
- */
-export function makeNetworkConfig(
-  nodeIds: string[],
-  learnerRules: Record<string, SecurityGroupRuleFixture[]> = {}
-): ValidatorNetworkConfig {
-  const nodeSubnetMap: Record<string, string> = {};
-  const nodeSecurityGroups: Record<string, SecurityGroupRuleFixture[]> = {};
-  for (const nodeId of nodeIds) {
-    nodeSubnetMap[nodeId] = 'subnet-public-1';
-    nodeSecurityGroups[nodeId] = [...(learnerRules[nodeId] ?? []), ...makeDefaultSgRules()];
-  }
-  return { nodeSubnetMap, nodeSecurityGroups };
-}
+/** Network-config fixtures live with the config shape, in the network module. */
+export { makeDefaultSgRules, makeNetworkConfig } from '../../../network/testSupport';

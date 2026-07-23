@@ -32,4 +32,22 @@ describe('VirtualNetworkMapper', () => {
     expect(endpoints[0].containerName).toBe('akal-lab-p-123-node123');
     expect(endpoints[1].containerName).toBe('akal-lab-p-123-node_nametest');
   });
+
+  it('should return no endpoints for a project with no placed node', () => {
+    expect(VirtualNetworkMapper.mapNodesToEndpoints('p-123', [])).toEqual([]);
+  });
+
+  it('should leave an already-safe node id untouched', () => {
+    const [endpoint] = VirtualNetworkMapper.mapNodesToEndpoints('p-123', ['web_db-1']);
+    expect(endpoint!.containerName).toBe('akal-lab-p-123-web_db-1');
+  });
+
+  it('should not disambiguate two node ids that sanitize to the same name', () => {
+    // Documented behaviour: sanitization can collide. Node ids are generated
+    // (uuid-like), so this never happens in practice — but nothing guards it.
+    const endpoints = VirtualNetworkMapper.mapNodesToEndpoints('p-123', ['node.1', 'node/1']);
+
+    expect(endpoints[0]!.containerName).toBe(endpoints[1]!.containerName);
+    expect(endpoints[0]!.nodeId).not.toBe(endpoints[1]!.nodeId);
+  });
 });
