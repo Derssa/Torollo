@@ -1,6 +1,6 @@
 import { ContainerInfo } from '../../../infrastructure/docker/providers/containerProvider';
 import { DockerErrorCode } from '../../../infrastructure/docker/dockerErrors';
-import { SemanticRule } from '../../network/models/networkPolicy';
+import { NetworkConfigInput, SemanticRule } from '../../network/models/networkPolicy';
 import { InterSubnetStatus } from '../../network/services/interSubnetHealth';
 
 export type ValidatorStatus = 'pass' | 'fail' | 'error';
@@ -45,17 +45,15 @@ export interface ValidatorOutcome {
 }
 
 /**
- * Local view of a project's network config — only the fields validators read.
- * The canonical shape lives in the frontend package (`shared/types/network.ts`);
- * the backend never imports it (package boundary), so this mirrors just the
- * subset needed here. `ProjectService.getNetworkConfig` remains untyped at
- * its own boundary — this interface is where the engine starts trusting it.
+ * Local view of a project's network config — the connectivity fields the
+ * network module already types, plus the one only validators read. The
+ * canonical shape lives in the frontend package (`shared/types/network.ts`);
+ * the backend never imports it (package boundary).
+ * `ProjectService.getNetworkConfig` remains untyped at its own boundary —
+ * this interface is where the engine starts trusting it.
  */
-export interface ValidatorNetworkConfig {
-  nodeSubnetMap?: Record<string, string>;
-  nodeSecurityGroups?: Record<string, unknown[]>;
+export interface ValidatorNetworkConfig extends NetworkConfigInput {
   loadBalancerTargets?: Record<string, string[]>;
-  asgs?: Record<string, { parentId: string }>;
 }
 
 /** Per-run context shared by every validator of a step. */

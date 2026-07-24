@@ -1,5 +1,5 @@
 import crypto from 'crypto';
-import { SemanticRule } from '../models/networkPolicy';
+import { NetworkConfigInput, SemanticRule } from '../models/networkPolicy';
 import { EnforcementPlanner } from '../planner/enforcementPlanner';
 import { VirtualNetworkMapper } from '../mapper/virtualNetworkMapper';
 import { DockerNetworkProvider } from '../providers/dockerNetworkProvider';
@@ -16,7 +16,7 @@ export class NetworkService {
     console.log(`[NetworkService] Cleared policy hash cache for project: ${projectId}`);
   }
 
-  public static applyPolicy(projectId: string, config: any): Promise<void> {
+  public static applyPolicy(projectId: string, config: NetworkConfigInput): Promise<void> {
     const currentQueue = this.taskQueues[projectId] || Promise.resolve();
 
     const nextTask = currentQueue.then(async () => {
@@ -57,7 +57,7 @@ export class NetworkService {
     return nextTask;
   }
 
-  public static async cleanupProjectNetwork(projectId: string, config: any): Promise<void> {
+  public static async cleanupProjectNetwork(projectId: string, config: NetworkConfigInput): Promise<void> {
     const nodeIds = Object.keys(config.nodeSubnetMap || {});
     const endpoints = VirtualNetworkMapper.mapNodesToEndpoints(projectId, nodeIds);
     await this.provider.cleanupProjectPolicies(projectId, endpoints);
@@ -70,9 +70,10 @@ export class NetworkService {
    * X reach Y" — reused by the learning engine's `edge_exists`/`port_denied`
    * validators so they never re-derive connectivity from raw security groups.
    */
-  public static async computeSemanticRules(projectId: string, config: any): Promise<SemanticRule[]> {
+  public static async computeSemanticRules(projectId: string, config: NetworkConfigInput): Promise<SemanticRule[]> {
     const rules: SemanticRule[] = [];
-    const nodeIds = Object.keys(config.nodeSubnetMap || {});
+    const nodeSubnetMap = config.nodeSubnetMap || {};
+    const nodeIds = Object.keys(nodeSubnetMap);
     const sgs = config.nodeSecurityGroups || {};
 
     // Gather all active ASG replica containers and match them to their ASG configurations
@@ -154,7 +155,7 @@ export class NetworkService {
           } else if (sgRule.source.startsWith('subnet-')) {
             // Outbound to subnet
             for (const dstNodeId of nodeIds) {
-              if (config.nodeSubnetMap[dstNodeId] === sgRule.source) {
+              if (nodeSubnetMap[dstNodeId] === sgRule.source) {
                 addOutboundRule(dstNodeId);
               }
             }
@@ -208,7 +209,7 @@ export class NetworkService {
           } else if (sgRule.source.startsWith('subnet-')) {
             // Inbound from subnet
             for (const dstNodeId of nodeIds) {
-              if (config.nodeSubnetMap[dstNodeId] === sgRule.source) {
+              if (nodeSubnetMap[dstNodeId] === sgRule.source) {
                 addInboundRule(dstNodeId);
               }
             }
