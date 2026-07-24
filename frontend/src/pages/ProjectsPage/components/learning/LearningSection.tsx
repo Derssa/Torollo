@@ -12,10 +12,11 @@ import Skeleton from '../../../../shared/components/Skeleton';
 import type { ProgressEntrySummary, RoadmapSummary } from '../../../../shared/types/roadmap';
 
 interface LearningSectionProps {
-  onStartRoadmap: (summary: RoadmapSummary, progress?: ProgressEntrySummary) => void;
+  /** Opens the roadmap's briefing page — launching happens from there. */
+  onOpenRoadmap: (summary: RoadmapSummary, progress?: ProgressEntrySummary) => void;
 }
 
-export default function LearningSection({ onStartRoadmap }: LearningSectionProps) {
+export default function LearningSection({ onOpenRoadmap }: LearningSectionProps) {
   const { t, i18n } = useTranslation();
   const { summaries, loading, error, fetchRoadmaps } = useRoadmaps();
   const { byRoadmapId, fetchProgress } = useLearningProgressSummaries();
@@ -55,7 +56,7 @@ export default function LearningSection({ onStartRoadmap }: LearningSectionProps
         <div style={styles.main}>
           {heroTarget && (
             <LearningHero
-              onStart={() => onStartRoadmap(heroTarget, byRoadmapId[heroTarget.id])}
+              onStart={() => onOpenRoadmap(heroTarget, byRoadmapId[heroTarget.id])}
               onBrowse={browseToRoadmaps}
             />
           )}
@@ -84,7 +85,7 @@ export default function LearningSection({ onStartRoadmap }: LearningSectionProps
                     key={`${summary.id}-${summary.language}`}
                     summary={summary}
                     progress={byRoadmapId[summary.id]}
-                    onOpen={() => onStartRoadmap(summary, byRoadmapId[summary.id])}
+                    onOpen={() => onOpenRoadmap(summary, byRoadmapId[summary.id])}
                   />
                 ))}
               </div>

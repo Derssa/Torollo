@@ -64,7 +64,7 @@
       "subtitle": "Guided roadmaps, checked against real containers",
       "heroTitle": "Learn system design by running real infrastructure.",
       "heroBody": "Follow a roadmap, build the system on the canvas, and validate every step against your actual Docker containers.",
-      "startRoadmap": "Start a roadmap",
+      "startRoadmap": "View the roadmap",
       "browseRoadmaps": "Browse all roadmaps",
       "roadmapsTitle": "Roadmaps",
       "continueLabel": "Continue · step {{current}} of {{total}}",
@@ -80,6 +80,100 @@
       "pickProjectTitle": "Choose a project",
       "pickProjectBody": "\"{{roadmap}}\" runs against one project’s containers. Pick where to work on it.",
       "pickProjectNew": "New project"
+    },
+    "detail": {
+      "breadcrumbLearning": "Learning",
+      "breadcrumbRoadmaps": "Roadmaps",
+      "loading": "Loading roadmap",
+      "loadError": "Could not load this roadmap. Is the backend running?",
+      "retry": "Retry",
+      "back": "All roadmaps",
+      "stat": {
+        "difficulty": "Difficulty",
+        "steps": "Steps",
+        "duration": "Est. duration",
+        "skills": "Skills you'll practise"
+      },
+      "skill": {
+        "containers": "Containers",
+        "sql": "SQL",
+        "redis": "Redis",
+        "mongo": "MongoDB",
+        "networking": "Networking",
+        "securityGroups": "Security groups",
+        "loadBalancing": "Load balancing",
+        "autoScaling": "Auto-scaling",
+        "httpServices": "HTTP services"
+      },
+      "build": {
+        "title": "What you'll build",
+        "subtitle": "The nodes and connections this roadmap checks on your machine.",
+        "linksTitle": "Connections",
+        "allowed": "must be reachable",
+        "denied": "must be blocked",
+        "anyPort": "any port"
+      },
+      "role": {
+        "postgres": "PostgreSQL",
+        "redis": "Redis",
+        "mongo": "MongoDB",
+        "loadBalancer": "Load balancer",
+        "autoScaling": "Auto-scaling group",
+        "httpService": "HTTP service",
+        "container": "Container"
+      },
+      "outline": {
+        "title": "Step outline",
+        "subtitle": "Follow these steps to complete the roadmap.",
+        "passed": "Passed",
+        "current": "You are here"
+      },
+      "verify": {
+        "title": "How Torollo verifies this",
+        "liveTitle": "Live checks",
+        "liveBody": "Every check runs against the containers on your machine, as you build.",
+        "receiptsTitle": "Receipts",
+        "receiptsBody": "Each check shows what it looked at and what it observed.",
+        "commandsTitle": "Real commands",
+        "commandsBody": "The same tools you would use in production — psql, redis-cli, curl."
+      },
+      "check": {
+        "containerRunning": "check: container \"{{node}}\" is running",
+        "tableExists": "check: table \"{{table}}\" exists in \"{{node}}\"",
+        "redisKey": "check: key \"{{redisKey}}\" exists in \"{{node}}\"",
+        "mongoCollection": "check: collection \"{{collection}}\" exists in \"{{node}}\"",
+        "edgeAllowed": "check: {{source}} → {{target}} is reachable",
+        "edgeAllowedPort": "check: {{source}} → {{target}} is reachable on :{{port}}",
+        "portDenied": "check: {{source}} → {{target}} is blocked on :{{port}}",
+        "lbUpstreams": "check: \"{{node}}\" balances at least {{min}} upstreams",
+        "asgReplicas": "check: \"{{node}}\" runs exactly {{count}} replicas",
+        "httpContains": "check: GET {{path}} on \"{{node}}\" contains \"{{expectedText}}\""
+      },
+      "receipt": {
+        "sampleLabel": "Sample validation receipt",
+        "lastRunLabel": "Your last run · {{project}}",
+        "stepsPassing": "{{passed}} of {{total}} steps passing",
+        "lastChecked": "last checked: {{date}}",
+        "nextStep": "next: \"{{title}}\"",
+        "allPassing": "every step passing — roadmap complete"
+      },
+      "prerequisites": {
+        "title": "Before you start"
+      },
+      "launch": {
+        "start": "Launch lab",
+        "startCaption": "Spin up your environment and begin.",
+        "continue": "Continue · step {{current}} of {{total}}",
+        "continueCaption": "Resumes in \"{{project}}\".",
+        "restart": "Restart roadmap",
+        "restartTitle": "Restart roadmap",
+        "restartMessage": "This clears your progress on \"{{title}}\" in \"{{project}}\". Your containers are left untouched.",
+        "restartConfirm": "Restart roadmap",
+        "restartError": "Could not clear the progress. Nothing was changed — try again.",
+        "dockerOk": "Docker connected",
+        "dockerDown": "Docker isn't running — start Docker to launch containers.",
+        "dockerRetry": "Check again"
+      }
     }
   },
   "projects": {

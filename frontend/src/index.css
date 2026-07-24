@@ -24,6 +24,16 @@
 
   --bg-subtle: #F9FAFB;
 
+  /* node identities — decorative only, never UI chrome (DESIGN §3.1).
+     Same hues the canvas node cards use, so a node keeps one identity
+     everywhere it is drawn. */
+  --node-postgres: #64748B;
+  --node-redis: #DC2626;
+  --node-mongo: #475569;
+  --node-load-balancer: #EF4444;
+  --node-auto-scaling: #EC4899;
+  --node-http: #3B82F6;
+
   /* dark navigation rail (home shell chrome) */
   --bg-rail: #0F172A;
   --rail-text: #F8FAFC;

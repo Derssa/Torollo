@@ -64,7 +64,7 @@
       "subtitle": "Des parcours guidés, vérifiés sur de vrais conteneurs",
       "heroTitle": "Apprenez le system design en exécutant une vraie infrastructure.",
       "heroBody": "Suivez un parcours, construisez le système sur le canevas et validez chaque étape sur vos vrais conteneurs Docker.",
-      "startRoadmap": "Commencer un parcours",
+      "startRoadmap": "Voir le parcours",
       "browseRoadmaps": "Parcourir tous les parcours",
       "roadmapsTitle": "Parcours",
       "continueLabel": "Continuer · étape {{current}} sur {{total}}",
@@ -80,6 +80,100 @@
       "pickProjectTitle": "Choisir un projet",
       "pickProjectBody": "« {{roadmap}} » s'exécute sur les conteneurs d'un projet. Choisissez où travailler.",
       "pickProjectNew": "Nouveau projet"
+    },
+    "detail": {
+      "breadcrumbLearning": "Apprentissage",
+      "breadcrumbRoadmaps": "Parcours",
+      "loading": "Chargement du parcours",
+      "loadError": "Impossible de charger ce parcours. Le backend est-il démarré ?",
+      "retry": "Réessayer",
+      "back": "Tous les parcours",
+      "stat": {
+        "difficulty": "Difficulté",
+        "steps": "Étapes",
+        "duration": "Durée estimée",
+        "skills": "Ce que vous pratiquez"
+      },
+      "skill": {
+        "containers": "Conteneurs",
+        "sql": "SQL",
+        "redis": "Redis",
+        "mongo": "MongoDB",
+        "networking": "Réseau",
+        "securityGroups": "Groupes de sécurité",
+        "loadBalancing": "Répartition de charge",
+        "autoScaling": "Mise à l'échelle",
+        "httpServices": "Services HTTP"
+      },
+      "build": {
+        "title": "Ce que vous allez construire",
+        "subtitle": "Les nœuds et les connexions que ce parcours vérifie sur votre machine.",
+        "linksTitle": "Connexions",
+        "allowed": "doit être joignable",
+        "denied": "doit être bloqué",
+        "anyPort": "n'importe quel port"
+      },
+      "role": {
+        "postgres": "PostgreSQL",
+        "redis": "Redis",
+        "mongo": "MongoDB",
+        "loadBalancer": "Répartiteur de charge",
+        "autoScaling": "Groupe de mise à l'échelle",
+        "httpService": "Service HTTP",
+        "container": "Conteneur"
+      },
+      "outline": {
+        "title": "Les étapes",
+        "subtitle": "Suivez ces étapes pour terminer le parcours.",
+        "passed": "Validée",
+        "current": "Vous êtes ici"
+      },
+      "verify": {
+        "title": "Comment Torollo vérifie",
+        "liveTitle": "Vérifications réelles",
+        "liveBody": "Chaque vérification s'exécute sur les conteneurs de votre machine, au fil de la construction.",
+        "receiptsTitle": "Reçus",
+        "receiptsBody": "Chaque vérification montre ce qu'elle a regardé et ce qu'elle a observé.",
+        "commandsTitle": "Vraies commandes",
+        "commandsBody": "Les outils que vous utiliseriez en production — psql, redis-cli, curl."
+      },
+      "check": {
+        "containerRunning": "vérif : le conteneur \"{{node}}\" tourne",
+        "tableExists": "vérif : la table \"{{table}}\" existe dans \"{{node}}\"",
+        "redisKey": "vérif : la clé \"{{redisKey}}\" existe dans \"{{node}}\"",
+        "mongoCollection": "vérif : la collection \"{{collection}}\" existe dans \"{{node}}\"",
+        "edgeAllowed": "vérif : {{source}} → {{target}} est joignable",
+        "edgeAllowedPort": "vérif : {{source}} → {{target}} est joignable sur :{{port}}",
+        "portDenied": "vérif : {{source}} → {{target}} est bloqué sur :{{port}}",
+        "lbUpstreams": "vérif : \"{{node}}\" répartit vers au moins {{min}} cibles",
+        "asgReplicas": "vérif : \"{{node}}\" fait tourner exactement {{count}} répliques",
+        "httpContains": "vérif : GET {{path}} sur \"{{node}}\" contient \"{{expectedText}}\""
+      },
+      "receipt": {
+        "sampleLabel": "Exemple de reçu de validation",
+        "lastRunLabel": "Votre dernière session · {{project}}",
+        "stepsPassing": "{{passed}} étapes validées sur {{total}}",
+        "lastChecked": "dernière vérification : {{date}}",
+        "nextStep": "suite : \"{{title}}\"",
+        "allPassing": "toutes les étapes validées — parcours terminé"
+      },
+      "prerequisites": {
+        "title": "Avant de commencer"
+      },
+      "launch": {
+        "start": "Lancer le lab",
+        "startCaption": "Démarrez votre environnement et commencez.",
+        "continue": "Continuer · étape {{current}} sur {{total}}",
+        "continueCaption": "Reprend dans \"{{project}}\".",
+        "restart": "Recommencer le parcours",
+        "restartTitle": "Recommencer le parcours",
+        "restartMessage": "Cela efface votre progression sur \"{{title}}\" dans \"{{project}}\". Vos conteneurs ne sont pas touchés.",
+        "restartConfirm": "Recommencer le parcours",
+        "restartError": "Impossible d'effacer la progression. Rien n'a été modifié — réessayez.",
+        "dockerOk": "Docker connecté",
+        "dockerDown": "Docker n'est pas démarré — démarrez Docker pour lancer les conteneurs.",
+        "dockerRetry": "Vérifier à nouveau"
+      }
     }
   },
   "projects": {

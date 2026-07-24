@@ -44,6 +44,31 @@ const progressEntries: ProgressEntrySummary[] = [
   { projectId: 'p1', roadmapId: 'cache-aside-redis', updatedAt: '2026-07-20T10:00:00.000Z', completedSteps: 3 },
 ];
 
+/** What GET /api/learning/roadmaps/:id returns for the briefing page. */
+const cacheAsideRoadmap = {
+  schemaVersion: 1,
+  id: 'cache-aside-redis',
+  title: 'Cache-aside with Redis',
+  description: 'Add a Redis cache-aside layer.',
+  language: 'en',
+  difficulty: 'intermediate',
+  estimatedMinutes: 30,
+  steps: [
+    {
+      id: 'reopen-the-store',
+      title: 'Reopen the store',
+      instruction: 'Start the web node.',
+      validators: [{ type: 'container_running', params: { node: 'web' } }],
+    },
+    {
+      id: 'add-the-cache',
+      title: 'Enter Redis',
+      instruction: 'Add a Redis node.',
+      validators: [{ type: 'redis_key_exists', params: { node: 'cache', key: 'cache:books' } }],
+    },
+  ],
+};
+
 function jsonResponse(ok: boolean, body: unknown): Response {
   return { ok, json: () => Promise.resolve(body) } as Response;
 }
@@ -56,11 +81,26 @@ function buildFetchMock(handlers: {
   projects?: () => Promise<Response> | Response;
   createProject?: (body: unknown) => Response;
   roadmaps?: () => Response;
+  roadmapDetail?: () => Response;
   progress?: () => Response;
+  stepProgress?: () => Response;
 } = {}) {
   return vi.fn((url: string, init?: RequestInit) => {
+    if (url.includes('/health')) {
+      return Promise.resolve(jsonResponse(true, { status: 'ok', checks: { docker: { status: 'ok' } } }));
+    }
+    // One roadmap (briefing page) before the catalogue — both share a prefix.
+    if (url.includes('/api/learning/roadmaps/')) {
+      return Promise.resolve(handlers.roadmapDetail?.() ?? jsonResponse(true, cacheAsideRoadmap));
+    }
     if (url.includes('/api/learning/roadmaps')) {
       return Promise.resolve(handlers.roadmaps?.() ?? jsonResponse(true, summaries));
+    }
+    if (url.includes('/api/learning/progress/')) {
+      return Promise.resolve(
+        handlers.stepProgress?.() ??
+          jsonResponse(true, { steps: { 'reopen-the-store': { passed: true, attempts: 1, revealedHints: 0 } } })
+      );
     }
     if (url.includes('/api/learning/progress')) {
       return Promise.resolve(handlers.progress?.() ?? jsonResponse(true, { entries: progressEntries }));
@@ -82,6 +122,12 @@ function buildFetchMock(handlers: {
 /** The learning view lives behind the side rail's Learning item. */
 function goToLearning() {
   fireEvent.click(screen.getByRole('button', { name: 'Learning' }));
+}
+
+/** A roadmap card opens the briefing page; launching happens from there. */
+async function openBriefing(title: string) {
+  fireEvent.click(await screen.findByText(title));
+  return screen.findByRole('button', { name: /Launch lab|Continue · step/ });
 }
 
 describe('ProjectsPage', () => {
@@ -180,13 +226,27 @@ describe('ProjectsPage', () => {
     ).toBeTruthy();
   });
 
+  it('opens the briefing page from a roadmap card, with a breadcrumb back to the catalogue', async () => {
+    vi.stubGlobal('fetch', buildFetchMock());
+    render(<ProjectsPage onSelectProject={vi.fn()} />);
+    goToLearning();
+
+    await openBriefing('Cache-aside with Redis');
+    // Real content of the roadmap file, not the catalogue summary.
+    expect(screen.getByText('Reopen the store')).toBeInTheDocument();
+    expect(screen.getByText('Enter Redis')).toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole('button', { name: 'Roadmaps' }));
+    expect(await screen.findByText('Learn system design by running real infrastructure.')).toBeInTheDocument();
+  });
+
   it('deep-links a started roadmap straight into the project it was played in', async () => {
     vi.stubGlobal('fetch', buildFetchMock());
     const onSelectProject = vi.fn();
     render(<ProjectsPage onSelectProject={onSelectProject} />);
     goToLearning();
 
-    fireEvent.click(await screen.findByText('Cache-aside with Redis'));
+    fireEvent.click(await openBriefing('Cache-aside with Redis'));
 
     expect(onSelectProject).toHaveBeenCalledWith('p1', 'Lab one', {
       roadmap: { id: 'cache-aside-redis', language: 'en' },
@@ -199,7 +259,7 @@ describe('ProjectsPage', () => {
     render(<ProjectsPage onSelectProject={onSelectProject} />);
     goToLearning();
 
-    fireEvent.click(await screen.findByText('Deploy a resilient three-tier app'));
+    fireEvent.click(await openBriefing('Deploy a resilient three-tier app'));
 
     const modalTitle = await screen.findByText('Choose a project');
     const modalPanel = modalTitle.parentElement as HTMLElement;
@@ -220,7 +280,7 @@ describe('ProjectsPage', () => {
     render(<ProjectsPage onSelectProject={onSelectProject} />);
     goToLearning();
 
-    fireEvent.click(await screen.findByText('Cache-aside with Redis'));
+    fireEvent.click(await openBriefing('Cache-aside with Redis'));
 
     await waitFor(() => {
       expect(onSelectProject).toHaveBeenCalledWith('new1', 'My first lab', {

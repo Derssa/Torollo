@@ -9,6 +9,8 @@ import ProjectsSection from './components/ProjectsSection';
 import type { HomeView } from './components/SideRail';
 import ProjectPickerModal from './components/ProjectPickerModal';
 import LearningSection from './components/learning/LearningSection';
+import RoadmapDetailPage from './components/learning/detail/RoadmapDetailPage';
+import { filterByUiLanguage } from '../../features/learning/roadmapLanguage';
 import { API_BASE } from '../../shared/types';
 import type { LearningIntent, Project } from '../../shared/types';
 import type { ProgressEntrySummary, RoadmapSummary } from '../../shared/types/roadmap';
@@ -17,10 +19,20 @@ interface ProjectsPageProps {
   onSelectProject: (id: string, name: string, intent?: LearningIntent) => void;
 }
 
+/**
+ * Where the home shell is. The roadmap briefing is a sub-page of Learning:
+ * the rail stays on Learning while it is open, and the header shows a
+ * breadcrumb back to the catalogue.
+ */
+type HomeRoute =
+  | { kind: 'projects' }
+  | { kind: 'learning' }
+  | { kind: 'roadmap'; summary: RoadmapSummary; progress?: ProgressEntrySummary };
+
 export default function ProjectsPage({ onSelectProject }: ProjectsPageProps) {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   // Which home view the side rail is on; session-only, Projects first.
-  const [view, setView] = useState<HomeView>('projects');
+  const [route, setRoute] = useState<HomeRoute>({ kind: 'projects' });
   const [projects, setProjects] = useState<Project[]>([]);
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState(false);
@@ -61,6 +73,35 @@ export default function ProjectsPage({ onSelectProject }: ProjectsPageProps) {
   useEffect(() => {
     fetchProjects();
   }, []);
+
+  // A roadmap file holds one language, so switching the UI language must swap
+  // the open briefing for its translation — or leave it when there is none.
+  useEffect(() => {
+    if (route.kind !== 'roadmap' || route.summary.language === i18n.language) return;
+    let cancelled = false;
+    (async () => {
+      try {
+        const res = await fetch(`${API_BASE}/api/learning/roadmaps`);
+        const data = await res.json();
+        if (cancelled || !res.ok || !Array.isArray(data)) return;
+        const translated = filterByUiLanguage(data as RoadmapSummary[], i18n.language).find(
+          summary => summary.id === route.summary.id
+        );
+        setRoute(current =>
+          current.kind === 'roadmap' && current.summary.id === route.summary.id
+            ? translated
+              ? { ...current, summary: translated }
+              : { kind: 'learning' }
+            : current
+        );
+      } catch (err) {
+        console.error('Failed to resolve the roadmap translation:', err);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [route, i18n.language]);
 
   const handleCreateProject = async (name: string) => {
     const res = await fetch(`${API_BASE}/api/projects`, {
@@ -144,15 +185,31 @@ export default function ProjectsPage({ onSelectProject }: ProjectsPageProps) {
     setPickerTarget(summary);
   };
 
+  const goToLearning = () => setRoute({ kind: 'learning' });
+
   return (
     <div style={styles.shell}>
-      <SideRail view={view} onNavigate={setView} />
+      <SideRail
+        view={route.kind === 'projects' ? 'projects' : 'learning'}
+        onNavigate={(view: HomeView) => setRoute({ kind: view })}
+      />
 
       <div style={styles.content}>
         <div style={styles.container}>
-          <PageHeader onNewProject={() => setShowCreateModal(true)} />
+          <PageHeader
+            onNewProject={() => setShowCreateModal(true)}
+            breadcrumb={
+              route.kind === 'roadmap'
+                ? [
+                    { label: t('learning.detail.breadcrumbLearning'), onClick: goToLearning },
+                    { label: t('learning.detail.breadcrumbRoadmaps'), onClick: goToLearning },
+                    { label: route.summary.title },
+                  ]
+                : undefined
+            }
+          />
 
-          {view === 'projects' ? (
+          {route.kind === 'projects' ? (
             <>
               {storeRecovered && (
                 <div style={styles.noticeBox}>
@@ -180,12 +237,26 @@ export default function ProjectsPage({ onSelectProject }: ProjectsPageProps) {
                 onSelect={onSelectProject}
                 onDelete={(project) => setDeleteTarget(project)}
                 deletingIds={deletingIds}
-                onStartLearning={() => setView('learning')}
+                onStartLearning={goToLearning}
                 onStartScratch={() => setShowCreateModal(true)}
               />
             </>
+          ) : route.kind === 'learning' ? (
+            <LearningSection
+              onOpenRoadmap={(summary, progress) => setRoute({ kind: 'roadmap', summary, progress })}
+            />
           ) : (
-            <LearningSection onStartRoadmap={startRoadmap} />
+            <RoadmapDetailPage
+              summary={route.summary}
+              progress={route.progress}
+              projectName={projects.find(p => p.id === route.progress?.projectId)?.name}
+              onLaunch={() => startRoadmap(route.summary, route.progress)}
+              onProgressCleared={() =>
+                setRoute(current =>
+                  current.kind === 'roadmap' ? { ...current, progress: undefined } : current
+                )
+              }
+            />
           )}
         </div>
       </div>
