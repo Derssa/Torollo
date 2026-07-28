@@ -72,7 +72,7 @@ export default function VerificationPanel({ roadmap, lastRun }: VerificationPane
         {POINTS.map(({ Icon, titleKey, bodyKey }) => (
           <div key={titleKey} style={styles.point}>
             <span style={styles.pointIcon} aria-hidden>
-              <Icon size={14} color="var(--color-accent)" />
+              <Icon size={14} color="var(--color-text-secondary)" />
             </span>
             <div>
               <div style={styles.pointTitle}>{t(titleKey)}</div>
@@ -84,7 +84,6 @@ export default function VerificationPanel({ roadmap, lastRun }: VerificationPane
 
       {lines.length > 0 && (
         <Receipt
-          tone={lastRun ? 'accent' : 'success'}
           label={
             lastRun
               ? t('learning.detail.receipt.lastRunLabel', { project: lastRun.projectName })
@@ -107,7 +106,6 @@ const styles: Record<string, React.CSSProperties> = {
     background: 'var(--bg-surface-solid)',
     border: '1px solid var(--border-color)',
     borderRadius: 'var(--radius-lg)',
-    boxShadow: 'var(--shadow-sm)',
   },
   title: {
     fontSize: 'var(--text-lg)',
@@ -133,7 +131,8 @@ const styles: Record<string, React.CSSProperties> = {
     height: '26px',
     flexShrink: 0,
     borderRadius: 'var(--radius-sm)',
-    background: 'var(--color-accent-glow)',
+    background: 'var(--bg-subtle)',
+    border: '1px solid var(--border-color)',
   },
   pointTitle: {
     fontSize: 'var(--text-md)',

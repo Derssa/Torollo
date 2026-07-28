@@ -17,6 +17,28 @@ describe('Receipt', () => {
     expect(screen.getByText('→ "ok"')).toBeTruthy();
   });
 
+  it('renders structured checks with their observed values, verdict and footer', () => {
+    render(
+      <Receipt
+        label="Sample validation receipt"
+        verdict="Step passed"
+        context="cache-aside-redis · step 6 of 8"
+        checks={[
+          { label: 'container "cache" running', value: 'up 4m' },
+          { label: 'cache → db on 5432', value: 'DENY' },
+        ]}
+        footer="2 checks passed"
+      />
+    );
+
+    expect(screen.getByText('Step passed')).toBeTruthy();
+    expect(screen.getByText('cache-aside-redis · step 6 of 8')).toBeTruthy();
+    expect(screen.getByText('container "cache" running')).toBeTruthy();
+    expect(screen.getByText('up 4m')).toBeTruthy();
+    expect(screen.getByText('DENY')).toBeTruthy();
+    expect(screen.getByText('2 checks passed')).toBeTruthy();
+  });
+
   it('shows no copy button without copyText', () => {
     render(<Receipt lines={['checked: something']} />);
 
