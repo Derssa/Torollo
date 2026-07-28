@@ -22,7 +22,7 @@ export default function ProjectCard({ project, onSelect, onDelete, isDeleting }:
         disabled={isDeleting}
       >
         <div style={styles.cardIcon}>
-          <Folder size={20} color="var(--color-accent)" />
+          <Folder size={18} color="var(--color-text-secondary)" />
         </div>
         <div style={styles.cardBody}>
           <h2 style={styles.projectName}>{project.name}</h2>
@@ -68,7 +68,7 @@ const styles: Record<string, React.CSSProperties> = {
     padding: 'var(--space-6)',
     borderRadius: 'var(--radius-lg)',
     cursor: 'pointer',
-    transition: 'transform 0.2s ease, box-shadow 0.2s ease, border-color 0.2s',
+    transition: 'border-color 0.2s ease',
     display: 'flex',
     flexDirection: 'column',
     alignItems: 'stretch',
@@ -77,14 +77,14 @@ const styles: Record<string, React.CSSProperties> = {
     justifyContent: 'space-between',
     backgroundColor: 'var(--bg-surface-solid)',
     border: '1px solid var(--border-color)',
-    boxShadow: 'var(--shadow-sm)',
     fontFamily: 'var(--font-sans)',
   },
   cardIcon: {
-    width: '40px',
-    height: '40px',
+    width: '34px',
+    height: '34px',
     borderRadius: 'var(--radius-md)',
-    background: 'var(--color-accent-glow)',
+    background: 'var(--bg-subtle)',
+    border: '1px solid var(--border-color)',
     display: 'flex',
     alignItems: 'center',
     justifyContent: 'center',

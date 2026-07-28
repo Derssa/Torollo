@@ -141,7 +141,6 @@ const styles: Record<string, React.CSSProperties> = {
     borderRadius: '50%',
     background: 'var(--bg-surface-solid)',
     border: '1px solid var(--border-color)',
-    boxShadow: 'var(--shadow-sm)',
     display: 'flex',
     alignItems: 'center',
     justifyContent: 'center',
@@ -168,14 +167,11 @@ const styles: Record<string, React.CSSProperties> = {
     color: 'var(--color-text-muted)',
     margin: '2px 0 0 0',
   },
+  // The version is a footnote, not a status — plain muted text, no pill.
   badge: {
     fontSize: 'var(--text-xs)',
-    fontWeight: 600,
-    backgroundColor: 'var(--color-accent-glow)',
-    color: 'var(--color-accent)',
-    padding: '2px var(--space-2)',
-    borderRadius: 'var(--radius-sm)',
-    border: '1px solid color-mix(in srgb, var(--color-accent) 20%, transparent)',
+    fontWeight: 500,
+    color: 'var(--color-text-muted)',
   },
   actions: {
     display: 'flex',

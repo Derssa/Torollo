@@ -16,20 +16,13 @@ export default function RoadmapShowcaseCard({ summary, progress, onOpen }: Roadm
   const { t } = useTranslation();
   const started = (progress?.completedSteps ?? 0) > 0;
   const completed = started && (progress as ProgressEntrySummary).completedSteps >= summary.stepCount;
-  const { Icon, color } = roadmapVisual(summary.id);
+  const { Icon } = roadmapVisual(summary.id);
 
   return (
     <button onClick={onOpen} style={styles.card}>
       <div style={styles.header}>
-        <span
-          style={{
-            ...styles.iconTile,
-            color,
-            background: `color-mix(in srgb, ${color} 12%, transparent)`,
-          }}
-          aria-hidden
-        >
-          <Icon size={20} />
+        <span style={styles.iconTile} aria-hidden>
+          <Icon size={18} />
         </span>
         <span style={styles.title}>{summary.title}</span>
       </div>
@@ -90,11 +83,10 @@ const styles: Record<string, React.CSSProperties> = {
     border: '1px solid var(--border-color)',
     borderRadius: 'var(--radius-lg)',
     background: 'var(--bg-surface-solid)',
-    boxShadow: 'var(--shadow-sm)',
     cursor: 'pointer',
     textAlign: 'left',
     fontFamily: 'var(--font-sans)',
-    transition: 'border-color 0.15s ease, box-shadow 0.15s ease',
+    transition: 'border-color 0.15s ease',
   },
   header: {
     display: 'flex',
@@ -105,10 +97,13 @@ const styles: Record<string, React.CSSProperties> = {
     display: 'inline-flex',
     alignItems: 'center',
     justifyContent: 'center',
-    width: 40,
-    height: 40,
+    width: 34,
+    height: 34,
     flexShrink: 0,
     borderRadius: 'var(--radius-md)',
+    background: 'var(--bg-subtle)',
+    border: '1px solid var(--border-color)',
+    color: 'var(--color-text-secondary)',
   },
   title: {
     fontSize: 'var(--text-md)',

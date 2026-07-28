@@ -1,4 +1,3 @@
-import DifficultyChip from '../../../../../features/learning/components/DifficultyChip';
 import { roadmapVisual } from '../roadmapVisual';
 import type { RoadmapSummary } from '../../../../../shared/types/roadmap';
 
@@ -8,24 +7,19 @@ interface RoadmapDetailHeroProps {
   description: string;
 }
 
-/** Identity block of the briefing page: icon, difficulty, title, pitch. */
+/**
+ * Identity block of the briefing page: icon, title, pitch. Difficulty is not
+ * repeated here — the stats strip right below states it once.
+ */
 export default function RoadmapDetailHero({ summary, description }: RoadmapDetailHeroProps) {
-  const { Icon, color } = roadmapVisual(summary.id);
+  const { Icon } = roadmapVisual(summary.id);
 
   return (
     <header style={styles.hero}>
-      <span
-        style={{ ...styles.iconTile, color, background: `color-mix(in srgb, ${color} 12%, transparent)` }}
-        aria-hidden
-      >
-        <Icon size={28} />
+      <span style={styles.iconTile} aria-hidden>
+        <Icon size={26} />
       </span>
       <div style={styles.copy}>
-        {summary.difficulty && (
-          <div>
-            <DifficultyChip difficulty={summary.difficulty} />
-          </div>
-        )}
         <h1 style={styles.title}>{summary.title}</h1>
         <p style={styles.description}>{description}</p>
       </div>
@@ -43,10 +37,13 @@ const styles: Record<string, React.CSSProperties> = {
     display: 'inline-flex',
     alignItems: 'center',
     justifyContent: 'center',
-    width: '56px',
-    height: '56px',
+    width: '52px',
+    height: '52px',
     flexShrink: 0,
-    borderRadius: 'var(--radius-lg)',
+    borderRadius: 'var(--radius-md)',
+    background: 'var(--bg-subtle)',
+    border: '1px solid var(--border-color)',
+    color: 'var(--color-text-secondary)',
   },
   copy: {
     display: 'flex',

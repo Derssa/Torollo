@@ -53,7 +53,6 @@ const styles: Record<string, React.CSSProperties> = {
     background: 'var(--bg-surface-solid)',
     border: '1px solid var(--border-color)',
     borderRadius: 'var(--radius-lg)',
-    boxShadow: 'var(--shadow-sm)',
   },
   title: {
     fontSize: 'var(--text-lg)',
@@ -81,8 +80,10 @@ const styles: Record<string, React.CSSProperties> = {
     padding: 'var(--space-2) var(--space-3)',
     borderRadius: 'var(--radius-md)',
   },
+  // The resume step is marked by a plain grey band plus its accent marker —
+  // enough to locate, without a tinted row shouting across the list.
   itemCurrent: {
-    background: 'var(--color-accent-glow)',
+    background: 'var(--bg-subtle)',
   },
   marker: {
     display: 'inline-flex',

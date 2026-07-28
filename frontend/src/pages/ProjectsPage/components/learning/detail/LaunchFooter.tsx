@@ -36,19 +36,21 @@ export default function LaunchFooter({
         <span style={styles.error}>{restartError || t('learning.detail.launch.restartError')}</span>
       )}
 
+      {/* Primary first: in this narrow column the two buttons wrap onto their
+          own rows, and the launch action must be the one on top. */}
       <div style={styles.actions}>
-        {onRestart && (
-          <Button size="lg" onClick={onRestart}>
-            <RotateCcw size={15} />
-            {t('learning.detail.launch.restart')}
-          </Button>
-        )}
         <Button variant="primary" size="lg" onClick={onLaunch}>
           <Play size={16} />
           {resume
             ? t('learning.detail.launch.continue', { current: resume.current, total: resume.total })
             : t('learning.detail.launch.start')}
         </Button>
+        {onRestart && (
+          <Button size="lg" onClick={onRestart}>
+            <RotateCcw size={15} />
+            {t('learning.detail.launch.restart')}
+          </Button>
+        )}
       </div>
 
       <p style={styles.caption}>

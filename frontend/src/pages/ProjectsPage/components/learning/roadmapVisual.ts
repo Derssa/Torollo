@@ -3,20 +3,19 @@ import type { LucideIcon } from 'lucide-react';
 
 export interface RoadmapVisual {
   Icon: LucideIcon;
-  /** Color token driving the icon tile tint — decorative, not semantic. */
-  color: string;
 }
 
 /**
- * Icon + accent per known roadmap for the showcase card's icon tile.
+ * Icon per known roadmap, for the showcase card and briefing tiles. Shape
+ * only — the tile is neutral, since a roadmap's hue never meant anything.
  * Community roadmaps (unknown ids) fall back to a generic visual.
  */
 const VISUALS: Record<string, RoadmapVisual> = {
-  'cache-aside-redis': { Icon: Database, color: 'var(--color-accent)' },
-  'resilient-three-tier': { Icon: Network, color: 'var(--color-warning)' },
+  'cache-aside-redis': { Icon: Database },
+  'resilient-three-tier': { Icon: Network },
 };
 
-const FALLBACK: RoadmapVisual = { Icon: Map, color: 'var(--color-accent)' };
+const FALLBACK: RoadmapVisual = { Icon: Map };
 
 export function roadmapVisual(roadmapId: string): RoadmapVisual {
   return VISUALS[roadmapId] ?? FALLBACK;

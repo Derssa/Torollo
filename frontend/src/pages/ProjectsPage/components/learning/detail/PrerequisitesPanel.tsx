@@ -34,7 +34,6 @@ const styles: Record<string, React.CSSProperties> = {
     background: 'var(--bg-surface-solid)',
     border: '1px solid var(--border-color)',
     borderRadius: 'var(--radius-lg)',
-    boxShadow: 'var(--shadow-sm)',
   },
   title: {
     fontSize: 'var(--text-lg)',

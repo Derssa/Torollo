@@ -1,6 +1,4 @@
 import { useTranslation } from 'react-i18next';
-import { BarChart3, Clock, GraduationCap, ListChecks } from 'lucide-react';
-import type { LucideIcon } from 'lucide-react';
 import type { SkillKey } from '../../../../../features/learning/roadmapTopology';
 import type { RoadmapDifficulty } from '../../../../../shared/types/roadmap';
 
@@ -11,16 +9,11 @@ interface RoadmapStatsStripProps {
   skills: SkillKey[];
 }
 
-const DIFFICULTY_COLORS: Record<RoadmapDifficulty, string> = {
-  beginner: 'var(--color-success)',
-  intermediate: 'var(--color-warning)',
-  advanced: 'var(--color-danger)',
-};
-
 /**
- * The four facts a learner weighs before committing, on one row. Optional
- * roadmap fields simply drop their cell — a roadmap that declares no duration
- * shows three cells, never an empty one.
+ * The four facts a learner weighs before committing, on one row — label above
+ * value, no icons or color coding, since none of the four is a status.
+ * Optional roadmap fields simply drop their cell: a roadmap that declares no
+ * duration shows three cells, never an empty one.
  */
 export default function RoadmapStatsStrip({
   difficulty,
@@ -33,27 +26,24 @@ export default function RoadmapStatsStrip({
   return (
     <div style={styles.strip}>
       {difficulty && (
-        <Cell icon={BarChart3} label={t('learning.detail.stat.difficulty')}>
-          <span style={styles.value}>
-            <span style={{ ...styles.dot, background: DIFFICULTY_COLORS[difficulty] }} aria-hidden />
-            {t(`learning.catalog.difficulty.${difficulty}`)}
-          </span>
+        <Cell label={t('learning.detail.stat.difficulty')}>
+          <span style={styles.value}>{t(`learning.catalog.difficulty.${difficulty}`)}</span>
         </Cell>
       )}
 
-      <Cell icon={ListChecks} label={t('learning.detail.stat.steps')}>
+      <Cell label={t('learning.detail.stat.steps')}>
         <span style={styles.value}>{stepCount}</span>
       </Cell>
 
       {estimatedMinutes != null && (
-        <Cell icon={Clock} label={t('learning.detail.stat.duration')}>
+        <Cell label={t('learning.detail.stat.duration')}>
           <span style={styles.value}>{t('learning.catalog.minutes', { count: estimatedMinutes })}</span>
         </Cell>
       )}
 
       {skills.length > 0 && (
         // Chips need more room than a one-line stat, or they wrap three deep.
-        <Cell icon={GraduationCap} label={t('learning.detail.stat.skills')} grow={2} basis="300px">
+        <Cell label={t('learning.detail.stat.skills')} grow={2} basis="300px">
           <span style={styles.skills}>
             {skills.map(skill => (
               <span key={skill} style={styles.skill}>
@@ -68,13 +58,11 @@ export default function RoadmapStatsStrip({
 }
 
 function Cell({
-  icon: Icon,
   label,
   children,
   grow = 1,
-  basis = '180px',
+  basis = '150px',
 }: {
-  icon: LucideIcon;
   label: string;
   children: React.ReactNode;
   grow?: number;
@@ -82,13 +70,8 @@ function Cell({
 }) {
   return (
     <div style={{ ...styles.cell, flex: `${grow} 1 ${basis}` }}>
-      <span style={styles.cellIcon} aria-hidden>
-        <Icon size={16} color="var(--color-accent)" />
-      </span>
-      <div style={styles.cellText}>
-        <span style={styles.label}>{label}</span>
-        {children}
-      </div>
+      <span style={styles.label}>{label}</span>
+      {children}
     </div>
   );
 }
@@ -102,28 +85,11 @@ const styles: Record<string, React.CSSProperties> = {
     background: 'var(--bg-surface-solid)',
     border: '1px solid var(--border-color)',
     borderRadius: 'var(--radius-lg)',
-    boxShadow: 'var(--shadow-sm)',
   },
   cell: {
     display: 'flex',
-    alignItems: 'flex-start',
-    gap: 'var(--space-3)',
-    minWidth: 0,
-  },
-  cellIcon: {
-    display: 'inline-flex',
-    alignItems: 'center',
-    justifyContent: 'center',
-    width: '30px',
-    height: '30px',
-    flexShrink: 0,
-    borderRadius: 'var(--radius-sm)',
-    background: 'var(--color-accent-glow)',
-  },
-  cellText: {
-    display: 'flex',
     flexDirection: 'column',
-    gap: 'var(--space-1)',
+    gap: 'var(--space-2)',
     minWidth: 0,
   },
   label: {
@@ -134,18 +100,9 @@ const styles: Record<string, React.CSSProperties> = {
     color: 'var(--color-text-muted)',
   },
   value: {
-    display: 'inline-flex',
-    alignItems: 'center',
-    gap: 'var(--space-2)',
     fontSize: 'var(--text-md)',
     fontWeight: 600,
     color: 'var(--color-text-primary)',
-  },
-  dot: {
-    width: '6px',
-    height: '6px',
-    borderRadius: '50%',
-    flexShrink: 0,
   },
   skills: {
     display: 'flex',

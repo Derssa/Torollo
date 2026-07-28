@@ -33,7 +33,7 @@ export default function FirstRunHero({ onStartLearning, onStartScratch }: FirstR
       <div style={styles.visual} aria-hidden="true">
         <div style={styles.nodeCard}>
           <div style={styles.nodeIcon}>
-            <Database size={16} color="var(--color-danger)" />
+            <Database size={16} color="var(--node-redis)" />
           </div>
           <div>
             <div style={styles.nodeName}>redis-cache</div>
@@ -41,10 +41,7 @@ export default function FirstRunHero({ onStartLearning, onStartScratch }: FirstR
           </div>
           <span style={styles.statusDot} />
         </div>
-        <Receipt
-          tone="success"
-          lines={['container redis-cache up', 'port 6379 → localhost:56379']}
-        />
+        <Receipt lines={['container redis-cache up', 'port 6379 → localhost:56379']} />
       </div>
     </div>
   );
@@ -60,7 +57,6 @@ const styles: Record<string, React.CSSProperties> = {
     background: 'var(--bg-surface-solid)',
     border: '1px solid var(--border-color)',
     borderRadius: 'var(--radius-lg)',
-    boxShadow: 'var(--shadow-sm)',
   },
   copy: {
     flex: '2 1 380px',
@@ -102,13 +98,13 @@ const styles: Record<string, React.CSSProperties> = {
     background: 'var(--bg-surface-solid)',
     border: '1px solid var(--border-color)',
     borderRadius: 'var(--radius-lg)',
-    boxShadow: 'var(--shadow-md)',
   },
   nodeIcon: {
     width: '32px',
     height: '32px',
     borderRadius: 'var(--radius-md)',
-    background: 'var(--color-danger-glow)',
+    background: 'var(--bg-subtle)',
+    border: '1px solid var(--border-color)',
     display: 'flex',
     alignItems: 'center',
     justifyContent: 'center',
@@ -128,6 +124,5 @@ const styles: Record<string, React.CSSProperties> = {
     borderRadius: '50%',
     background: 'var(--color-success)',
     marginLeft: 'auto',
-    boxShadow: '0 0 6px color-mix(in srgb, var(--color-success) 60%, transparent)',
   },
 };

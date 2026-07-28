@@ -29,15 +29,10 @@ export default function ArchitecturePreview({ topology }: ArchitecturePreviewPro
           const { Icon, color } = ROLE_VISUALS[node.role];
           return (
             <li key={node.name} style={styles.node}>
-              <span
-                style={{
-                  ...styles.nodeIcon,
-                  color,
-                  background: `color-mix(in srgb, ${color} 12%, transparent)`,
-                }}
-                aria-hidden
-              >
-                <Icon size={18} />
+              {/* Icon keeps the node's identity hue — the same one its card
+                  wears on the canvas — but sits on a neutral tile. */}
+              <span style={{ ...styles.nodeIcon, color }} aria-hidden>
+                <Icon size={17} />
               </span>
               <span style={styles.nodeText}>
                 <span style={styles.nodeName}>{node.name}</span>
@@ -87,7 +82,6 @@ const styles: Record<string, React.CSSProperties> = {
     background: 'var(--bg-surface-solid)',
     border: '1px solid var(--border-color)',
     borderRadius: 'var(--radius-lg)',
-    boxShadow: 'var(--shadow-sm)',
   },
   title: {
     fontSize: 'var(--text-lg)',
@@ -124,10 +118,12 @@ const styles: Record<string, React.CSSProperties> = {
     display: 'inline-flex',
     alignItems: 'center',
     justifyContent: 'center',
-    width: '32px',
-    height: '32px',
+    width: '30px',
+    height: '30px',
     flexShrink: 0,
     borderRadius: 'var(--radius-sm)',
+    background: 'var(--bg-surface-solid)',
+    border: '1px solid var(--border-color)',
   },
   nodeText: {
     display: 'flex',
