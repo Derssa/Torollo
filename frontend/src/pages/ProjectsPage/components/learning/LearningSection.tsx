@@ -8,6 +8,9 @@ import { filterByUiLanguage } from '../../../../features/learning/roadmapLanguag
 import LearningHero from './LearningHero';
 import RoadmapShowcaseCard from './RoadmapShowcaseCard';
 import WhyPanel from './WhyPanel';
+import ResumeCard from './ResumeCard';
+import Receipt from '../../../../shared/components/Receipt';
+import { SAMPLE_CHECKS, SAMPLE_CONTEXT, SAMPLE_FOOTER, SAMPLE_RECEIPT_TEXT } from './sampleReceipt';
 import Skeleton from '../../../../shared/components/Skeleton';
 import type { ProgressEntrySummary, RoadmapSummary } from '../../../../shared/types/roadmap';
 
@@ -37,6 +40,16 @@ export default function LearningSection({ onOpenRoadmap }: LearningSectionProps)
     return 0;
   });
 
+  // Two audiences, two pages. Someone who has already started one roadmap
+  // gets a single question answered — "where was I?" — and the catalogue.
+  // Someone who has never started anything gets the pitch instead: the hero,
+  // the why-panel and the sample receipt. Showing both to everyone buried the
+  // resume link below the fold.
+  const resumeTarget = sorted.find(s => {
+    const p = byRoadmapId[s.id];
+    return p && p.completedSteps > 0 && p.completedSteps < s.stepCount;
+  });
+  const isFirstRun = !sorted.some(s => (byRoadmapId[s.id]?.completedSteps ?? 0) > 0);
   const heroTarget = sorted[0];
 
   const browseToRoadmaps = () => {
@@ -47,23 +60,44 @@ export default function LearningSection({ onOpenRoadmap }: LearningSectionProps)
   return (
     <section>
       <div style={styles.titleRow}>
-        <GraduationCap size={18} color="var(--color-accent)" />
+        <GraduationCap size={18} color="var(--color-text-muted)" />
         <h2 style={styles.title}>{t('learning.landing.title')}</h2>
       </div>
       <p style={styles.subtitle}>{t('learning.landing.subtitle')}</p>
 
-      <div style={styles.columns}>
-        <div style={styles.main}>
-          {heroTarget && (
+      <div style={isFirstRun ? styles.columns : undefined}>
+        <div style={isFirstRun ? styles.main : styles.single}>
+          {isFirstRun && heroTarget && (
             <LearningHero
               onStart={() => onOpenRoadmap(heroTarget, byRoadmapId[heroTarget.id])}
               onBrowse={browseToRoadmaps}
             />
           )}
 
+          {/* The evidence card needs the wide column: its value column only
+              aligns when nothing wraps (DESIGN §2). */}
+          {isFirstRun && (
+            <Receipt
+              label={t('learning.landing.sampleReceiptLabel')}
+              verdict={t('learning.landing.sampleReceipt.verdict')}
+              context={SAMPLE_CONTEXT}
+              checks={SAMPLE_CHECKS}
+              footer={SAMPLE_FOOTER}
+              copyText={SAMPLE_RECEIPT_TEXT}
+            />
+          )}
+
+          {resumeTarget && (
+            <ResumeCard
+              summary={resumeTarget}
+              progress={byRoadmapId[resumeTarget.id] as ProgressEntrySummary}
+              onResume={() => onOpenRoadmap(resumeTarget, byRoadmapId[resumeTarget.id])}
+            />
+          )}
+
           <div ref={roadmapsPanelRef} tabIndex={-1} style={styles.roadmapsPanel}>
             <div style={styles.roadmapsTitleRow}>
-              <BookOpen size={16} color="var(--color-accent)" />
+              <BookOpen size={16} color="var(--color-text-muted)" />
               <h4 style={styles.roadmapsTitle}>{t('learning.landing.roadmapsTitle')}</h4>
             </div>
             {loading ? (
@@ -93,9 +127,11 @@ export default function LearningSection({ onOpenRoadmap }: LearningSectionProps)
           </div>
         </div>
 
-        <div style={styles.side}>
-          <WhyPanel />
-        </div>
+        {isFirstRun && (
+          <div style={styles.side}>
+            <WhyPanel />
+          </div>
+        )}
       </div>
     </section>
   );
@@ -135,6 +171,12 @@ const styles: Record<string, React.CSSProperties> = {
   side: {
     flex: '1 1 280px',
     minWidth: 0,
+  },
+  // Returning users get one column: resume card, then the catalogue.
+  single: {
+    display: 'flex',
+    flexDirection: 'column',
+    gap: 'var(--space-5)',
   },
   // The roadmap cards sit directly on the page background (mockup look) —
   // no wrapping panel chrome, just the header row and the grid.

@@ -1,7 +1,5 @@
 import { useTranslation } from 'react-i18next';
 import { Box, ReceiptText, Terminal } from 'lucide-react';
-import Receipt from '../../../../shared/components/Receipt';
-import { WHY_RECEIPT_LINES } from './sampleReceipt';
 
 const POINTS = [
   { icon: Box, titleKey: 'learning.landing.whyContainersTitle', bodyKey: 'learning.landing.whyContainersBody' },
@@ -18,7 +16,7 @@ export default function WhyPanel() {
         {POINTS.map(({ icon: Icon, titleKey, bodyKey }) => (
           <div key={titleKey} style={styles.point}>
             <div style={styles.pointIcon}>
-              <Icon size={14} color="var(--color-accent)" />
+              <Icon size={14} color="var(--color-text-secondary)" />
             </div>
             <div>
               <div style={styles.pointTitle}>{t(titleKey)}</div>
@@ -27,12 +25,6 @@ export default function WhyPanel() {
           </div>
         ))}
       </div>
-      <Receipt
-        tone="success"
-        label={t('learning.landing.sampleReceiptLabel')}
-        lines={WHY_RECEIPT_LINES}
-        copyText={WHY_RECEIPT_LINES.join('\n')}
-      />
     </div>
   );
 }
@@ -46,7 +38,6 @@ const styles: Record<string, React.CSSProperties> = {
     background: 'var(--bg-surface-solid)',
     border: '1px solid var(--border-color)',
     borderRadius: 'var(--radius-lg)',
-    boxShadow: 'var(--shadow-sm)',
     alignSelf: 'flex-start',
   },
   title: {
@@ -69,7 +60,8 @@ const styles: Record<string, React.CSSProperties> = {
     width: '26px',
     height: '26px',
     borderRadius: 'var(--radius-sm)',
-    background: 'var(--color-accent-glow)',
+    background: 'var(--bg-subtle)',
+    border: '1px solid var(--border-color)',
     display: 'flex',
     alignItems: 'center',
     justifyContent: 'center',

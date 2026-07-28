@@ -124,9 +124,14 @@ function goToLearning() {
   fireEvent.click(screen.getByRole('button', { name: 'Learning' }));
 }
 
-/** A roadmap card opens the briefing page; launching happens from there. */
+/**
+ * A roadmap card opens the briefing page; launching happens from there. The
+ * resume card at the top of the page repeats the title of the roadmap in
+ * progress, so always take the last match — the one in the catalogue grid.
+ */
 async function openBriefing(title: string) {
-  fireEvent.click(await screen.findByText(title));
+  const matches = await screen.findAllByText(title);
+  fireEvent.click(matches[matches.length - 1]);
   return screen.findByRole('button', { name: /Launch lab|Continue · step/ });
 }
 
@@ -189,11 +194,12 @@ describe('ProjectsPage', () => {
     render(<ProjectsPage onSelectProject={vi.fn()} />);
 
     expect(await screen.findByText('Lab one')).toBeInTheDocument();
-    expect(screen.queryByText('Learn system design by running real infrastructure.')).toBeNull();
+    expect(screen.queryByText('Resume')).toBeNull();
 
     goToLearning();
 
-    expect(await screen.findByText('Learn system design by running real infrastructure.')).toBeInTheDocument();
+    // With saved progress the page opens on the resume card, not the pitch.
+    expect(await screen.findByText('Resume')).toBeInTheDocument();
     expect(screen.queryByText('Lab one')).toBeNull();
 
     fireEvent.click(screen.getByRole('button', { name: 'Projects' }));
@@ -207,7 +213,7 @@ describe('ProjectsPage', () => {
     expect(await screen.findByText('Build real infrastructure on your machine.')).toBeInTheDocument();
     fireEvent.click(screen.getByRole('button', { name: 'Start learning' }));
 
-    expect(await screen.findByText('Learn system design by running real infrastructure.')).toBeInTheDocument();
+    expect(await screen.findByText('Resume')).toBeInTheDocument();
   });
 
   it('lists roadmaps of the UI language only, started ones first with a continue label', async () => {
@@ -215,7 +221,8 @@ describe('ProjectsPage', () => {
     render(<ProjectsPage onSelectProject={vi.fn()} />);
     goToLearning();
 
-    const started = await screen.findByText('Cache-aside with Redis');
+    const cards = await screen.findAllByText('Cache-aside with Redis');
+    const started = cards[cards.length - 1];
     expect(screen.queryByText('Cache-aside avec Redis')).toBeNull();
     expect(screen.getByText('Continue · step 4 of 8')).toBeInTheDocument();
 
@@ -237,7 +244,7 @@ describe('ProjectsPage', () => {
     expect(screen.getByText('Enter Redis')).toBeInTheDocument();
 
     fireEvent.click(screen.getByRole('button', { name: 'Roadmaps' }));
-    expect(await screen.findByText('Learn system design by running real infrastructure.')).toBeInTheDocument();
+    expect(await screen.findByText('Resume')).toBeInTheDocument();
   });
 
   it('deep-links a started roadmap straight into the project it was played in', async () => {
@@ -268,6 +275,25 @@ describe('ProjectsPage', () => {
     expect(onSelectProject).toHaveBeenCalledWith('p2', 'Lab two', {
       roadmap: { id: 'resilient-three-tier', language: 'en' },
     });
+  });
+
+  it('shows the pitch and the sample receipt only until a roadmap is started', async () => {
+    vi.stubGlobal('fetch', buildFetchMock({ progress: () => jsonResponse(true, { entries: [] }) }));
+    const { unmount } = render(<ProjectsPage onSelectProject={vi.fn()} />);
+    goToLearning();
+
+    expect(await screen.findByText('Learn system design by running real infrastructure.')).toBeInTheDocument();
+    expect(screen.getByText('Sample validation receipt')).toBeInTheDocument();
+    expect(screen.queryByText('Resume')).toBeNull();
+
+    unmount();
+    vi.stubGlobal('fetch', buildFetchMock());
+    render(<ProjectsPage onSelectProject={vi.fn()} />);
+    goToLearning();
+
+    expect(await screen.findByText('Resume')).toBeInTheDocument();
+    expect(screen.queryByText('Learn system design by running real infrastructure.')).toBeNull();
+    expect(screen.queryByText('Sample validation receipt')).toBeNull();
   });
 
   it('creates "My first lab" when a roadmap is started with zero projects', async () => {

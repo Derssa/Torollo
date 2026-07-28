@@ -69,6 +69,9 @@
       "roadmapsTitle": "Parcours",
       "continueLabel": "Continuer · étape {{current}} sur {{total}}",
       "completedLabel": "Terminé",
+      "resumeLabel": "Reprendre",
+      "resumeAction": "Continuer",
+      "stepOf": "Étape {{current}} sur {{total}}",
       "whyTitle": "Pourquoi c'est différent",
       "whyContainersTitle": "De vrais conteneurs",
       "whyContainersBody": "Chaque nœud que vous déposez est un vrai conteneur Docker qui tourne sur votre machine.",
@@ -77,6 +80,9 @@
       "whyReceiptsTitle": "De vrais reçus de validation",
       "whyReceiptsBody": "Chaque vérification montre la commande exacte exécutée et ce qui a été observé.",
       "sampleReceiptLabel": "Exemple de reçu de validation",
+      "sampleReceipt": {
+        "verdict": "Étape validée"
+      },
       "pickProjectTitle": "Choisir un projet",
       "pickProjectBody": "« {{roadmap}} » s'exécute sur les conteneurs d'un projet. Choisissez où travailler.",
       "pickProjectNew": "Nouveau projet"

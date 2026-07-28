@@ -69,6 +69,9 @@
       "roadmapsTitle": "Roadmaps",
       "continueLabel": "Continue · step {{current}} of {{total}}",
       "completedLabel": "Completed",
+      "resumeLabel": "Resume",
+      "resumeAction": "Continue",
+      "stepOf": "Step {{current}} of {{total}}",
       "whyTitle": "Why this is different",
       "whyContainersTitle": "Real containers",
       "whyContainersBody": "Every node you drag is a real Docker container running on your machine.",
@@ -77,6 +80,9 @@
       "whyReceiptsTitle": "Real validation receipts",
       "whyReceiptsBody": "Every check shows the exact command it ran and what it observed.",
       "sampleReceiptLabel": "Sample validation receipt",
+      "sampleReceipt": {
+        "verdict": "Step passed"
+      },
       "pickProjectTitle": "Choose a project",
       "pickProjectBody": "\"{{roadmap}}\" runs against one project’s containers. Pick where to work on it.",
       "pickProjectNew": "New project"
