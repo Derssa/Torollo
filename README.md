@@ -1,6 +1,6 @@
 ![cover-torollo](https://unpkg.com/torollo/assets/cover-torollo.png)
 
-# TOROLLO — Backend Systems Lab
+# Torollo — Backend Systems Lab
 
 [![torollo version](https://img.shields.io/npm/v/torollo.svg?label=version&style=flat-square)](https://www.npmjs.com/package/torollo)
 [![license](https://img.shields.io/npm/l/torollo.svg?style=flat-square)](https://github.com/Derssa/torollo/blob/main/LICENSE)
@@ -8,27 +8,70 @@
 [![Downloads](https://img.shields.io/npm/dt/torollo?label=downloads&style=flat-square&color=ff8c00)](https://www.npmjs.com/package/torollo)
 [![Stars](https://img.shields.io/github/stars/Derssa/Torollo?label=stars&style=flat-square&color=8b5cf6)](https://github.com/Derssa/Torollo)
 
-> **A local-first visual simulator and educational playground for backend engineering and system design, inspired by Packet Tracer.**
+> **The Packet Tracer of backend engineering.** Build architectures on a canvas where every node is a real Docker container on your machine — then follow guided roadmaps that grade each step against the actual state of your system.
 
-TOROLLO is an interactive, visual sandbox designed to help students and developers learn backend architecture, Docker, networking, databases, and system design by actually building and running systems on their local machines.
+Drawing boxes is easy; plenty of tools do it. Torollo is different in one specific way: when you draw a link, a real firewall rule is written; when you add a database, a real database starts; and when a roadmap step says *"traffic from the public subnet must not reach Postgres"*, Torollo checks it by probing your **live containers** — not by comparing your answer to a diagram. You can't bluff it, and that's the point.
 
+<!-- demo GIF placeholder: roadmap validation loop (fail → fix → pass), keep above the screenshot -->
 <img width="1917" height="907" alt="torollo-example" src="https://github.com/user-attachments/assets/c80a04f1-8cc6-46fb-bf89-23a9af1a1a2d" />
-
-## Technology Stack
-*   **Frontend:** React, TypeScript, Vite, React Flow, xterm.js
-*   **Backend:** Node.js, Express, TypeScript, Socket.io
-*   **Orchestration:** Docker, Dockerode (Interacts directly with your local Docker Daemon)
 
 ---
 
 ## Quick Start
 
-Run the lab instantly from your terminal without needing to clone the repo or install anything permanently:
+Docker must be running. Then, without cloning or installing anything permanently:
 
 ```bash
 npx torollo start
 ```
-*(Note: Ensure Docker Desktop is running before starting, as Torollo orchestrates real local containers)*
+
+Open the app, create a project, and hit **Learning** in the topbar — the best first contact with Torollo is a guided roadmap, not an empty canvas. Start with **Deploy a resilient three-tier app**: it walks you from a single web server to a load-balanced, firewalled, database-backed architecture in ten validated steps.
+
+---
+
+## Guided, auto-graded roadmaps
+
+The learning engine is what Torollo is really about. A roadmap is a sequence of steps — instructions, progressive hints, a solution if you're stuck — and every step is closed by **validators that assert against the real state of your lab**:
+
+* container status and ASG replica counts,
+* SQL schemas and data, MongoDB collections, Redis keys,
+* network reachability and firewall restrictions between subnets,
+* HTTP availability and response content.
+
+A green check means your architecture actually does what the step asked. A red one tells you what was expected and what was observed instead — reading that gap is where the learning happens.
+
+Current catalogue (English and French):
+
+| Roadmap | Difficulty | ~Time | You practice |
+|---|---|---|---|
+| Deploy a resilient three-tier app | intermediate | 40 min | Load balancing, security groups, private subnets, autoscaling |
+| Cache-aside with Redis | intermediate | 30 min | Caching strategy, TTLs, invalidation, measuring hit rates |
+| Workers & the Redis job queue | intermediate | 40 min | Async decoupling, queues, scaling workers under load, poison messages |
+
+**Roadmaps are plain JSON — no code.** The format is open and documented in the [Roadmap Authoring Reference](docs/roadmap-format.md); drop a valid file into `roadmaps/` and it appears in the catalogue. Community-authored roadmaps are very welcome. The validation HTTP API is documented in [learning-api.md](docs/learning-api.md).
+
+---
+
+## What you can put on the canvas
+
+Every node maps 1:1 to a real Docker container running locally.
+
+* **Compute**
+    * **Ubuntu Server** — a Linux container with a native web terminal in your browser (WebSockets + xterm.js).
+    * **Auto Scaling Group** — define a template, scale replicas up and down instantly.
+* **Data**
+    * **PostgreSQL** — with a built-in explorer for schemas, tables, and live SQL.
+    * **MongoDB** — with an explorer for collections and JSON queries.
+    * **Redis** — with an explorer for keys and native CLI commands.
+* **Messaging**
+    * **RabbitMQ** — message broker with management UI access.
+* **Networking & security**
+    * **VPC & Subnets** — isolated network boundaries backed by real Docker bridge networks.
+    * **Security Groups** — visual inbound/outbound rules, enforced as actual `iptables` rules inside the containers.
+    * **Load Balancer (Nginx)** — upstream configuration generated from the nodes you wire to it.
+    * **NAT Gateway** — outbound access for private subnets via real `ip_forward` and `MASQUERADE` routing.
+
+Beyond the nodes themselves: a traffic simulator to watch requests flow through your topology, root web terminals into any container, and clickable `localhost` shortcuts that appear when your firewall rules actually allow the traffic.
 
 ---
 
@@ -49,69 +92,25 @@ TOROLLO_HOST=0.0.0.0 TOROLLO_ALLOWED_ORIGINS=http://<your-lan-ip>:23232 npx toro
 
 ---
 
-## Supported Infrastructure Nodes
+## Architecture
 
-You can drag and drop a wide range of infrastructure components onto the canvas. Everything is backed by **real Docker containers** running locally on your machine.
-
-*   **Computing**
-    *   **Ubuntu Server:** A basic Linux container. Includes a fully functional, native web-terminal integrated directly into your browser via WebSockets.
-    *   **Auto Scaling Group (ASG):** Define a template and scale replicas up or down instantly.
-*   **Databases / Caches**
-    *   **PostgreSQL:** Relational database node. Features a built-in interactive Explorer to view schemas, tables, and execute SQL queries directly from the UI.
-    *   **MongoDB (NoSQL):** Document database node. Features an interactive Explorer to view collections and run JSON queries without needing external GUI clients.
-    *   **Redis (Cache Store):** In-memory data store. Includes a built-in Explorer to view keys and run native Redis CLI commands interactively.
-*   **Networking & Security**
-    *   **VPC & Subnets:** Isolated network boundaries backed by custom Docker bridge networks.
-    *   **Security Groups:** Drag-and-drop visual firewall rules (Inbound/Outbound). Rules are converted and enforced using actual `iptables` injected securely into the containers.
-    *   **Load Balancer (Nginx):** Automatically generates upstream `nginx.conf` configurations based on the nodes you wire to it.
-    *   **NAT Gateway:** Provides outbound internet access for private subnets using true Linux `ip_forward=1` and `MASQUERADE` routing.
+* **Backend** — Node.js, Express, TypeScript, Socket.IO, Dockerode. The backend is the supervisor: it drives the local Docker daemon, compiles your visual topology into real `iptables` rules applied inside the containers, and persists state in `~/.torollo/projects.json`. Every node image must ship with `iptables` and `iproute2` — see [Required tooling inside every node image](docs/adding-a-node.md#required-tooling-inside-every-node-image).
+* **Frontend** — React, TypeScript, Vite, React Flow. Renders the canvas, node inspectors, database explorers, the roadmap player, and `xterm.js` terminals.
 
 ---
 
-## 🎓 Interactive Roadmaps & Learning Paths
+## Contributing
 
-Torollo includes a powerful, local-first **declarative learning and validation engine** that guides you through building complex architectures step-by-step.
-
-*   **Interactive Playlists:** Follow step-by-step blueprints on the sidebar player, complete with instructions, progressive hints, and copy-pasteable terminal blocks.
-*   **Automatic Live Validation:** Every step runs auto-checkers against your actual Docker environment:
-    *   *Container status* & *replication scale* (ASG checks).
-    *   *Database schema* & *data existence* (SQL & MongoDB collection checks).
-    *   *Network connectivity* & *firewall restrictions* (Inbound firewall checks).
-    *   *Web server availability* & *HTTP content* (Curl checks).
-*   **Dynamic UI Integrations:** Clickable `http://localhost:<mapped_port>` shortcuts are dynamically generated in the player sidebar when public subnet and port-80 firewall requirements are fulfilled.
-*   **JSON-only Contributions:** Create and customize learning paths with zero frontend or backend code! Simply author a JSON configuration file and drop it in the `roadmaps/` directory. See the [Roadmap Authoring Reference](docs/roadmap-format.md) for details.
+* **Write a roadmap** — the highest-leverage contribution, and it's JSON only. Start from the [format reference](docs/roadmap-format.md).
+* **Add a node type** — follow the step-by-step [adding-a-node guide](docs/adding-a-node.md).
+* **Everything else** — see [CONTRIBUTING.md](CONTRIBUTING.md). Ideas for new directions (observability nodes, exporting a topology to IaC, …) are best opened as an issue first.
 
 ---
 
-## Coming Very Soon
+## Philosophy
 
-*   **Terraform Generation:** Automatic Infrastructure-as-Code (IaC) generation for your visual architectures, supporting every major cloud provider (AWS, Azure, GCP).
-*   **Message Brokers:** RabbitMQ, Kafka
-*   **Application Services:** API Service, Microservices Host, Serverless Functions
-*   **Observability:** Live Metrics, Logs, & Monitoring Components
+Everything runs **locally**, and the core is **MIT-licensed** — that's permanent, not a launch promise.
 
----
-
-## Core Features & Architecture
-
-### Interactive Learning by Doing
-Instead of reading passive, theory-heavy documentation, you learn by *doing*:
-- **Create Systems:** Drag and drop real components to build architectures.
-- **Run & Connect:** Wire services together and see how they interact.
-- **Simulate Traffic:** Use the built-in Network Simulator to send pings and watch mock traffic flow through the system.
-- **Web Terminals:** Instantly open a root shell into any Ubuntu or Database container straight from the browser.
-
-### Architecture Overview
-*   **Backend:** Node.js, Express, TypeScript, and Dockerode. The backend acts as the supervisor—it manipulates the local Docker daemon, compiles your visual network topology into real `iptables` rules, and manages persistent state in `~/.torollo/projects.json`. Because those rules are applied *inside* the containers, every node image must ship with `iptables` and `iproute2` installed — see [Required tooling inside every node image](docs/adding-a-node.md#required-tooling-inside-every-node-image).
-*   **Frontend:** React, TypeScript, Vite, and React Flow. Renders the interactive visual grid, node inspector modals, database explorers, and `xterm.js` terminals.
-
----
-
-## Core Philosophy
-
-Everything runs **locally** on your machine. 
-- **No Cloud integrations** (No AWS credentials needed).
-- **No remote infrastructure** is created, billed, or managed. 
-- All nodes in the workspace correspond exactly to live Docker containers on your local system.
-
-*Note: This project is strictly educational. It is not an AWS clone or a production infrastructure management tool—it is a sandboxed simulator designed to make system design tangible, visual, and fun.*
+- No cloud credentials, no remote infrastructure created or billed.
+- Every node on the canvas corresponds exactly to a live Docker container on your machine.
+- Torollo is educational by design: not an AWS clone, not a production orchestration tool — a lab where system design becomes tangible because it actually executes.
