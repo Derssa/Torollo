@@ -68,7 +68,7 @@ describe('StepHints', () => {
 
     fireEvent.click(screen.getByRole('button', { name: 'Sure? Click again to reveal' }));
     expect(screen.getByText('The full answer.')).toBeInTheDocument();
-    expect(screen.getByText('Solution')).toBeInTheDocument();
+    expect(screen.getByText('solution')).toBeInTheDocument();
     expect(screen.getByText('Only hint.')).toBeInTheDocument();
     expect(screen.queryByRole('button')).not.toBeInTheDocument();
   });
