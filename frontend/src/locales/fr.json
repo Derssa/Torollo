@@ -31,7 +31,7 @@
       "loadError": "Impossible de charger cette roadmap. Choisissez-en une ci-dessous pour réessayer.",
       "stepCounter": "Étape {{current}} sur {{total}}",
       "previous": "Précédent",
-      "next": "Suivant",
+      "skipStep": "Passer l'étape",
       "validate": "Valider",
       "validating": "Vérification...",
       "validationError": "Impossible de joindre le serveur. Votre travail est intact — réessayez.",

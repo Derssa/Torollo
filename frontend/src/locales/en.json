@@ -31,7 +31,7 @@
       "loadError": "Could not load this roadmap. Pick one below to try again.",
       "stepCounter": "Step {{current}} of {{total}}",
       "previous": "Previous",
-      "next": "Next",
+      "skipStep": "Skip step",
       "validate": "Validate",
       "validating": "Checking...",
       "validationError": "Could not reach the server. Your work is untouched — try again.",

@@ -119,8 +119,7 @@ function buildFetchMock(handlers: {
 
 async function openRoadmapFromCatalog() {
   fireEvent.click(await screen.findByText('Your first architecture'));
-  // The current step's title appears twice: in the step list and in the detail block.
-  await screen.findAllByText('Create the web server');
+  await screen.findByText('Create the web server');
 }
 
 describe('LearningPanel', () => {
@@ -154,7 +153,7 @@ describe('LearningPanel', () => {
       />
     );
 
-    await screen.findAllByText('Create the web server');
+    await screen.findByText('Create the web server');
     const urls = fetchMock.mock.calls.map(call => String(call[0]));
     expect(urls.some(url => url.includes(`/api/learning/roadmaps/${roadmap.id}?language=en`))).toBe(true);
     expect(urls.some(url => url.includes(`/api/learning/progress/p1/${roadmap.id}`))).toBe(true);
@@ -181,25 +180,27 @@ describe('LearningPanel', () => {
     expect(await screen.findByText('Your first architecture')).toBeInTheDocument();
   });
 
-  it('opens a roadmap: all steps listed, current step highlighted, instruction shown', async () => {
+  it('opens a roadmap: only the current step is shown, with progress bar and instruction', async () => {
     vi.stubGlobal('fetch', buildFetchMock({}));
     render(<LearningPanel projectId="p1" onClose={() => {}} />);
 
     await openRoadmapFromCatalog();
 
-    expect(screen.getByText('Add the database')).toBeInTheDocument();
+    // Focus mode: other steps stay hidden until the learner reaches them.
+    expect(screen.queryByText('Add the database')).not.toBeInTheDocument();
     expect(screen.getByText('Step 1 of 2')).toBeInTheDocument();
+    expect(screen.getByRole('progressbar')).toHaveAttribute('aria-valuenow', '0');
     expect(
       screen.getByText((_, el) => el?.tagName === 'P' && el.textContent === 'Drag an Ubuntu node named web onto the canvas and start it.')
     ).toBeInTheDocument();
   });
 
-  it('navigates between steps with next/previous', async () => {
+  it('navigates between steps with skip/previous', async () => {
     vi.stubGlobal('fetch', buildFetchMock({}));
     render(<LearningPanel projectId="p1" onClose={() => {}} />);
     await openRoadmapFromCatalog();
 
-    fireEvent.click(screen.getByRole('button', { name: 'Next' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Skip step' }));
     expect(screen.getByText('Step 2 of 2')).toBeInTheDocument();
     expect(
       screen.getByText((_, el) => el?.tagName === 'P' && el.textContent === 'Add a Postgres node named db.')
@@ -221,8 +222,7 @@ describe('LearningPanel', () => {
       screen.getByText('No container named "web" exists in this project yet.')
     ).toBeInTheDocument();
     expect(screen.getByText(/a running container named "web"/)).toBeInTheDocument();
-    // The step list reflects the failure, and the raw status/type strings are gone.
-    expect(screen.getByTitle('Failed')).toBeInTheDocument();
+    // The raw status/type strings are gone.
     expect(screen.queryByText('[fail]')).not.toBeInTheDocument();
     expect(screen.queryByText('container_running')).not.toBeInTheDocument();
   });
@@ -248,7 +248,7 @@ describe('LearningPanel', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Validate' }));
     expect(await screen.findByText('Step passed')).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Next step' })).toBeInTheDocument();
-    expect(screen.getByTitle('Passed')).toBeInTheDocument();
+    expect(screen.getByRole('progressbar')).toHaveAttribute('aria-valuenow', '1');
     // No artifacts from the failed attempt survive.
     expect(screen.queryByText('Not yet — see the results below')).not.toBeInTheDocument();
     expect(
@@ -291,7 +291,7 @@ describe('LearningPanel', () => {
     expect(await screen.findByText('Not yet — see the results below')).toBeInTheDocument();
   });
 
-  it('restores persisted progress: reopens on the first incomplete step with ✓ markers', async () => {
+  it('restores persisted progress: reopens on the first incomplete step with the bar filled', async () => {
     vi.stubGlobal(
       'fetch',
       buildFetchMock({
@@ -307,7 +307,7 @@ describe('LearningPanel', () => {
     fireEvent.click(await screen.findByText('Your first architecture'));
 
     expect(await screen.findByText('Step 2 of 2')).toBeInTheDocument();
-    expect(screen.getByTitle('Passed')).toBeInTheDocument();
+    expect(screen.getByRole('progressbar')).toHaveAttribute('aria-valuenow', '1');
     // Only the verdict is restored — no stale validator results are replayed.
     expect(screen.queryByText('Step passed')).not.toBeInTheDocument();
   });
@@ -334,7 +334,7 @@ describe('LearningPanel', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Sure? Click again to restart' }));
 
     expect(await screen.findByText('Step 1 of 2')).toBeInTheDocument();
-    expect(screen.queryByTitle('Passed')).not.toBeInTheDocument();
+    expect(screen.getByRole('progressbar')).toHaveAttribute('aria-valuenow', '0');
   });
 
   it('tells the user when an unreadable progress store was reset, dismissibly', async () => {
