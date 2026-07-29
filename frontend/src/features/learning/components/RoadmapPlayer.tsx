@@ -1,13 +1,14 @@
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { AlertTriangle, ArrowLeft, ChevronLeft, ChevronRight, Globe, RotateCcw, X } from 'lucide-react';
-import StepValidationResults from './StepValidationResults';
+import ValidationToast from './ValidationToast';
 import StepHints from './StepHints';
 import { renderInstruction } from './InstructionMarkdown';
 import ProgressBar from '../../../shared/components/ProgressBar';
 import type { useLearningPlayer } from '../hooks/useLearningPlayer';
 import type { ContainerData } from '../../../shared/types';
 import type { NetworkConfig } from '../../../shared/types/network';
+import type { StepValidationResponse } from '../../../shared/types/roadmap';
 
 interface RoadmapPlayerProps {
   player: ReturnType<typeof useLearningPlayer>;
@@ -50,6 +51,21 @@ export default function RoadmapPlayer({
   // same light two-click brake as the solution reveal: first click arms a
   // confirmation label, second executes; leaving the button disarms.
   const [resetArmed, setResetArmed] = useState(false);
+
+  // Which validation result the learner closed, per step. A new attempt
+  // clears the step's entry, so the toast reappears for every fresh verdict.
+  const [dismissedByStepId, setDismissedByStepId] = useState<
+    Record<string, StepValidationResponse>
+  >({});
+  const handleValidate = () => {
+    setDismissedByStepId(prev => {
+      const next = { ...prev };
+      delete next[currentStep!.id];
+      return next;
+    });
+    validateCurrentStep();
+  };
+
   const handleReset = () => {
     if (!resetArmed) {
       setResetArmed(true);
@@ -190,7 +206,7 @@ export default function RoadmapPlayer({
       })()}
 
       <button
-        onClick={validateCurrentStep}
+        onClick={handleValidate}
         disabled={validating}
         style={{ ...styles.validateBtn, opacity: validating ? 0.6 : 1 }}
       >
@@ -219,19 +235,25 @@ export default function RoadmapPlayer({
       {validationError !== null && (
         <div style={styles.errorBox}>
           <span>{validationError || t('learning.player.validationError')}</span>
-          <button onClick={validateCurrentStep} style={styles.retryBtn}>
+          <button onClick={handleValidate} style={styles.retryBtn}>
             {t('learning.player.retry')}
           </button>
         </div>
       )}
 
-      {resultsByStepId[currentStep.id] && (
-        <StepValidationResults
-          response={resultsByStepId[currentStep.id]}
-          isLastStep={atLastStep}
-          onNextStep={() => goToStep(currentStepIndex + 1)}
-        />
-      )}
+      {resultsByStepId[currentStep.id] &&
+        dismissedByStepId[currentStep.id] !== resultsByStepId[currentStep.id] && (
+          <ValidationToast
+            response={resultsByStepId[currentStep.id]}
+            isLastStep={atLastStep}
+            onDismiss={() =>
+              setDismissedByStepId(prev => ({
+                ...prev,
+                [currentStep.id]: resultsByStepId[currentStep.id],
+              }))
+            }
+          />
+        )}
     </div>
   );
 }

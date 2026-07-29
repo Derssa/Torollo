@@ -217,12 +217,12 @@ describe('LearningPanel', () => {
 
     fireEvent.click(screen.getByRole('button', { name: 'Validate' }));
 
-    expect(await screen.findByText('Not yet — see the results below')).toBeInTheDocument();
+    expect(await screen.findByText('Not yet')).toBeInTheDocument();
     expect(
       screen.getByText('No container named "web" exists in this project yet.')
     ).toBeInTheDocument();
-    expect(screen.getByText(/a running container named "web"/)).toBeInTheDocument();
-    // The raw status/type strings are gone.
+    // The toast stays terse: no expected/observed dump, no raw status/type strings.
+    expect(screen.queryByText(/a running container named "web"/)).not.toBeInTheDocument();
     expect(screen.queryByText('[fail]')).not.toBeInTheDocument();
     expect(screen.queryByText('container_running')).not.toBeInTheDocument();
   });
@@ -243,28 +243,40 @@ describe('LearningPanel', () => {
     await openRoadmapFromCatalog();
 
     fireEvent.click(screen.getByRole('button', { name: 'Validate' }));
-    expect(await screen.findByText('Not yet — see the results below')).toBeInTheDocument();
+    expect(await screen.findByText('Not yet')).toBeInTheDocument();
 
     fireEvent.click(screen.getByRole('button', { name: 'Validate' }));
-    expect(await screen.findByText('Step passed')).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: 'Next step' })).toBeInTheDocument();
+    expect(await screen.findByText('Validation passed')).toBeInTheDocument();
     expect(screen.getByRole('progressbar')).toHaveAttribute('aria-valuenow', '1');
     // No artifacts from the failed attempt survive.
-    expect(screen.queryByText('Not yet — see the results below')).not.toBeInTheDocument();
+    expect(screen.queryByText('Not yet')).not.toBeInTheDocument();
     expect(
       screen.queryByText('No container named "web" exists in this project yet.')
     ).not.toBeInTheDocument();
   });
 
-  it('advances to the next step from the success banner', async () => {
+  it('keeps navigation in the sidebar: the toast offers no Next step button', async () => {
     vi.stubGlobal('fetch', buildFetchMock({ validate: () => jsonResponse(true, passResponse) }));
     render(<LearningPanel projectId="p1" onClose={() => {}} />);
     await openRoadmapFromCatalog();
 
     fireEvent.click(screen.getByRole('button', { name: 'Validate' }));
-    fireEvent.click(await screen.findByRole('button', { name: 'Next step' }));
+    await screen.findByText('Validation passed');
 
-    expect(screen.getByText('Step 2 of 2')).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Next step' })).not.toBeInTheDocument();
+  });
+
+  it('closes the validation toast on dismiss and shows it again on the next attempt', async () => {
+    vi.stubGlobal('fetch', buildFetchMock({ validate: () => jsonResponse(true, passResponse) }));
+    render(<LearningPanel projectId="p1" onClose={() => {}} />);
+    await openRoadmapFromCatalog();
+
+    fireEvent.click(screen.getByRole('button', { name: 'Validate' }));
+    fireEvent.click(await screen.findByRole('button', { name: 'Dismiss' }));
+    expect(screen.queryByText('Validation passed')).not.toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole('button', { name: 'Validate' }));
+    expect(await screen.findByText('Validation passed')).toBeInTheDocument();
   });
 
   it('shows an understandable error with retry when the backend is unreachable during validation', async () => {
@@ -288,7 +300,7 @@ describe('LearningPanel', () => {
 
     validateFails = false;
     fireEvent.click(screen.getByRole('button', { name: 'Retry' }));
-    expect(await screen.findByText('Not yet — see the results below')).toBeInTheDocument();
+    expect(await screen.findByText('Not yet')).toBeInTheDocument();
   });
 
   it('restores persisted progress: reopens on the first incomplete step with the bar filled', async () => {
@@ -309,7 +321,7 @@ describe('LearningPanel', () => {
     expect(await screen.findByText('Step 2 of 2')).toBeInTheDocument();
     expect(screen.getByRole('progressbar')).toHaveAttribute('aria-valuenow', '1');
     // Only the verdict is restored — no stale validator results are replayed.
-    expect(screen.queryByText('Step passed')).not.toBeInTheDocument();
+    expect(screen.queryByText('Validation passed')).not.toBeInTheDocument();
   });
 
   it('restarts the roadmap behind a two-click confirmation', async () => {
