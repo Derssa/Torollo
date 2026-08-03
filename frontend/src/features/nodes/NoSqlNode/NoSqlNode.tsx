@@ -29,12 +29,12 @@ export default function NoSqlNode({ data }: NoSqlNodeProps) {
       name={data.name}
       isRunning={isRunning}
       errorMessage={data.lastError}
-      icon={<Braces size={18} color={isRunning ? '#475569' : '#6B7280'} />}
-      customBorder={isRunning ? '1px solid #475569' : undefined}
+      icon={<Braces size={18} color={isRunning ? 'var(--neutral-600)' : 'var(--neutral-500)'} />}
+      customBorder={isRunning ? '1px solid var(--neutral-600)' : undefined}
       subtitle={
         <>
           <span className={styles.label}>{t('nodeviz.ipPort')}</span>
-          <span className={styles.value} style={{ color: data.ip ? '#10B981' : undefined }}>{data.ip ? `${data.ip}:27017` : '27017'}</span>
+          <span className={styles.value} style={{ color: data.ip ? 'var(--color-success)' : undefined }}>{data.ip ? `${data.ip}:27017` : '27017'}</span>
         </>
       }
       onStart={data.onStart}
@@ -45,7 +45,7 @@ export default function NoSqlNode({ data }: NoSqlNodeProps) {
       primaryAction={{
         label: t('nodeviz.inspect'),
         icon: <Search size={14} />,
-        color: '#475569', // Charcoal Gray
+        color: 'var(--neutral-600)', // Charcoal Gray
         onClick: data.onInspect,
         title: t('nodeviz.inspectDatabaseTitle'),
       }}

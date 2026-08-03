@@ -210,10 +210,10 @@ export default function VpcModal({
                     disabled={true}
                     style={{
                       ...styles.input,
-                      backgroundColor: '#F3F4F6',
-                      color: '#6B7280',
+                      backgroundColor: 'var(--neutral-100)',
+                      color: 'var(--neutral-500)',
                       cursor: 'not-allowed',
-                      border: '1px solid #E5E7EB'
+                      border: '1px solid var(--neutral-200)'
                     }}
                     placeholder="e.g. 10.0.0.0/16"
                   />
@@ -261,8 +261,8 @@ export default function VpcModal({
                         <div style={styles.listItemTitle}>{subnet.name}</div>
                         <span style={{
                           ...styles.badge,
-                          backgroundColor: subnet.type === 'public' ? 'rgba(16, 185, 129, 0.1)' : 'rgba(245, 158, 11, 0.1)',
-                          color: subnet.type === 'public' ? '#10B981' : '#F59E0B'
+                          backgroundColor: subnet.type === 'public' ? 'color-mix(in srgb, var(--color-success) 10%, transparent)' : 'color-mix(in srgb, var(--color-warning) 10%, transparent)',
+                          color: subnet.type === 'public' ? 'var(--color-success)' : 'var(--color-warning)'
                         }}>
                           {subnet.type.toUpperCase()}
                         </span>
@@ -345,18 +345,18 @@ export default function VpcModal({
               {simulationResult && (
                 <div style={{
                   ...styles.resultBox,
-                  backgroundColor: simulationResult.success ? 'rgba(16, 185, 129, 0.05)' : 'rgba(239, 68, 68, 0.05)',
-                  border: `1px solid ${simulationResult.success ? 'rgba(16, 185, 129, 0.2)' : 'rgba(239, 68, 68, 0.2)'}`
+                  backgroundColor: simulationResult.success ? 'color-mix(in srgb, var(--color-success) 5%, transparent)' : 'color-mix(in srgb, var(--color-danger) 5%, transparent)',
+                  border: `1px solid ${simulationResult.success ? 'color-mix(in srgb, var(--color-success) 20%, transparent)' : 'color-mix(in srgb, var(--color-danger) 20%, transparent)'}`
                 }}>
                   <div style={styles.resultTitleRow}>
                     {simulationResult.success ? (
-                      <CheckCircle2 size={18} color="#10B981" />
+                      <CheckCircle2 size={18} color="var(--color-success)" />
                     ) : (
-                      <XCircle size={18} color="#EF4444" />
+                      <XCircle size={18} color="var(--color-danger)" />
                     )}
                     <span style={{
                       ...styles.resultTitle,
-                      color: simulationResult.success ? '#10B981' : '#EF4444'
+                      color: simulationResult.success ? 'var(--color-success)' : 'var(--color-danger)'
                     }}>
                       {simulationResult.message}
                     </span>
@@ -442,7 +442,7 @@ const styles: Record<string, React.CSSProperties> = {
     transition: 'all 0.2s',
   },
   body: {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: 'var(--bg-surface-solid)',
     padding: '20px',
     display: 'flex',
     flexDirection: 'column',
@@ -517,7 +517,7 @@ const styles: Record<string, React.CSSProperties> = {
   },
   saveBtnSettings: {
     backgroundColor: 'var(--color-accent)',
-    color: '#FFF',
+    color: 'var(--color-white)',
     border: 'none',
     borderRadius: '8px',
     padding: '10px 16px',
@@ -589,7 +589,7 @@ const styles: Record<string, React.CSSProperties> = {
     border: '1px solid var(--border-color)',
     borderRadius: '6px',
     fontSize: '12px',
-    backgroundColor: '#FFF',
+    backgroundColor: 'var(--bg-surface-solid)',
     outline: 'none',
     height: '32px',
     width: '100%',
@@ -599,7 +599,7 @@ const styles: Record<string, React.CSSProperties> = {
   },
   simulateBtn: {
     backgroundColor: 'var(--color-accent)',
-    color: '#FFF',
+    color: 'var(--color-white)',
     border: 'none',
     borderRadius: '6px',
     padding: '8px',

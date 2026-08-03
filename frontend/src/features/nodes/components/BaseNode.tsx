@@ -59,19 +59,19 @@ export default function BaseNode({
 
   const titleColor = customTitleColor || 'var(--color-text-primary)';
   const hasError = Boolean(errorMessage) && !isRunning;
-  const indicatorColor = isRunning ? '#10B981' : hasError ? '#F59E0B' : '#EF4444';
+  const indicatorColor = isRunning ? 'var(--color-success)' : hasError ? 'var(--color-warning)' : 'var(--color-danger)';
   const shadowColor = isRunning
-    ? 'rgba(16, 185, 129, 0.6)'
+    ? 'color-mix(in srgb, var(--color-success) 60%, transparent)'
     : hasError
-      ? 'rgba(245, 158, 11, 0.6)'
-      : 'rgba(239, 68, 68, 0.6)';
+      ? 'color-mix(in srgb, var(--color-warning) 60%, transparent)'
+      : 'color-mix(in srgb, var(--color-danger) 60%, transparent)';
 
   return (
     <div 
       className={styles.card}
       style={{
         border: customBorder,
-        boxShadow: customBorder && isRunning ? `0 10px 15px -3px ${customBorder.split(' ').pop()}25` : undefined
+        boxShadow: customBorder && isRunning ? `0 10px 15px -3px color-mix(in srgb, ${customBorder.split(' ').pop()} 15%, transparent)` : undefined
       }}
     >
       {!hideHandles && <Handle type="target" position={Position.Left} id="target" className={styles.handle} />}
@@ -113,7 +113,7 @@ export default function BaseNode({
               }}
               title={t('nodeshared.base.securityGroupTitle')}
             >
-              <Shield size={13} color="#EF4444" fill="rgba(239, 68, 68, 0.1)" />
+              <Shield size={13} color="var(--color-danger)" fill="color-mix(in srgb, var(--color-danger) 10%, transparent)" />
             </button>
           )}
         </div>
@@ -141,7 +141,7 @@ export default function BaseNode({
           className={styles.details}
           title={errorMessage}
           style={{
-            color: '#92400E',
+            color: 'var(--color-warning-strong)',
             whiteSpace: 'nowrap',
             overflow: 'hidden',
             textOverflow: 'ellipsis',
@@ -170,7 +170,7 @@ export default function BaseNode({
               className={`${styles.btn} ${styles.btnSecondary}`}
               title={t('nodeshared.base.stopNode')}
             >
-              <Square size={14} fill="#9CA3AF" />
+              <Square size={14} fill="var(--neutral-400)" />
             </button>
           </>
         ) : (
@@ -179,7 +179,7 @@ export default function BaseNode({
             className={`${styles.btn} ${styles.btnSuccess}`}
             title={t('nodeshared.base.startNode')}
           >
-            <Play size={14} style={{ marginRight: 4 }} fill="#10B981" />
+            <Play size={14} style={{ marginRight: 4 }} fill="var(--color-success)" />
             {t('nodeshared.base.start')}
           </button>
         )}

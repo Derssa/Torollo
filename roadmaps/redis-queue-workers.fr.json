@@ -1,0 +1,277 @@
+{
+  "$schema": "https://raw.githubusercontent.com/Derssa/Torollo/main/backend/src/modules/learning/format/roadmap.schema.json",
+  "schemaVersion": 1,
+  "id": "redis-queue-workers",
+  "title": "Workers & file d'attente Redis",
+  "description": "Nimbus Books prospère — et le checkout se fige désormais deux longues secondes le temps de générer chaque reçu. Découvre le motif derrière tous les backends chargés : accepter vite, travailler plus tard. Pousse les commandes dans une vraie file Redis, embauche un worker pour la consommer, regarde une vente flash empiler un backlog, transforme les workers en flotte auto-réparante — et mets en dead-letter la commande corrompue qui aurait bloqué la chaîne.",
+  "language": "fr",
+  "estimatedMinutes": 40,
+  "difficulty": "intermediate",
+  "prerequisites": [
+    "Docker installé et en marche",
+    "Un projet Torollo créé et ouvert sur le canvas (pars d'un projet vide)",
+    "À l'aise avec les commandes de base dans un terminal Linux",
+    "Avoir joué « Déployer une application trois-tiers résiliente » ou « Cache-aside avec Redis » aide, mais cette histoire se suffit à elle-même"
+  ],
+  "steps": [
+    {
+      "id": "reopen-the-store",
+      "title": "Rouvrir la boutique",
+      "instruction": "Bon retour chez **Nimbus Books**. Le lancement a tenu, le catalogue est rapide — mais la plainte du soir vient de l'*autre* bout de la boutique : le **checkout**. Chaque commande confirmée doit produire un reçu — totaux, taxes, un PDF pour le client — et pour l'instant, le client fixe un spinner pendant que tout ça se fabrique. Le marketing, lui, vient de programmer une **vente flash** pour vendredi. Garde ces deux faits en tête.\n\nNouveau lab, canvas vierge, même boutique.\n\n1. Depuis la bibliothèque de nœuds, glisse un **Public Subnet** sur le canvas. Cinq machines finiront par y vivre — agrandis-le à environ **3 colonnes × 2 lignes** avec les **steppers C / R** de l'en-tête du subnet.\n2. Glisse un nœud **Server** *dans* le subnet (les nœuds ne peuvent vivre que dans un subnet), nomme-le `web`, et crée-le.\n3. La machine démarre dès sa création — attends que son point de statut passe au vert.",
+      "hints": [
+        "La bibliothèque de nœuds est le panneau latéral à côté du canvas. Glisse d'abord **Public Subnet** sur un espace vide — si tu déposes un Server hors d'un subnet, Torollo refuse avec « Nodes must reside within a subnet. »",
+        "Dépose la tuile **Server** sur une cellule libre du subnet. Un dialogue demande un nom : tape exactement `web` (les vérifications de cette roadmap retrouvent tes machines par leur nom). Il démarre tout seul après création ; si tu l'arrêtes un jour, le bouton play le ramène."
+      ],
+      "solution": "Glisse **Public Subnet** sur le canvas et agrandis-le à environ 3 × 2 avec les steppers C / R. Glisse **Server** dans une de ses cellules, nomme-le `web` dans le dialogue de création, clique **Create Node**, et attends que le point de statut du nœud passe au vert.",
+      "validators": [
+        {
+          "type": "container_running",
+          "params": {
+            "node": "web"
+          }
+        }
+      ]
+    },
+    {
+      "id": "the-slow-checkout",
+      "title": "Le checkout à deux secondes",
+      "instruction": "L'heure de ressentir ce que ressentent les clients. Ouvre le **Terminal** de `web` et construis le checkout tel qu'il existe aujourd'hui.\n\n1. Installe Python :\n\n```bash\napt-get update && apt-get install -y python3\n```\n\n2. Écris l'application. Un détail honnête avant de coller : quand une commande arrive, ce code génère le reçu *dans la requête* — totaux, taxes, le PDF — environ **2 secondes de travail** (simulées par un sleep), pendant que le client attend :\n\n```bash\ncat << 'EOF' > /root/server.py\nfrom http.server import SimpleHTTPRequestHandler, HTTPServer\nimport time\n\nclass Handler(SimpleHTTPRequestHandler):\n    def do_GET(self):\n        started = time.monotonic()\n        if self.path.startswith('/order'):\n            time.sleep(2)  # the receipt engine: totals, taxes, the PDF\n            elapsed = int((time.monotonic() - started) * 1000)\n            html = (f'<p>Thank you for your order! Your receipt is ready.</p>'\n                    f'<p><i>checkout blocked for {elapsed} ms</i></p>'\n                    f'<p><a href=\"/\">Back to the desk</a></p>')\n        else:\n            html = ('<h2>Fulfillment desk</h2>'\n                    '<p>Orders are confirmed once their receipt is generated.</p>'\n                    '<p><a href=\"/order\">Place a test order</a></p>')\n        page = f'<html><body><h1>Nimbus Books</h1>{html}</body></html>'\n        self.send_response(200)\n        self.send_header('Content-type', 'text/html')\n        self.end_headers()\n        self.wfile.write(bytes(page, 'utf8'))\n\nHTTPServer(('', 80), Handler).serve_forever()\nEOF\n```\n\n3. Fais démarrer le serveur à chaque boot de la machine, puis lance-le maintenant :\n\n```bash\necho '(python3 /root/server.py >/dev/null 2>&1 &)' >> /root/.bashrc\nnohup python3 /root/server.py >/dev/null 2>&1 &\n```\n\n4. Ouvre la porte de la boutique : sur `web`, ajoute une règle entrante **ALLOW TCP 80** depuis **Anywhere (0.0.0.0/0)**, et clique le lien `http://localhost:...` qui apparaît sous cette instruction.\n5. Maintenant, *passe une commande de test*. Puis une autre. **Deux secondes pleines, à chaque fois** — et le serveur intégré de Python traite une requête à la fois : pendant qu'un client paie, le suivant ne charge même pas la page. Multiplie par la vente flash de vendredi. (Les vérifications ci-dessous passent chacune une commande — elles le ressentent aussi.)",
+      "hints": [
+        "Clique le bouton **Terminal** sur le nœud `web` et colle les commandes bloc par bloc (le bloc `cat << 'EOF' ... EOF` se colle en une fois, lignes EOF comprises).",
+        "Pas de lien `http://localhost:...` sous l'instruction ? Ajoute la règle entrante **ALLOW TCP 80** depuis **Anywhere (0.0.0.0/0)** sur `web` (icône bouclier) — sans elle, le pare-feu garde la boutique fermée.",
+        "La page ne charge pas du tout ? Vérifie que le serveur tourne : `nohup python3 /root/server.py >/dev/null 2>&1 &` dans le terminal de `web`, puis rafraîchis."
+      ],
+      "solution": "Dans le terminal de `web`, colle ce bloc entier :\n\n```bash\napt-get update && apt-get install -y python3\ncat << 'EOF' > /root/server.py\nfrom http.server import SimpleHTTPRequestHandler, HTTPServer\nimport time\n\nclass Handler(SimpleHTTPRequestHandler):\n    def do_GET(self):\n        started = time.monotonic()\n        if self.path.startswith('/order'):\n            time.sleep(2)  # the receipt engine: totals, taxes, the PDF\n            elapsed = int((time.monotonic() - started) * 1000)\n            html = (f'<p>Thank you for your order! Your receipt is ready.</p>'\n                    f'<p><i>checkout blocked for {elapsed} ms</i></p>'\n                    f'<p><a href=\"/\">Back to the desk</a></p>')\n        else:\n            html = ('<h2>Fulfillment desk</h2>'\n                    '<p>Orders are confirmed once their receipt is generated.</p>'\n                    '<p><a href=\"/order\">Place a test order</a></p>')\n        page = f'<html><body><h1>Nimbus Books</h1>{html}</body></html>'\n        self.send_response(200)\n        self.send_header('Content-type', 'text/html')\n        self.end_headers()\n        self.wfile.write(bytes(page, 'utf8'))\n\nHTTPServer(('', 80), Handler).serve_forever()\nEOF\necho '(python3 /root/server.py >/dev/null 2>&1 &)' >> /root/.bashrc\nnohup python3 /root/server.py >/dev/null 2>&1 &\n```\n\nPuis sur le security group de `web` (icône bouclier) : Direction **Inbound**, Action **ALLOW**, Protocole **TCP**, Port **80**, Source **Anywhere (0.0.0.0/0)** → **Add Rule**.",
+      "validators": [
+        {
+          "type": "http_get_contains",
+          "params": {
+            "node": "web",
+            "port": 80,
+            "path": "/",
+            "expectedText": "Nimbus Books"
+          }
+        },
+        {
+          "type": "http_get_contains",
+          "params": {
+            "node": "web",
+            "port": 80,
+            "path": "/order",
+            "expectedText": "Thank you"
+          }
+        }
+      ]
+    },
+    {
+      "id": "enter-the-queue",
+      "title": "Place à la file",
+      "instruction": "La solution n'est pas un moteur de reçus plus rapide. La solution, c'est de réaliser que le client n'a pas besoin de *regarder* : il lui faut une promesse — « commande prise, reçu en route » — et quelqu'un en arrière-boutique pour la tenir. C'est ça, le **travail asynchrone**, et la pièce d'infrastructure entre la promesse et sa tenue s'appelle une **file d'attente**.\n\nUne **liste** Redis est la file de départ classique : le checkout poussera commande après commande à un bout, et les workers tireront de l'autre. Premier arrivé, premier servi — comme la file d'une vraie boutique.\n\n1. Glisse un nœud **Redis** dans le subnet et nomme-le `queue` — il démarre à la création.\n2. Moindre privilège, dès le premier jour : seul le checkout a une raison de lui parler pour l'instant. Sur `queue`, ajoute une règle entrante **ALLOW TCP 6379** avec Source **`web`** (6379 est le port de Redis ; choisis le nœud dans le menu Source, *pas* Anywhere).\n3. **Inspect** sur `queue`, puis onglet **Explorer**. Torollo sème quelques clés de démo — remarque `queue:emails`, de type *list* : quelqu'un ici utilise déjà Redis exactement comme ça. La nôtre sera **`queue:orders`** ; le préfixe garde un Redis partagé lisible.",
+      "hints": [
+        "Dépose la tuile **Redis** sur une cellule libre du subnet et nomme-la exactement `queue`. Pas de cellule libre ? Agrandis le subnet avec les steppers C / R de son en-tête.",
+        "La règle 6379 va sur le security group de **`queue`** (icône bouclier sur le nœud queue) : Direction **Inbound**, Action **ALLOW**, Protocole **TCP**, Port **6379**, Source **web** (dans le groupe Nodes du menu) → **Add Rule**.",
+        "Une fois la règle ajoutée, une arête verte apparaît de `web` vers `queue` — l'écho visuel de ta règle, et exactement ce que cherche la deuxième vérification."
+      ],
+      "solution": "Dépose un nœud **Redis** nommé `queue` dans le subnet. Sur son security group (icône bouclier) : Direction **Inbound**, Action **ALLOW**, Protocole **TCP**, Port **6379**, Source **web** → **Add Rule**.",
+      "validators": [
+        {
+          "type": "container_running",
+          "params": {
+            "node": "queue"
+          }
+        },
+        {
+          "type": "edge_exists",
+          "params": {
+            "source": "web",
+            "target": "queue",
+            "port": 6379
+          }
+        }
+      ]
+    },
+    {
+      "id": "the-producer",
+      "title": "Le producteur",
+      "instruction": "Réécris le checkout en **producteur** : au lieu de faire le travail, il *enregistre que le travail existe* — un `LPUSH` sur `queue:orders` — et répond immédiatement. La page d'accueil devient ton pupitre d'opérations, qui lit ses compteurs en direct dans Redis.\n\nDans le **Terminal** de `web` :\n\n1. Installe le client Redis :\n\n```bash\napt-get install -y python3-redis\n```\n\n2. Réécris l'application :\n\n```bash\ncat << 'EOF' > /root/server.py\nfrom http.server import SimpleHTTPRequestHandler, HTTPServer\nimport json, time\nimport redis\n\nr = redis.Redis(host='queue', port=6379, decode_responses=True,\n                socket_connect_timeout=1, socket_timeout=1)\n\nCATALOG = ['The Pragmatic Programmer', 'Clean Code',\n           'Designing Data-Intensive Applications', 'Release It!']\n\nclass Handler(SimpleHTTPRequestHandler):\n    def do_GET(self):\n        started = time.monotonic()\n        if self.path.startswith('/order'):\n            try:\n                n = r.incr('stats:orders')\n                job = {'id': f'or-{n}', 'title': CATALOG[n % len(CATALOG)]}\n                r.lpush('queue:orders', json.dumps(job))\n                elapsed = int((time.monotonic() - started) * 1000)\n                html = (f'<p>Thank you for your order! Order <b>{job[\"id\"]}</b> '\n                        f'accepted in {elapsed} ms &mdash; your receipt is on its way.</p>'\n                        f'<p><a href=\"/\">Back to the desk</a></p>')\n            except Exception as e:\n                html = f'<p>We could not reach our queue: {str(e)}</p>'\n        else:\n            try:\n                stats = (f'<p>orders accepted: {r.get(\"stats:orders\") or 0}</p>'\n                         f'<p>backlog: {r.llen(\"queue:orders\")}</p>'\n                         f'<p>receipts issued: {r.get(\"stats:receipts\") or 0}</p>'\n                         f'<p>dead-lettered: {r.llen(\"queue:orders:dead\")}</p>')\n            except Exception as e:\n                stats = f'<p>We could not reach our queue: {str(e)}</p>'\n            html = ('<h2>Fulfillment desk</h2>' + stats +\n                    '<p><a href=\"/order\">Place a test order</a></p>')\n        page = f'<html><body><h1>Nimbus Books</h1>{html}</body></html>'\n        self.send_response(200)\n        self.send_header('Content-type', 'text/html')\n        self.end_headers()\n        self.wfile.write(bytes(page, 'utf8'))\n\nHTTPServer(('', 80), Handler).serve_forever()\nEOF\n```\n\n3. Remplace le serveur en marche :\n\n```bash\npkill -f server.py\nnohup python3 /root/server.py >/dev/null 2>&1 &\n```\n\n4. Passe une commande : **acceptée en quelques millisecondes.** Le checkout à deux secondes a disparu. Passes-en deux ou trois de plus, puis regarde le pupitre : `orders accepted` grimpe... et `backlog` aussi, pendant que `receipts issued` reste à **0**.\n\nSois honnête sur ce qui vient de se passer : tu n'as pas fait disparaître le travail — **tu as fait une promesse que personne ne tient encore.** Chaque commande « acceptée » est un reçu que tu dois toujours. Ouvre l'**Explorer** de `queue` : la voilà, `queue:orders`, une *liste* qui contient chaque promesse non tenue. (Deux compteurs du pupitre — `receipts issued` et `dead-lettered` — mériteront leur nom avant la fin.)\n\nUne dernière chose, parce que tu te souviens peut-être de la règle d'or de l'histoire du cache : contrairement à un cache, cette file n'est **pas** une optimisation qu'on peut hausser des épaules. Elle contient désormais les commandes de tes clients. Le pupitre survit à une file morte (le `try/except` le garde en vie), mais le checkout cesse d'accepter — une file est une dépendance que tu as *choisie*, deux secondes de latence échangées contre la machinerie que tu vas construire.",
+      "hints": [
+        "Colle les blocs un par un dans le terminal de `web`. Seul `python3-redis` est nouveau — Python est déjà là depuis l'étape précédente.",
+        "L'ancienne page s'affiche encore, ou « Address already in use » ? L'ancien serveur tient toujours le port 80 : lance `pkill -f server.py`, puis à nouveau la ligne `nohup python3 /root/server.py >/dev/null 2>&1 &`.",
+        "« We could not reach our queue » ? Vérifie l'étape précédente : le nœud doit s'appeler exactement `queue`, tourner, et porter la règle entrante **ALLOW TCP 6379** avec Source **web**.",
+        "La première vérification passe une commande via ton nouveau code — si elle reste rouge, le serveur qui tourne est probablement encore l'ancienne version (tue-le et relance-le)."
+      ],
+      "solution": "Dans le terminal de `web`, colle ce bloc entier :\n\n```bash\napt-get install -y python3-redis\ncat << 'EOF' > /root/server.py\nfrom http.server import SimpleHTTPRequestHandler, HTTPServer\nimport json, time\nimport redis\n\nr = redis.Redis(host='queue', port=6379, decode_responses=True,\n                socket_connect_timeout=1, socket_timeout=1)\n\nCATALOG = ['The Pragmatic Programmer', 'Clean Code',\n           'Designing Data-Intensive Applications', 'Release It!']\n\nclass Handler(SimpleHTTPRequestHandler):\n    def do_GET(self):\n        started = time.monotonic()\n        if self.path.startswith('/order'):\n            try:\n                n = r.incr('stats:orders')\n                job = {'id': f'or-{n}', 'title': CATALOG[n % len(CATALOG)]}\n                r.lpush('queue:orders', json.dumps(job))\n                elapsed = int((time.monotonic() - started) * 1000)\n                html = (f'<p>Thank you for your order! Order <b>{job[\"id\"]}</b> '\n                        f'accepted in {elapsed} ms &mdash; your receipt is on its way.</p>'\n                        f'<p><a href=\"/\">Back to the desk</a></p>')\n            except Exception as e:\n                html = f'<p>We could not reach our queue: {str(e)}</p>'\n        else:\n            try:\n                stats = (f'<p>orders accepted: {r.get(\"stats:orders\") or 0}</p>'\n                         f'<p>backlog: {r.llen(\"queue:orders\")}</p>'\n                         f'<p>receipts issued: {r.get(\"stats:receipts\") or 0}</p>'\n                         f'<p>dead-lettered: {r.llen(\"queue:orders:dead\")}</p>')\n            except Exception as e:\n                stats = f'<p>We could not reach our queue: {str(e)}</p>'\n            html = ('<h2>Fulfillment desk</h2>' + stats +\n                    '<p><a href=\"/order\">Place a test order</a></p>')\n        page = f'<html><body><h1>Nimbus Books</h1>{html}</body></html>'\n        self.send_response(200)\n        self.send_header('Content-type', 'text/html')\n        self.end_headers()\n        self.wfile.write(bytes(page, 'utf8'))\n\nHTTPServer(('', 80), Handler).serve_forever()\nEOF\npkill -f server.py\nnohup python3 /root/server.py >/dev/null 2>&1 &\n```",
+      "validators": [
+        {
+          "type": "http_get_contains",
+          "params": {
+            "node": "web",
+            "port": 80,
+            "path": "/order",
+            "expectedText": "accepted"
+          }
+        },
+        {
+          "type": "redis_key_exists",
+          "params": {
+            "node": "queue",
+            "key": "stats:orders"
+          }
+        }
+      ]
+    },
+    {
+      "id": "the-first-worker",
+      "title": "Le premier worker",
+      "instruction": "L'arrière-boutique embauche son premier employé. Un **worker** est le programme le plus simple des systèmes distribués : une boucle infinie — *prendre un job, faire le travail, le marquer fait, recommencer.* Pas de serveur web, pas de routes ; juste la boucle.\n\n1. Glisse un second **Server** dans le subnet et nomme-le `worker-1`.\n2. Ouvre-lui la porte de la file : sur `queue`, ajoute une deuxième règle entrante — **ALLOW TCP 6379**, Source **`worker-1`**. Deux machines, deux règles précises.\n3. Dans le **Terminal** de `worker-1`, installe le nécessaire et écris la boucle :\n\n```bash\napt-get update && apt-get install -y python3 python3-redis\ncat << 'EOF' > /root/worker.py\nimport json, socket, time\nimport redis\n\nr = redis.Redis(host='queue', port=6379, decode_responses=True,\n                socket_connect_timeout=1, socket_timeout=5)\nWORKER = socket.gethostname()\nprint(f'[{WORKER}] ready, waiting for orders...', flush=True)\n\nwhile True:\n    try:\n        item = r.brpop('queue:orders', timeout=3)\n        if item is None:\n            continue  # queue empty — go right back to listening\n        job = json.loads(item[1])\n        time.sleep(1)  # the receipt engine: totals, taxes, the PDF\n        with open('/root/receipts.log', 'a') as f:\n            f.write(f'{job[\"id\"]}: receipt for \"{job[\"title\"]}\"\\n')\n        r.incr('stats:receipts')\n        print(f'[{WORKER}] {job[\"id\"]} done', flush=True)\n    except Exception as e:\n        print(f'[{WORKER}] error: {e}', flush=True)\n        time.sleep(1)\nEOF\n```\n\nLis la boucle avant de la lancer — deux détails contiennent tout le marché :\n- **`BRPOP` bloque.** Le worker ne tourne pas en boucle à vide ; il dort *dans Redis* jusqu'à l'arrivée d'un job, puis se réveille instantanément. Le producteur `LPUSH` à gauche, le worker `BRPOP` à droite : premier arrivé, premier servi.\n- **Le moteur de reçus a déménagé ici.** Le même coût d'une seconde par reçu qu'avant — il n'est pas devenu moins cher, il est *sorti du chemin du client*.\n\n4. Fais-le démarrer au boot — une ligne, et tout futur *clone* de cette machine se réveillera déjà au travail (souviens-t'en vendredi) — puis lance-le et regarde-le vivre :\n\n```bash\necho '(python3 /root/worker.py >> /root/worker.log 2>&1 &)' >> /root/.bashrc\nnohup python3 /root/worker.py >> /root/worker.log 2>&1 &\ntail -f /root/worker.log\n```\n\nEn quelques secondes, le backlog de l'étape précédente se vide, un `done` par seconde (`Ctrl+C` quitte le tail ; le worker continue). Regarde le pupitre : `backlog: 0`, et `receipts issued` compte enfin. `cat /root/receipts.log` — chaque promesse, tenue.",
+      "hints": [
+        "Deux choses avant le code : le nœud doit s'appeler exactement `worker-1`, et le security group de **`queue`** a besoin de la nouvelle règle entrante **ALLOW TCP 6379** avec Source **worker-1** — sans elle, le `BRPOP` du worker n'atteint pas Redis et le log se remplit d'erreurs.",
+        "Colle le bloc `cat << 'EOF' ... EOF` en une seule fois, puis le bloc boot/démarrage. Le worker écrit sa vie dans `/root/worker.log` — `tail -f` dessus dès que quelque chose semble coincé.",
+        "Le backlog ne bouge pas ? `tail -20 /root/worker.log` : des erreurs de connexion signifient que la règle 6379 manque ou que le nœud ne s'appelle pas `worker-1` ; aucune sortie du tout signifie que le worker ne tourne pas — relance-le avec la ligne `nohup`.",
+        "La dernière vérification veut voir `backlog: 0` sur le pupitre — laisse au worker quelques secondes pour finir de vider avant de valider."
+      ],
+      "solution": "Crée un **Server** nommé `worker-1` dans le subnet. Sur le security group de `queue` : Direction **Inbound**, Action **ALLOW**, Protocole **TCP**, Port **6379**, Source **worker-1** → **Add Rule**. Puis dans le terminal de `worker-1`, colle :\n\n```bash\napt-get update && apt-get install -y python3 python3-redis\ncat << 'EOF' > /root/worker.py\nimport json, socket, time\nimport redis\n\nr = redis.Redis(host='queue', port=6379, decode_responses=True,\n                socket_connect_timeout=1, socket_timeout=5)\nWORKER = socket.gethostname()\nprint(f'[{WORKER}] ready, waiting for orders...', flush=True)\n\nwhile True:\n    try:\n        item = r.brpop('queue:orders', timeout=3)\n        if item is None:\n            continue  # queue empty — go right back to listening\n        job = json.loads(item[1])\n        time.sleep(1)  # the receipt engine: totals, taxes, the PDF\n        with open('/root/receipts.log', 'a') as f:\n            f.write(f'{job[\"id\"]}: receipt for \"{job[\"title\"]}\"\\n')\n        r.incr('stats:receipts')\n        print(f'[{WORKER}] {job[\"id\"]} done', flush=True)\n    except Exception as e:\n        print(f'[{WORKER}] error: {e}', flush=True)\n        time.sleep(1)\nEOF\necho '(python3 /root/worker.py >> /root/worker.log 2>&1 &)' >> /root/.bashrc\nnohup python3 /root/worker.py >> /root/worker.log 2>&1 &\n```\n\nAttends que le pupitre affiche `backlog: 0`, puis valide.",
+      "validators": [
+        {
+          "type": "container_running",
+          "params": {
+            "node": "worker-1"
+          }
+        },
+        {
+          "type": "edge_exists",
+          "params": {
+            "source": "worker-1",
+            "target": "queue",
+            "port": 6379
+          }
+        },
+        {
+          "type": "redis_key_exists",
+          "params": {
+            "node": "queue",
+            "key": "stats:receipts"
+          }
+        },
+        {
+          "type": "http_get_contains",
+          "params": {
+            "node": "web",
+            "port": 80,
+            "path": "/",
+            "expectedText": "backlog: 0"
+          }
+        }
+      ]
+    },
+    {
+      "id": "the-receipt-archive",
+      "title": "L'archive des reçus",
+      "instruction": "L'audit appelle : *« Envoyez-nous le reçu de la commande or-3. »* Il est dans `/root/receipts.log`... sur le disque local de `worker-1`. Passable aujourd'hui. Mais tu es sur le point d'embaucher d'autres workers, et alors chaque reçu vivrait sur la machine qui a attrapé la commande — éparpillés sur des disques privés qui **meurent avec leur machine**. La règle qui corrige ça vaut une réponse d'entretien à elle seule : **les workers restent stateless ; tout ce qui mérite d'être gardé va dans un magasin partagé.** Des reçus, ça se range dans les livres de comptes de l'entreprise — c'est un travail pour **PostgreSQL**.\n\n1. Glisse un nœud **SQL Database** (PostgreSQL) dans le subnet et nomme-le `archive` — il démarre à la création.\n2. Sur `archive`, ajoute une règle entrante **ALLOW TCP 5432** avec Source **`worker-1`** (5432 est le port de PostgreSQL).\n3. Dans le **Terminal** de `worker-1`, installe le driver PostgreSQL et réécris la boucle :\n\n```bash\napt-get install -y python3-psycopg2\ncat << 'EOF' > /root/worker.py\nimport json, socket, time\nimport psycopg2\nimport redis\n\nr = redis.Redis(host='queue', port=6379, decode_responses=True,\n                socket_connect_timeout=1, socket_timeout=5)\nWORKER = socket.gethostname()\nMAX_ATTEMPTS = 3\n\ndef archive_receipt(job):\n    conn = psycopg2.connect(host='archive', database='postgres', user='postgres',\n                            password='postgres', connect_timeout=2)\n    cur = conn.cursor()\n    cur.execute('CREATE TABLE IF NOT EXISTS receipts '\n                '(id SERIAL PRIMARY KEY, order_id TEXT, title TEXT, worker TEXT, status TEXT)')\n    cur.execute('INSERT INTO receipts (order_id, title, worker, status) VALUES (%s, %s, %s, %s)',\n                (job['id'], job['title'], WORKER, 'issued'))\n    conn.commit()\n    cur.close(); conn.close()\n\nprint(f'[{WORKER}] ready, waiting for orders...', flush=True)\n\nwhile True:\n    try:\n        item = r.brpop('queue:orders', timeout=3)\n    except Exception as e:\n        print(f'[{WORKER}] queue unreachable: {e}', flush=True)\n        time.sleep(1)\n        continue\n    if item is None:\n        continue  # queue empty — go right back to listening\n    raw = item[1]\n    try:\n        job = json.loads(raw)\n        time.sleep(1)  # the receipt engine: totals, taxes, the PDF\n        archive_receipt(job)\n        r.incr('stats:receipts')\n        print(f'[{WORKER}] {job[\"id\"]} archived', flush=True)\n    except Exception as e:\n        # One bad order must never kill the worker or jam the line.\n        # Count its attempts in Redis (shared with every other worker),\n        # give it MAX_ATTEMPTS tries, then park it in the dead-letter queue.\n        attempts = r.incr('attempts:' + raw[:64])\n        if attempts < MAX_ATTEMPTS:\n            print(f'[{WORKER}] job failed ({e}) — retry {attempts}/{MAX_ATTEMPTS}', flush=True)\n            time.sleep(1)\n            r.lpush('queue:orders', raw)\n        else:\n            print(f'[{WORKER}] job dead-lettered after {attempts} attempts: {raw[:60]}', flush=True)\n            r.rpush('queue:orders:dead', raw)\nEOF\npkill -f worker.py\nnohup python3 /root/worker.py >> /root/worker.log 2>&1 &\n```\n\nLis la nouvelle branche `except` avant de continuer : un job qui échoue *retourne dans la file* avec un compteur de tentatives, et après trois prises il est garé dans `queue:orders:dead` au lieu d'être réessayé pour toujours — ou pire, silencieusement abandonné. Ça a l'air paranoïaque aujourd'hui. Ça gagnera sa place avant la fin de cette histoire.\n\n4. Passe une commande sur le pupitre, regarde `archived` apparaître dans `tail -5 /root/worker.log`, puis **Inspect** sur `archive` → onglet **Database Explorer** : voilà ta table `receipts` (parmi quelques tables de démo comme `users` et `products` que Torollo sème — ignore-les). Ouvre-la et regarde la colonne `worker` : elle nomme la machine qui a fait le travail. *Souviens-toi de cette colonne.*\n\n5. La dernière vérification ci-dessous pense déjà plus loin : elle s'assure que `web` ne peut **pas** atteindre l'archive. Le comptoir écrit des promesses dans la file ; seuls les workers écrivent des reçus. Si cette vérification échoue, une règle sur `archive` est plus large que Source `worker-1` — resserre-la.",
+      "hints": [
+        "La règle 5432 va sur le security group de **`archive`** : Direction **Inbound**, Action **ALLOW**, Protocole **TCP**, Port **5432**, Source **worker-1** (dans le groupe Nodes) → **Add Rule**.",
+        "La réécriture est un seul collage `cat << 'EOF' ... EOF`, puis `pkill -f worker.py` et la ligne `nohup` — la même danse de redémarrage que pour le producteur. `tail -5 /root/worker.log` doit t'accueillir avec `ready, waiting for orders...`.",
+        "Pas de table `receipts` dans le Database Explorer ? Elle apparaît avec la *première commande archivée* : passes-en une sur le pupitre, attends une seconde ou deux, puis utilise l'icône de rafraîchissement dans l'en-tête du modal. Si le log montre `retry 1/3` à la place, le worker n'atteint pas PostgreSQL — vérifie la règle 5432 et que le nœud s'appelle exactement `archive`.",
+        "Dernière vérification rouge ? Ouvre le security group d'`archive` : sa seule règle entrante doit avoir Source **worker-1** — pas Anywhere (0.0.0.0/0), et pas `web`."
+      ],
+      "solution": "Dépose un nœud **SQL Database** nommé `archive` dans le subnet. Sur son security group : Direction **Inbound**, Action **ALLOW**, Protocole **TCP**, Port **5432**, Source **worker-1** → **Add Rule**. Dans le terminal de `worker-1`, colle ce bloc entier :\n\n```bash\napt-get install -y python3-psycopg2\ncat << 'EOF' > /root/worker.py\nimport json, socket, time\nimport psycopg2\nimport redis\n\nr = redis.Redis(host='queue', port=6379, decode_responses=True,\n                socket_connect_timeout=1, socket_timeout=5)\nWORKER = socket.gethostname()\nMAX_ATTEMPTS = 3\n\ndef archive_receipt(job):\n    conn = psycopg2.connect(host='archive', database='postgres', user='postgres',\n                            password='postgres', connect_timeout=2)\n    cur = conn.cursor()\n    cur.execute('CREATE TABLE IF NOT EXISTS receipts '\n                '(id SERIAL PRIMARY KEY, order_id TEXT, title TEXT, worker TEXT, status TEXT)')\n    cur.execute('INSERT INTO receipts (order_id, title, worker, status) VALUES (%s, %s, %s, %s)',\n                (job['id'], job['title'], WORKER, 'issued'))\n    conn.commit()\n    cur.close(); conn.close()\n\nprint(f'[{WORKER}] ready, waiting for orders...', flush=True)\n\nwhile True:\n    try:\n        item = r.brpop('queue:orders', timeout=3)\n    except Exception as e:\n        print(f'[{WORKER}] queue unreachable: {e}', flush=True)\n        time.sleep(1)\n        continue\n    if item is None:\n        continue  # queue empty — go right back to listening\n    raw = item[1]\n    try:\n        job = json.loads(raw)\n        time.sleep(1)  # the receipt engine: totals, taxes, the PDF\n        archive_receipt(job)\n        r.incr('stats:receipts')\n        print(f'[{WORKER}] {job[\"id\"]} archived', flush=True)\n    except Exception as e:\n        # One bad order must never kill the worker or jam the line.\n        # Count its attempts in Redis (shared with every other worker),\n        # give it MAX_ATTEMPTS tries, then park it in the dead-letter queue.\n        attempts = r.incr('attempts:' + raw[:64])\n        if attempts < MAX_ATTEMPTS:\n            print(f'[{WORKER}] job failed ({e}) — retry {attempts}/{MAX_ATTEMPTS}', flush=True)\n            time.sleep(1)\n            r.lpush('queue:orders', raw)\n        else:\n            print(f'[{WORKER}] job dead-lettered after {attempts} attempts: {raw[:60]}', flush=True)\n            r.rpush('queue:orders:dead', raw)\nEOF\npkill -f worker.py\nnohup python3 /root/worker.py >> /root/worker.log 2>&1 &\n```\n\nPasse une commande sur le pupitre et valide une fois `archived` visible dans le log du worker.",
+      "validators": [
+        {
+          "type": "container_running",
+          "params": {
+            "node": "archive"
+          }
+        },
+        {
+          "type": "edge_exists",
+          "params": {
+            "source": "worker-1",
+            "target": "archive",
+            "port": 5432
+          }
+        },
+        {
+          "type": "table_exists",
+          "params": {
+            "node": "archive",
+            "table": "receipts"
+          }
+        },
+        {
+          "type": "port_denied",
+          "params": {
+            "source": "web",
+            "target": "archive",
+            "port": 5432
+          }
+        }
+      ]
+    },
+    {
+      "id": "the-flash-sale",
+      "title": "La vente flash",
+      "instruction": "Vendredi, 18 h. Le marketing appuie sur le bouton. Simule la ruée toi-même — dans le **Terminal** de `web`, passe **300 commandes** :\n\n```bash\nfor i in $(seq 1 300); do curl -s localhost/order > /dev/null; done\n```\n\nChacune acceptée en quelques millisecondes — le checkout n'a pas cillé. C'est la machine à promesses qui fait son travail. Maintenant regarde la *tenue* : rafraîchis le pupitre. `backlog: 280`... `279`... qui tombe d'**exactement un par seconde**, parce que c'est ton débit : un worker, un reçu par seconde. Tu regardes la **backpressure** — l'admission est instantanée, le traitement non, et la file est l'endroit où la différence s'empile. À ce rythme, le reçu du dernier client arrive dans environ cinq minutes.\n\n**Appuie sur Validate tout de suite et lis les échecs** — pas de flotte de workers, un backlog à trois chiffres. La file a absorbé le pic, donc rien n'a cassé ; absorber n'est pas suivre.\n\nRépare comme un opérateur : quand la file est longue, on ne sermonne pas le caissier pour qu'il accélère — **on ouvre d'autres caisses.** Les workers sont volontairement stateless et identiques, ce qui en fait la chose la plus facile à multiplier de toute ton architecture :\n\n1. Glisse un **Auto Scaling Group** dans le subnet et nomme-le `worker-asg`.\n2. **Les portes d'abord, la flotte ensuite** — les clones doivent être productifs dès leur premier souffle. Sur `queue`, ajoute une règle entrante **ALLOW TCP 6379** avec Source **`worker-asg`** ; sur `archive`, une règle entrante **ALLOW TCP 5432** avec Source **`worker-asg`**. Chaque règle couvre *tous* les replicas du groupe, maintenant et après chaque auto-réparation.\n3. Clique **Inspect** sur `worker-asg`. Dans *Design & Scaling settings* : Template Server **`worker-1`**, coche ton subnet comme cible de déploiement, capacité Min **1** / Desired **3** / Max **6** → **Save & Deploy**. Torollo prend un instantané de `worker-1` — Python, `/root/worker.py`, et la ligne de boot que tu as gravée — et démarre trois clones qui se réveillent déjà en train de consommer.\n4. Rafraîchis le pupitre et regarde le backlog **fondre quatre fois plus vite** — quatre consommateurs sur une file, aucune coordination, aucun reçu en double : Redis remet à chaque `BRPOP` exactement un job, et cette passe atomique est tout le contrat. Pour la preuve, ouvre le **SQL Shell** d'`archive` et lance `SELECT worker, COUNT(*) FROM receipts GROUP BY worker;` : **quatre hostnames différents**, chacun avec sa part d'une même file de travail.\n\nQuand le pupitre affiche `backlog: 0`, valide à nouveau — mêmes vérifications, vendredi très différent.",
+      "hints": [
+        "Ajoute les deux règles `worker-asg` **avant** Save & Deploy : les replicas démarrent en quelques secondes et appellent la file immédiatement — déploie d'abord et le log de la jeune flotte se remplit d'erreurs de connexion jusqu'à l'ouverture des portes.",
+        "Dans le modal ASG : *1. Launch Template Source* → `worker-1` ; *2. VPC Subnet Targets* → coche ton subnet ; *3. Instance Capacity Limits* → Min 1, Desired 3, Max 6 → **Save & Deploy**. Le déploiement prend un moment — Torollo committe le disque de `worker-1` en image dorée avant de démarrer les clones.",
+        "Backlog figé alors que la grille montre des replicas sains ? Les clones n'atteignent pas Redis : vérifie que la règle entrante **ALLOW TCP 6379** sur `queue` a bien Source **worker-asg** (le groupe lui-même, pas un replica). Même logique pour **5432** sur `archive` — sans elle, chaque clone réessaie trois fois et met en dead-letter de vraies commandes.",
+        "La première vérification compte les **replicas en marche** : elle en veut exactement 3, alors laisse l'onglet *Simulation & Live Grid* se poser sur trois clones *Healthy*. Et `worker-1` doit rester en marche — c'est le template et le quatrième consommateur."
+      ],
+      "solution": "Dans le terminal de `web` : `for i in $(seq 1 300); do curl -s localhost/order > /dev/null; done`, puis appuie sur **Validate** et lis l'échec. Ajoute les deux règles de flotte — sur `queue` : entrante **ALLOW TCP 6379**, Source **worker-asg** ; sur `archive` : entrante **ALLOW TCP 5432**, Source **worker-asg**. Glisse un **Auto Scaling Group** nommé `worker-asg` dans le subnet, **Inspect** → Template **worker-1**, coche le subnet, Min **1** / Desired **3** / Max **6** → **Save & Deploy**. Attends que le pupitre affiche `backlog: 0` et valide.",
+      "validators": [
+        {
+          "type": "asg_replicas",
+          "params": {
+            "node": "worker-asg",
+            "count": 3
+          }
+        },
+        {
+          "type": "container_running",
+          "params": {
+            "node": "worker-1"
+          }
+        },
+        {
+          "type": "http_get_contains",
+          "params": {
+            "node": "web",
+            "port": 80,
+            "path": "/",
+            "expectedText": "backlog: 0"
+          }
+        }
+      ]
+    },
+    {
+      "id": "the-poison-order",
+      "title": "La commande empoisonnée",
+      "instruction": "Lundi matin. L'intégration d'un partenaire a poussé cette nuit sur ta file quelque chose qui n'aurait jamais dû être envoyé. Toute file finit par en recevoir un — l'industrie appelle ça un **message empoisonné** (*poison message*). Injecte-le toi-même : **Inspect** sur `queue` → onglet **Shell**, et lance :\n\n```\nLPUSH queue:orders corrupted-order-from-partner-api\n```\n\nCe n'est pas du JSON. En quelques secondes, un de tes quatre workers l'attrape, échoue à le parser, et la machinerie construite il y a deux étapes se réveille. Regarde le pupitre : le backlog reste proche de zéro, `dead-lettered` passe à **1**. Rien ne s'est bloqué.\n\nMaintenant lis la trace écrite dans l'**Explorer** de `queue` (icône de rafraîchissement) :\n- `attempts:corrupted-order-from-partner-api` — valeur **3** : trois essais, honnêtement comptés. Le compteur vit *dans Redis*, pas dans la mémoire d'un worker, parce que chaque nouvelle tentative peut être attrapée par un worker **différent** — un décompte privé repartirait de zéro à chaque saut. Le travail partagé exige un état partagé ; tu as déjà appris cette règle avec les reçus.\n- `queue:orders:dead` — une *liste* qui garde le corps, intact, prêt à être inspecté ou rejoué quand le partenaire aura corrigé son bug. Une dead-letter queue est une **boîte de réception, pas une poubelle**.\n\nÇa vaut la peine de s'arrêter sur ce qui n'est *pas* arrivé. Un worker naïf échoue d'une de ces deux façons : il **crashe et bloque la chaîne** — avec une flotte, le poison tue les quatre, un par un — ou il **avale l'erreur et laisse tomber le job** : un reçu promis, jamais émis, aucune trace. Le tien n'a fait ni l'un ni l'autre : il a échoué *bruyamment, trois fois, dans une file que tu peux lire*.\n\nPasse une dernière commande normale sur le pupitre — acceptée, archivée, la routine. Une commande pourrie, et la boutique n'a pas cillé.\n\n**C'est ça, le motif.** Regarde ton canvas : un checkout qui répond en millisecondes quoi que vendredi apporte, une vraie file qui tient les promesses, une flotte stateless qui s'agrandit en glissant un curseur, des reçus dans une archive partagée qui nomment le worker qui les a faits, et une dead-letter queue pour les messages qui mentent. La prochaine fois qu'un interviewer demande *« comment gères-tu une opération lente sur le chemin de la requête ? »* — tu n'as pas seulement lu la réponse : tu as regardé un backlog se vider à un job par seconde, ouvert d'autres caisses, et enterré un message empoisonné avec les honneurs. Si tu ne les as pas encore jouées, les deux autres histoires de Nimbus Books — le lancement résilient et le cache Redis — complètent le tableau.",
+      "hints": [
+        "L'onglet Shell exécute une commande par Execute. Colle exactement `LPUSH queue:orders corrupted-order-from-partner-api` — la valeur ne doit *pas* être du JSON valide, c'est tout l'intérêt.",
+        "`dead-lettered` encore à 0 après ~10 secondes ? Les réessais marquent une pause d'une seconde entre tentatives, le voyage complet prend donc quelques secondes. Toujours rien : lance `LLEN queue:orders:dead` et `KEYS attempts:*` dans le Shell — si les deux sont vides, vérifie que la flotte exécute bien le code worker de l'étape 6 (la logique de retry) et que ton LPUSH a bien visé `queue:orders`.",
+        "Ne t'étonne pas si `tail /root/worker.log` sur `worker-1` ne mentionne jamais le poison — n'importe lequel des quatre workers a pu attraper chaque tentative. Les compteurs Redis sont la vérité partagée ; les logs par machine ne racontent que la version de chaque worker.",
+        "La seconde vérification passe une vraie commande par le checkout — si elle échoue, ton producteur ou ta flotte a un problème plus gros qu'un message empoisonné : vérifie le pupitre à la main."
+      ],
+      "solution": "Dans le **Shell** de `queue` : `LPUSH queue:orders corrupted-order-from-partner-api`. Attends quelques secondes, rafraîchis le pupitre jusqu'à `dead-lettered: 1`, et regarde `attempts:corrupted-order-from-partner-api` (valeur 3) et `queue:orders:dead` dans l'Explorer. Passe une commande normale sur le pupitre, puis valide.",
+      "validators": [
+        {
+          "type": "redis_key_exists",
+          "params": {
+            "node": "queue",
+            "key": "queue:orders:dead"
+          }
+        },
+        {
+          "type": "http_get_contains",
+          "params": {
+            "node": "web",
+            "port": 80,
+            "path": "/order",
+            "expectedText": "accepted"
+          }
+        }
+      ]
+    }
+  ]
+}

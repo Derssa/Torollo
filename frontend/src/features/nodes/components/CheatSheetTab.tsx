@@ -70,7 +70,7 @@ export default function CheatSheetTab({ entries, searchPlaceholder }: CheatSheet
                 onClick={() => handleCopyCheat(item.example, idx)}
                 style={styles.copyBtn}
               >
-                {copiedIndex === idx ? <Check size={14} color="#10B981" /> : <Copy size={14} />}
+                {copiedIndex === idx ? <Check size={14} color="var(--color-success)" /> : <Copy size={14} />}
               </button>
             </div>
           </div>

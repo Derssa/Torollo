@@ -35,7 +35,7 @@ function CodeBlock({ code }: { code: string }) {
           }}
           title="Copy code"
         >
-          {copied ? <Check size={12} color="#10B981" /> : <Copy size={12} color="#94A3B8" />}
+          {copied ? <Check size={12} color="var(--color-success)" /> : <Copy size={12} color="var(--neutral-400)" />}
         </button>
       </div>
       <pre style={styles.pre}>
@@ -142,7 +142,7 @@ const styles: Record<string, React.CSSProperties> = {
   },
   codeBlockContainer: {
     margin: '8px 0',
-    backgroundColor: '#0F172A',
+    backgroundColor: 'var(--neutral-900)',
     borderRadius: '6px',
     border: '1px solid rgba(255, 255, 255, 0.05)',
     overflow: 'hidden',
@@ -155,7 +155,7 @@ const styles: Record<string, React.CSSProperties> = {
   codeBlock: {
     fontFamily: 'monospace',
     fontSize: '11px',
-    color: '#E2E8F0',
+    color: 'var(--neutral-200)',
     lineHeight: 1.5,
     whiteSpace: 'pre',
   },
@@ -179,7 +179,7 @@ const styles: Record<string, React.CSSProperties> = {
     display: 'flex',
     justifyContent: 'flex-end',
     padding: '6px 8px 0 8px',
-    backgroundColor: '#0F172A',
+    backgroundColor: 'var(--neutral-900)',
   },
   copyBtn: {
     background: 'none',

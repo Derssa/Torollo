@@ -43,7 +43,7 @@ export default function QueryShellTab({
           disabled={executing || !value.trim()}
           style={styles.runBtn}
         >
-          <Play size={14} style={{ marginRight: 6 }} fill="#FFF" />
+          <Play size={14} style={{ marginRight: 6 }} fill="var(--color-white)" />
           {executing ? labels.executing : labels.execute}
         </button>
       </div>

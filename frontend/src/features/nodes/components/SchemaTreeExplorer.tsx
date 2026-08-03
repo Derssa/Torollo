@@ -79,12 +79,12 @@ export default function SchemaTreeExplorer({
         {error ? (
           error === 'starting_up' ? (
             <div style={inspectorStyles.errorContainer}>
-              <Loader2 size={24} className="spin" color="#3B82F6" style={{ marginBottom: 12 }} />
+              <Loader2 size={24} className="spin" color="var(--color-accent)" style={{ marginBottom: 12 }} />
               <span style={inspectorStyles.errorMessage}>{labels.initializing}</span>
             </div>
           ) : (
             <div style={inspectorStyles.errorContainer}>
-              <AlertCircle size={24} color="#EF4444" style={{ marginBottom: 12 }} />
+              <AlertCircle size={24} color="var(--color-danger)" style={{ marginBottom: 12 }} />
               <span style={inspectorStyles.errorMessage}>{error}</span>
               <button onClick={onRefresh} style={inspectorStyles.retryBtn}>
                 <RefreshCw size={12} style={{ marginRight: 6 }} />
@@ -95,11 +95,11 @@ export default function SchemaTreeExplorer({
         ) : data.map(node => (
           <div key={node.database} style={inspectorStyles.treeNode}>
             <div style={styles.clickableTreeRow} onClick={() => toggleDBExpand(node.database)}>
-              <Database size={16} color="#3B82F6" style={{ marginRight: 8 }} />
+              <Database size={16} color="var(--color-accent)" style={{ marginRight: 8 }} />
               <span style={styles.dbName}>{node.database}</span>
               {node.error && (
                 <span title={t('nodeshared.schema.offlineUnreachable')}>
-                  <AlertCircle size={14} color="#EF4444" style={{ marginLeft: 8 }} />
+                  <AlertCircle size={14} color="var(--color-danger)" style={{ marginLeft: 8 }} />
                 </span>
               )}
             </div>
@@ -112,7 +112,7 @@ export default function SchemaTreeExplorer({
                     return (
                       <div key={table.name} style={inspectorStyles.treeNode}>
                         <div style={styles.clickableTreeRow} onClick={() => toggleTableExpand(tblKey)}>
-                          <Table size={14} color="#10B981" style={{ marginRight: 8 }} />
+                          <Table size={14} color="var(--color-success)" style={{ marginRight: 8 }} />
                           <span style={styles.tableName}>{table.name}{labels.tableSuffix || ''}</span>
 
                           <button

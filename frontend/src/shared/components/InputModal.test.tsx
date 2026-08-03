@@ -82,8 +82,8 @@ describe('InputModal', () => {
       expect(screen.getByText('Project already exists')).toBeInTheDocument();
     });
 
-    // Error styling should be applied
-    expect(input).toHaveStyle('border-color: rgb(220, 38, 38)');
+    // Error styling should be applied (via the danger token)
+    expect(input.getAttribute('style')).toContain('var(--color-danger)');
 
     // Type in the input to resolve the error
     fireEvent.change(input, { target: { value: 'Duplicate name but changing' } });

@@ -1,4 +1,4 @@
-import { useState, useMemo, useRef, useCallback } from 'react';
+import { useState, useMemo, useRef, useCallback, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import type { ContainerData } from '../../../shared/types';
 import { API_BASE } from '../../../shared/types';
@@ -39,6 +39,23 @@ export function useNetworkConfig({ projectId, containers, showNotification }: Us
     nodeIpMap: {}
   });
 
+  // True when the backend's real inter-subnet self-test found that this host
+  // drops routed traffic between subnet networks (see the canvas warning
+  // banner). Refreshed after every config fetch/save — the save applies
+  // enforcement synchronously, so the verdict is fresh by the time it returns.
+  const [interSubnetBlocked, setInterSubnetBlocked] = useState(false);
+
+  const refreshNetworkHealth = useCallback(() => {
+    fetch(`${API_BASE}/api/projects/${projectId}/network-health`)
+      .then(res => (res.ok ? res.json() : null))
+      .then(data => setInterSubnetBlocked(data?.interSubnet === 'blocked'))
+      .catch(() => {});
+  }, [projectId]);
+
+  useEffect(() => {
+    refreshNetworkHealth();
+  }, [refreshNetworkHealth]);
+
   const saveNetworkConfig = useCallback((newConfig: NetworkConfig) => {
     const grownConfig = autoGrowContainers(newConfig);
     setNetworkConfig(grownConfig);
@@ -63,12 +80,13 @@ export function useNetworkConfig({ projectId, containers, showNotification }: Us
         setNetworkConfig(data);
         localStorage.setItem(`akal-lab-network-config-${projectId}`, JSON.stringify(data));
       }
+      refreshNetworkHealth();
     })
     .catch(err => {
       console.error('Failed to sync network configuration to backend:', err);
       throw err;
     });
-  }, [projectId]);
+  }, [projectId, refreshNetworkHealth]);
 
   const fetchNetworkConfig = useCallback(() => {
     fetch(`${API_BASE}/api/projects/${projectId}/network-config`)
@@ -154,5 +172,5 @@ export function useNetworkConfig({ projectId, containers, showNotification }: Us
     }
   }, [containers, showNotification, t]);
 
-  return { networkConfig, saveNetworkConfig, fetchNetworkConfig, triggerArchitectureAudit };
+  return { networkConfig, saveNetworkConfig, fetchNetworkConfig, triggerArchitectureAudit, interSubnetBlocked };
 }

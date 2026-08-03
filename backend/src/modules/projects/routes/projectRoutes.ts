@@ -8,5 +8,6 @@ router.post('/', ProjectController.create);
 router.delete('/:id', ProjectController.delete);
 router.get('/:id/network-config', ProjectController.getNetworkConfig);
 router.post('/:id/network-config', ProjectController.saveNetworkConfig);
+router.get('/:id/network-health', ProjectController.getNetworkHealth);
 
 export default router;

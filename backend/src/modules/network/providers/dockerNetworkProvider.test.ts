@@ -9,7 +9,8 @@ jest.mock('../../../infrastructure/docker/DockerClient', () => ({
     listNetworks: jest.fn(),
     getContainer: jest.fn(),
     getNetwork: jest.fn(),
-    createNetwork: jest.fn()
+    createNetwork: jest.fn(),
+    createContainer: jest.fn()
   }
 }));
 
@@ -42,12 +43,18 @@ function fakeExecContainer(output = '', exitCode = 0) {
   };
 }
 
+const GATEWAY_MODE_OPTIONS = { 'com.docker.network.bridge.gateway_mode_ipv4': 'nat-unprotected' };
+
 describe('DockerNetworkProvider.ensureNetwork', () => {
   const provider = new DockerNetworkProvider();
   const ensureNetwork = (netName: string, cidr: string, allNetworks: any[]) =>
     (provider as any).ensureNetwork(netName, cidr, allNetworks);
 
-  it('creates the network with the requested CIDR when it does not exist yet', async () => {
+  beforeEach(() => {
+    (DockerNetworkProvider as any).gatewayModeUnsupported = false;
+  });
+
+  it('creates the network with the requested CIDR and the unprotected gateway mode when it does not exist yet', async () => {
     (mockedDocker.createNetwork as jest.Mock).mockResolvedValue(undefined);
 
     const result = await ensureNetwork('akal-subnet-p1-s1', '10.0.1.0/24', []);
@@ -56,7 +63,8 @@ describe('DockerNetworkProvider.ensureNetwork', () => {
     expect(mockedDocker.createNetwork).toHaveBeenCalledWith({
       Name: 'akal-subnet-p1-s1',
       Driver: 'bridge',
-      IPAM: { Config: [{ Subnet: '10.0.1.0/24', Gateway: '10.0.1.1' }] }
+      IPAM: { Config: [{ Subnet: '10.0.1.0/24', Gateway: '10.0.1.1' }] },
+      Options: GATEWAY_MODE_OPTIONS
     });
   });
 
@@ -73,7 +81,8 @@ describe('DockerNetworkProvider.ensureNetwork', () => {
     expect(mockedDocker.createNetwork).toHaveBeenLastCalledWith({
       Name: 'akal-subnet-p1-s1',
       Driver: 'bridge',
-      IPAM: { Config: [{ Subnet: '10.112.1.0/24', Gateway: '10.112.1.1' }] }
+      IPAM: { Config: [{ Subnet: '10.112.1.0/24', Gateway: '10.112.1.1' }] },
+      Options: GATEWAY_MODE_OPTIONS
     });
   });
 
@@ -86,20 +95,98 @@ describe('DockerNetworkProvider.ensureNetwork', () => {
     expect(mockedDocker.createNetwork).toHaveBeenCalledTimes(10);
   });
 
-  it('rethrows non-overlap errors immediately without retrying', async () => {
+  it('drops the gateway-mode option when the daemon rejects it, and stops offering it once that fallback succeeds', async () => {
+    (mockedDocker.createNetwork as jest.Mock)
+      .mockRejectedValueOnce(new Error('invalid option: com.docker.network.bridge.gateway_mode_ipv4'))
+      .mockResolvedValue(undefined);
+
+    const result = await ensureNetwork('akal-subnet-p1-s1', '10.0.1.0/24', []);
+
+    expect(result).toBe('10.0.1.0/24');
+    expect(mockedDocker.createNetwork).toHaveBeenCalledTimes(2);
+    expect((mockedDocker.createNetwork as jest.Mock).mock.calls[1][0].Options).toBeUndefined();
+
+    // Next create must not offer the option again for this process.
+    await ensureNetwork('akal-subnet-p1-s2', '10.0.2.0/24', []);
+    expect((mockedDocker.createNetwork as jest.Mock).mock.calls[2][0].Options).toBeUndefined();
+  });
+
+  it('rethrows persistent non-overlap errors after the option fallback, without flagging the option unsupported', async () => {
     (mockedDocker.createNetwork as jest.Mock).mockRejectedValue(new Error('permission denied'));
 
     await expect(ensureNetwork('akal-subnet-p1-s1', '10.0.1.0/24', [])).rejects.toThrow('permission denied');
-    expect(mockedDocker.createNetwork).toHaveBeenCalledTimes(1);
+    // One attempt with the option, one without: the error is not about the option.
+    expect(mockedDocker.createNetwork).toHaveBeenCalledTimes(2);
+    expect((DockerNetworkProvider as any).gatewayModeUnsupported).toBe(false);
   });
 
-  it('reuses an already-created network and returns its actual subnet instead of recreating it', async () => {
-    const networkHandle = { inspect: jest.fn().mockResolvedValue({ IPAM: { Config: [{ Subnet: '10.99.1.0/24' }] } }) };
+  it('reuses an already-created network carrying the gateway mode and returns its actual subnet', async () => {
+    const networkHandle = {
+      inspect: jest.fn().mockResolvedValue({
+        IPAM: { Config: [{ Subnet: '10.99.1.0/24' }] },
+        Options: GATEWAY_MODE_OPTIONS
+      })
+    };
     (mockedDocker.getNetwork as jest.Mock).mockReturnValue(networkHandle);
 
     const result = await ensureNetwork('akal-subnet-p1-s1', '10.0.1.0/24', [{ Name: 'akal-subnet-p1-s1' }]);
 
     expect(result).toBe('10.99.1.0/24');
+    expect(mockedDocker.createNetwork).not.toHaveBeenCalled();
+  });
+
+  it('recreates an existing network that predates the gateway-mode option, keeping its resolved CIDR', async () => {
+    const networkHandle = {
+      inspect: jest.fn().mockResolvedValue({
+        IPAM: { Config: [{ Subnet: '10.112.1.0/24' }] },
+        Containers: { c1: {}, c2: {} }
+      }),
+      disconnect: jest.fn().mockResolvedValue(undefined),
+      remove: jest.fn().mockResolvedValue(undefined)
+    };
+    (mockedDocker.getNetwork as jest.Mock).mockReturnValue(networkHandle);
+    (mockedDocker.createNetwork as jest.Mock).mockResolvedValue(undefined);
+
+    const result = await ensureNetwork('akal-subnet-p1-s1', '10.0.1.0/24', [{ Name: 'akal-subnet-p1-s1' }]);
+
+    expect(result).toBe('10.112.1.0/24');
+    expect(networkHandle.disconnect).toHaveBeenCalledWith({ Container: 'c1', Force: true });
+    expect(networkHandle.disconnect).toHaveBeenCalledWith({ Container: 'c2', Force: true });
+    expect(networkHandle.remove).toHaveBeenCalledTimes(1);
+    expect(mockedDocker.createNetwork).toHaveBeenCalledWith({
+      Name: 'akal-subnet-p1-s1',
+      Driver: 'bridge',
+      IPAM: { Config: [{ Subnet: '10.112.1.0/24', Gateway: '10.112.1.1' }] },
+      Options: GATEWAY_MODE_OPTIONS
+    });
+  });
+
+  it('keeps the existing network as a degraded fallback when its removal for recreation fails', async () => {
+    const networkHandle = {
+      inspect: jest.fn().mockResolvedValue({ IPAM: { Config: [{ Subnet: '10.99.1.0/24' }] } }),
+      disconnect: jest.fn().mockResolvedValue(undefined),
+      remove: jest.fn().mockRejectedValue(new Error('network has active endpoints'))
+    };
+    (mockedDocker.getNetwork as jest.Mock).mockReturnValue(networkHandle);
+
+    const result = await ensureNetwork('akal-subnet-p1-s1', '10.0.1.0/24', [{ Name: 'akal-subnet-p1-s1' }]);
+
+    expect(result).toBe('10.99.1.0/24');
+    expect(mockedDocker.createNetwork).not.toHaveBeenCalled();
+  });
+
+  it('does not recreate pre-existing networks once the daemon is known to reject the option', async () => {
+    (DockerNetworkProvider as any).gatewayModeUnsupported = true;
+    const networkHandle = {
+      inspect: jest.fn().mockResolvedValue({ IPAM: { Config: [{ Subnet: '10.99.1.0/24' }] } }),
+      remove: jest.fn()
+    };
+    (mockedDocker.getNetwork as jest.Mock).mockReturnValue(networkHandle);
+
+    const result = await ensureNetwork('akal-subnet-p1-s1', '10.0.1.0/24', [{ Name: 'akal-subnet-p1-s1' }]);
+
+    expect(result).toBe('10.99.1.0/24');
+    expect(networkHandle.remove).not.toHaveBeenCalled();
     expect(mockedDocker.createNetwork).not.toHaveBeenCalled();
   });
 });
@@ -170,5 +257,80 @@ describe('DockerNetworkProvider.cleanupProjectPolicies', () => {
     expect(networkHandle.disconnect).toHaveBeenCalledWith({ Container: 'c1', Force: true });
     expect(networkHandle.disconnect).toHaveBeenCalledWith({ Container: 'c2', Force: true });
     expect(networkHandle.remove).toHaveBeenCalledTimes(1);
+  });
+});
+
+describe('DockerNetworkProvider.probeInterSubnetConnectivity', () => {
+  const { getInterSubnetStatus, setInterSubnetStatus, clearInterSubnetStatus } =
+    jest.requireActual('../services/interSubnetHealth');
+
+  const makeProvider = () => new DockerNetworkProvider();
+  const probe = (provider: DockerNetworkProvider, projectId: string, config: any, resolvedCidrs: Record<string, string>) =>
+    (provider as any).probeInterSubnetConnectivity(projectId, config, resolvedCidrs);
+
+  /** Fake listener+prober containers: the prober exits with the given code. */
+  function mockProbeContainers(proberExitCode: number) {
+    const listener = {
+      start: jest.fn().mockResolvedValue(undefined),
+      inspect: jest.fn().mockResolvedValue({
+        NetworkSettings: { Networks: { 'akal-subnet-p1-s1': { IPAddress: '10.0.1.5' } } }
+      }),
+      remove: jest.fn().mockResolvedValue(undefined)
+    };
+    const prober = {
+      start: jest.fn().mockResolvedValue(undefined),
+      wait: jest.fn().mockResolvedValue({ StatusCode: proberExitCode }),
+      remove: jest.fn().mockResolvedValue(undefined)
+    };
+    (mockedDocker.createContainer as jest.Mock)
+      .mockResolvedValueOnce(listener)
+      .mockResolvedValueOnce(prober);
+    return { listener, prober };
+  }
+
+  const twoSubnetConfig = { subnets: [{ id: 's1' }, { id: 's2' }] };
+  const twoSubnetCidrs = { s1: '10.0.1.0/24', s2: '10.0.2.0/24' };
+
+  beforeEach(() => {
+    clearInterSubnetStatus('p1');
+  });
+
+  it('clears any recorded status when the project has fewer than two subnet networks', async () => {
+    setInterSubnetStatus('p1', 'blocked');
+
+    await probe(makeProvider(), 'p1', { subnets: [{ id: 's1' }] }, { s1: '10.0.1.0/24' });
+
+    expect(getInterSubnetStatus('p1')).toBe('unknown');
+    expect(mockedDocker.createContainer).not.toHaveBeenCalled();
+  });
+
+  it('records ok when the prober reaches the listener across subnets, and cleans both containers up', async () => {
+    const { listener, prober } = mockProbeContainers(0);
+
+    await probe(makeProvider(), 'p1', twoSubnetConfig, twoSubnetCidrs);
+
+    expect(getInterSubnetStatus('p1')).toBe('ok');
+    expect(listener.remove).toHaveBeenCalledWith({ force: true });
+    expect(prober.remove).toHaveBeenCalledWith({ force: true });
+  });
+
+  it('records blocked when the prober cannot cross, and skips re-probing the same network set', async () => {
+    mockProbeContainers(1);
+    const provider = makeProvider();
+
+    await probe(provider, 'p1', twoSubnetConfig, twoSubnetCidrs);
+    expect(getInterSubnetStatus('p1')).toBe('blocked');
+    expect(mockedDocker.createContainer).toHaveBeenCalledTimes(2);
+
+    await probe(provider, 'p1', twoSubnetConfig, twoSubnetCidrs);
+    expect(mockedDocker.createContainer).toHaveBeenCalledTimes(2);
+  });
+
+  it('records unknown (never blocked) when the probe infrastructure itself fails', async () => {
+    (mockedDocker.createContainer as jest.Mock).mockRejectedValue(new Error('image not found'));
+
+    await probe(makeProvider(), 'p1', twoSubnetConfig, twoSubnetCidrs);
+
+    expect(getInterSubnetStatus('p1')).toBe('unknown');
   });
 });

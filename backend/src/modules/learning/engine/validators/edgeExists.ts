@@ -10,6 +10,12 @@ import { findMatchingInboundRule, hasEffectiveInboundAllow, resolveSourceAndTarg
  * `container_running` — a stopped node still counts as long as it exists.
  * DENY rules are honored with the same first-match-wins semantics as the
  * Network Simulator and the real enforcement (see `findMatchingInboundRule`).
+ *
+ * One honesty guard on top of the semantic verdict: when the two nodes live
+ * in different subnets and the host failed the real inter-subnet self-test
+ * (see `interSubnetHealth`), a correct rule still cannot carry packets — the
+ * validator reports that failure explicitly instead of a pass the real
+ * network would contradict.
  */
 export const edgeExists: ValidatorHandler = async (params, ctx) => {
   const source = requireStringParam(params, 'source');
@@ -40,6 +46,22 @@ export const edgeExists: ValidatorHandler = async (params, ctx) => {
         : `There is no allowed connection from "${source}" to "${target}"${portLabel} yet. Add a security group rule allowing it.`,
       expected: `an allowed connection from "${source}" to "${target}"${portLabel}`,
       observed: deniedByRule ? 'blocked by a DENY rule' : 'no matching rule',
+    };
+  }
+
+  const config = await ctx.getNetworkConfig();
+  const sourceSubnet = config?.nodeSubnetMap?.[sourceId];
+  const targetSubnet = config?.nodeSubnetMap?.[targetId];
+  const crossSubnet = !!sourceSubnet && !!targetSubnet && sourceSubnet !== targetSubnet;
+  if (crossSubnet && ctx.getInterSubnetStatus() === 'blocked') {
+    return {
+      status: 'fail',
+      message:
+        `Your rule from "${source}" to "${target}"${portLabel} is configured correctly, ` +
+        `but this machine's firewall setup is dropping real traffic between subnets, ` +
+        `so the connection cannot actually work here. This is a host limitation, not a mistake in your architecture.`,
+      expected: `inter-subnet traffic forwarded by the host`,
+      observed: `the host drops routed traffic between subnet networks`,
     };
   }
 

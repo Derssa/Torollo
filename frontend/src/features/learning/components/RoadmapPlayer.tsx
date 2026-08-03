@@ -185,7 +185,7 @@ export default function RoadmapPlayer({
             </div>
             {localhostLink && (
               <div style={styles.linkBox}>
-                <Globe size={14} color="#10B981" style={{ marginRight: 6, flexShrink: 0 }} />
+                <Globe size={14} color="var(--color-success)" style={{ marginRight: 6, flexShrink: 0 }} />
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
                   <span style={styles.linkLabel}>Visit your web server:</span>
                   <a href={localhostLink} target="_blank" rel="noopener noreferrer" style={styles.link}>
@@ -404,7 +404,7 @@ const styles: Record<string, React.CSSProperties> = {
     border: 'none',
     borderRadius: '6px',
     backgroundColor: 'var(--color-accent)',
-    color: '#FFFFFF',
+    color: 'var(--color-white)',
     fontSize: '13px',
     fontWeight: 600,
     cursor: 'pointer',
@@ -438,8 +438,8 @@ const styles: Record<string, React.CSSProperties> = {
     alignItems: 'center',
     marginTop: '10px',
     padding: '8px 12px',
-    backgroundColor: 'rgba(16, 185, 129, 0.08)',
-    border: '1px solid rgba(16, 185, 129, 0.2)',
+    backgroundColor: 'color-mix(in srgb, var(--color-success) 8%, transparent)',
+    border: '1px solid color-mix(in srgb, var(--color-success) 20%, transparent)',
     borderRadius: '6px',
   },
   linkLabel: {

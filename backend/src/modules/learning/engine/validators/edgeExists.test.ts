@@ -128,4 +128,77 @@ describe('edgeExists', () => {
       InvalidParamsError
     );
   });
+
+  describe('inter-subnet honesty guard', () => {
+    const allowWebToDb = {
+      'db-1': [
+        { type: 'inbound' as const, action: 'ALLOW' as const, protocol: 'TCP', port: '5432', source: 'web-1' },
+      ],
+    };
+
+    /** Same ALLOW rule, but the two nodes live in different subnets. */
+    function crossSubnetConfig() {
+      const config = makeNetworkConfig(['web-1', 'db-1'], allowWebToDb);
+      config.nodeSubnetMap!['db-1'] = 'subnet-private-1';
+      return config;
+    }
+
+    it('fails with an explicit host warning instead of passing when the host blocks inter-subnet traffic', async () => {
+      const outcome = await edgeExists(
+        { source: 'web', target: 'db', port: 5432 },
+        makeContext({ containers, networkConfig: crossSubnetConfig(), interSubnetStatus: 'blocked' })
+      );
+
+      expect(outcome.status).toBe('fail');
+      expect(outcome.message).toContain('configured correctly');
+      expect(outcome.message).toContain('host');
+      expect(outcome.observed).toBe('the host drops routed traffic between subnet networks');
+    });
+
+    it('still passes for nodes in the same subnet even when the host blocks inter-subnet traffic', async () => {
+      const outcome = await edgeExists(
+        { source: 'web', target: 'db', port: 5432 },
+        makeContext({
+          containers,
+          networkConfig: makeNetworkConfig(['web-1', 'db-1'], allowWebToDb),
+          interSubnetStatus: 'blocked',
+        })
+      );
+
+      expect(outcome.status).toBe('pass');
+    });
+
+    it('passes across subnets when the host self-test succeeded', async () => {
+      const outcome = await edgeExists(
+        { source: 'web', target: 'db', port: 5432 },
+        makeContext({ containers, networkConfig: crossSubnetConfig(), interSubnetStatus: 'ok' })
+      );
+
+      expect(outcome.status).toBe('pass');
+    });
+
+    it('does not downgrade a pass on an unverified host (unknown status)', async () => {
+      const outcome = await edgeExists(
+        { source: 'web', target: 'db', port: 5432 },
+        makeContext({ containers, networkConfig: crossSubnetConfig(), interSubnetStatus: 'unknown' })
+      );
+
+      expect(outcome.status).toBe('pass');
+    });
+
+    it('keeps reporting missing rules as rule failures, not host failures, on a blocked host', async () => {
+      const config = makeNetworkConfig(['web-1', 'db-1']);
+      config.nodeSubnetMap!['db-1'] = 'subnet-private-1';
+
+      const outcome = await edgeExists(
+        { source: 'web', target: 'db', port: 5432 },
+        makeContext({ containers, networkConfig: config, interSubnetStatus: 'blocked' })
+      );
+
+      expect(outcome.status).toBe('fail');
+      // The default security group's DENY is the reported cause — a rule
+      // verdict, not the host warning.
+      expect(outcome.observed).toBe('blocked by a DENY rule');
+    });
+  });
 });

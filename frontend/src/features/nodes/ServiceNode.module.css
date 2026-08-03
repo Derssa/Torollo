@@ -99,7 +99,7 @@
 
 .btnPrimary {
   background-color: var(--color-accent);
-  color: #FFF;
+  color: var(--color-white);
   flex: 1;
 }
 
@@ -116,14 +116,14 @@
 .btnSuccess {
   background-color: var(--color-success-glow);
   color: var(--color-success);
-  border: 1px solid rgba(5, 150, 105, 0.3);
+  border: 1px solid color-mix(in srgb, var(--color-success) 30%, transparent);
   flex: 1;
 }
 
 .btnDanger {
   background-color: var(--color-danger-glow);
   color: var(--color-danger);
-  border: 1px solid rgba(220, 38, 38, 0.3);
+  border: 1px solid color-mix(in srgb, var(--color-danger) 30%, transparent);
   width: 32px;
 }
 
@@ -136,12 +136,12 @@
   display: flex;
   align-items: center;
   margin-left: 2px;
-  color: #9CA3AF;
+  color: var(--neutral-400);
   transition: color 0.15s ease;
 }
 
 .renameBtn:hover:not(.disabled) {
-  color: #3B82F6;
+  color: var(--color-accent);
 }
 
 .renameBtn.disabled {
@@ -157,7 +157,7 @@
   left: 50%;
   transform: translateX(-50%) scale(0.95);
   background-color: rgba(17, 24, 39, 0.95);
-  color: #FFFFFF;
+  color: var(--color-white);
   padding: 4px 8px;
   border-radius: 4px;
   font-size: 10px;

@@ -196,8 +196,8 @@ export function buildFirewallEdges(
               data: { onDelete },
               animated: true,
               label: `Port ${rule.port}`,
-              style: { stroke: '#10B981', strokeWidth: 2 },
-              labelStyle: { fill: '#374151', fontSize: 9, fontWeight: 700 },
+              style: { stroke: 'var(--color-success)', strokeWidth: 2 },
+              labelStyle: { fill: 'var(--neutral-700)', fontSize: 9, fontWeight: 700 },
             });
           }
         }

@@ -8,6 +8,22 @@ import { getSubnetPrefix, getDockerGatewayIp, getNatGatewayIp, resolveVpcCidrShi
 import { findNatRoute, findNatEndpoint } from './natResolution';
 import { buildSecurityGroupIntentCommands, buildGatewayAllowCommands } from './firewallRules';
 import { buildLoadBalancerNginxConfig } from './nginxConfigBuilder';
+import { getInterSubnetStatus, setInterSubnetStatus, clearInterSubnetStatus } from '../services/interSubnetHealth';
+
+/**
+ * Docker 28+ adds anti-spoofing rules in the host's `raw` table that drop any
+ * packet addressed to a container unless it enters through the container's own
+ * bridge — which kills all routed subnet-to-subnet traffic. This bridge option
+ * disables those rules for a network (the lab enforces its own security-group
+ * firewall inside every container). Older daemons reject the option, and also
+ * do not install the raw rules, so falling back to a plain create is safe.
+ */
+const GATEWAY_MODE_OPTION = 'com.docker.network.bridge.gateway_mode_ipv4';
+const GATEWAY_MODE_VALUE = 'nat-unprotected';
+
+const PROBE_IMAGE = 'derssa/backend-lab-ubuntu:v1';
+const PROBE_PORT = 39999;
+const PROBE_TIMEOUT_MS = 25_000;
 
 /** Loop-invariant state shared while connecting every endpoint to its target network. */
 interface ConnectContext {
@@ -48,6 +64,12 @@ interface FirewallContext extends PlanSharedContext {
 }
 
 export class DockerNetworkProvider implements NetworkProvider {
+  /** Set once the daemon rejects the gateway-mode bridge option (Docker < 28). */
+  private static gatewayModeUnsupported = false;
+
+  /** Fingerprint of the subnet-network set last probed per project, to skip redundant self-tests. */
+  private probedNetworkSets: Record<string, string> = {};
+
   private async runExec(containerId: string, cmd: string[]): Promise<string> {
     try {
       const container = docker.getContainer(containerId);
@@ -802,10 +824,100 @@ export class DockerNetworkProvider implements NetworkProvider {
     await Promise.all(endpoints.map(ep => this.configureContainerFirewall(ep, sharedCtx)));
 
     await this.persistCidrCorrections(projectId, config, vpcCidr, resolvedCidrs, ipMap);
+
+    await this.probeInterSubnetConnectivity(projectId, config, resolvedCidrs);
+  }
+
+  /**
+   * Real dataplane self-test: sends one TCP connection between two throwaway
+   * containers placed on two of the project's subnet networks. Some hosts
+   * silently drop routed traffic between Docker bridges (Docker 28+ raw-table
+   * filtering — countered by the gateway-mode option above — or restrictive
+   * firewall setups); the recorded verdict lets validators and the UI warn
+   * instead of claiming inter-subnet rules work when packets cannot pass.
+   * Runs only when the subnet-network set changed since the last probe.
+   */
+  private async probeInterSubnetConnectivity(projectId: string, config: any, resolvedCidrs: Record<string, string>): Promise<void> {
+    const subnetIds = (config.subnets || []).map((s: any) => s.id).filter((id: string) => resolvedCidrs[id]);
+    if (subnetIds.length < 2) {
+      clearInterSubnetStatus(projectId);
+      delete this.probedNetworkSets[projectId];
+      return;
+    }
+
+    const netA = `akal-subnet-${projectId}-${subnetIds[0]}`;
+    const netB = `akal-subnet-${projectId}-${subnetIds[1]}`;
+    const fingerprint = [netA, resolvedCidrs[subnetIds[0]], netB, resolvedCidrs[subnetIds[1]], DockerNetworkProvider.gatewayModeUnsupported].join('|');
+    if (this.probedNetworkSets[projectId] === fingerprint && getInterSubnetStatus(projectId) !== 'unknown') {
+      return;
+    }
+
+    console.log(`[DockerNetworkProvider] Probing real inter-subnet connectivity between ${netA} and ${netB}...`);
+    try {
+      const status = await this.runInterSubnetProbe(netA, netB);
+      setInterSubnetStatus(projectId, status);
+      this.probedNetworkSets[projectId] = fingerprint;
+      if (status === 'blocked') {
+        console.warn(`[DockerNetworkProvider] Inter-subnet probe FAILED for project ${projectId}: this host drops routed traffic between subnet networks.`);
+      } else {
+        console.log(`[DockerNetworkProvider] Inter-subnet probe result for project ${projectId}: ${status}`);
+      }
+    } catch (err) {
+      console.warn('[DockerNetworkProvider] Inter-subnet probe could not run:', err);
+      setInterSubnetStatus(projectId, 'unknown');
+      this.probedNetworkSets[projectId] = fingerprint;
+    }
+  }
+
+  /** Runs the actual listener/prober container pair. Throws on infrastructure errors. */
+  private async runInterSubnetProbe(listenerNetwork: string, proberNetwork: string): Promise<'ok' | 'blocked' | 'unknown'> {
+    let listener: any;
+    let prober: any;
+    try {
+      const probe = async (): Promise<'ok' | 'blocked' | 'unknown'> => {
+        listener = await docker.createContainer({
+          Image: PROBE_IMAGE,
+          Cmd: ['sh', '-c', `timeout 20 sh -c 'while true; do echo ok | nc -l -p ${PROBE_PORT} -q 1; done' >/dev/null 2>&1; true`],
+          HostConfig: { NetworkMode: listenerNetwork },
+          Labels: { 'akal.probe': 'inter-subnet' }
+        });
+        await listener.start();
+        const inspect = await listener.inspect();
+        const listenerIp = inspect.NetworkSettings?.Networks?.[listenerNetwork]?.IPAddress;
+        if (!listenerIp) return 'unknown';
+
+        prober = await docker.createContainer({
+          Image: PROBE_IMAGE,
+          // Each attempt gets its own short timeout: on hosts that DROP (not
+          // reject) forwarded packets, a bare /dev/tcp connect would hang for
+          // the kernel's full TCP timeout and the probe would expire as
+          // 'unknown' instead of reporting the drop.
+          Cmd: ['bash', '-c', `for i in 1 2 3 4 5; do timeout 2 bash -c 'echo probe > /dev/tcp/${listenerIp}/${PROBE_PORT}' 2>/dev/null && exit 0; sleep 1; done; exit 1`],
+          HostConfig: { NetworkMode: proberNetwork },
+          Labels: { 'akal.probe': 'inter-subnet' }
+        });
+        await prober.start();
+        const result = await prober.wait();
+        return result?.StatusCode === 0 ? 'ok' : 'blocked';
+      };
+
+      const timeout = new Promise<'unknown'>((resolve) =>
+        setTimeout(() => resolve('unknown'), PROBE_TIMEOUT_MS).unref()
+      );
+      return await Promise.race([probe(), timeout]);
+    } finally {
+      for (const c of [prober, listener]) {
+        if (c) {
+          await c.remove({ force: true }).catch(() => {});
+        }
+      }
+    }
   }
 
   public async cleanupProjectPolicies(projectId: string, endpoints: VirtualEndpoint[]): Promise<void> {
     console.log(`[DockerNetworkProvider] Cleaning up network policies for project: ${projectId}`);
+    clearInterSubnetStatus(projectId);
+    delete this.probedNetworkSets[projectId];
     const dockerContainers = await docker.listContainers({ all: true });
 
     this.resolveContainerNames(endpoints, dockerContainers);
@@ -857,6 +969,13 @@ export class DockerNetworkProvider implements NetworkProvider {
         const net = docker.getNetwork(netName);
         const inspect = await net.inspect();
         const subnet = inspect.IPAM?.Config?.[0]?.Subnet;
+        const hasGatewayMode = inspect.Options?.[GATEWAY_MODE_OPTION] === GATEWAY_MODE_VALUE;
+        if (!hasGatewayMode && !DockerNetworkProvider.gatewayModeUnsupported) {
+          // Network predates the gateway-mode fix: recreate it with the option.
+          // Safe here because containers are (re)connected later in applyPlan.
+          const recreated = await this.recreateNetworkWithGatewayMode(net, netName, subnet || cidr);
+          if (recreated) return recreated;
+        }
         if (subnet) return subnet;
       } catch {
         // Ignore network inspect error and fallback to default CIDR
@@ -864,8 +983,30 @@ export class DockerNetworkProvider implements NetworkProvider {
       return cidr;
     }
 
+    return this.createNetwork(netName, cidr);
+  }
+
+  /** Disconnects every container from the network and removes it, then recreates it with the gateway-mode option. Returns the CIDR, or null to keep the existing network. */
+  private async recreateNetworkWithGatewayMode(net: any, netName: string, cidr: string): Promise<string | null> {
+    console.log(`[DockerNetworkProvider] Recreating network ${netName} to disable Docker inter-subnet packet filtering...`);
+    try {
+      const inspect = await net.inspect();
+      for (const cId of Object.keys(inspect.Containers || {})) {
+        await net.disconnect({ Container: cId, Force: true });
+      }
+      await net.remove();
+    } catch (err) {
+      console.error(`[DockerNetworkProvider] Failed to remove network ${netName} for recreation, keeping it as is:`, err);
+      return null;
+    }
+    return this.createNetwork(netName, cidr);
+  }
+
+  private async createNetwork(netName: string, cidr: string): Promise<string> {
     let currentCidr = cidr;
     let attempts = 0;
+    let withGatewayMode = !DockerNetworkProvider.gatewayModeUnsupported;
+    let fellBack = false;
     while (attempts < 10) {
       try {
         console.log(`[DockerNetworkProvider] Creating network ${netName} with CIDR ${currentCidr}...`);
@@ -878,8 +1019,15 @@ export class DockerNetworkProvider implements NetworkProvider {
               Subnet: currentCidr,
               Gateway: gateway
             }]
-          }
+          },
+          ...(withGatewayMode ? { Options: { [GATEWAY_MODE_OPTION]: GATEWAY_MODE_VALUE } } : {})
         });
+        if (fellBack) {
+          // Dropping the option is what made the create succeed: this daemon
+          // (Docker < 28) rejects it — and also does not filter routed
+          // inter-subnet traffic, so stop offering it for the process lifetime.
+          DockerNetworkProvider.gatewayModeUnsupported = true;
+        }
         return currentCidr;
       } catch (err: any) {
         if (err.statusCode === 403 || err.message?.includes('overlaps') || err.message?.includes('pool')) {
@@ -889,6 +1037,10 @@ export class DockerNetworkProvider implements NetworkProvider {
           parts[1] = secondOctet.toString();
           currentCidr = parts.join('.');
           console.warn(`[DockerNetworkProvider] Pool overlap detected. Retrying with shifted CIDR: ${currentCidr}`);
+        } else if (withGatewayMode) {
+          console.warn(`[DockerNetworkProvider] Create with ${GATEWAY_MODE_OPTION} failed for ${netName}; retrying without it:`, err.message);
+          withGatewayMode = false;
+          fellBack = true;
         } else {
           throw err;
         }

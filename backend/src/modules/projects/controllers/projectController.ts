@@ -1,6 +1,7 @@
 import { Request, Response } from 'express';
 import { ProjectService } from '../services/projectService';
 import { NetworkService } from '../../network/services/networkService';
+import { getInterSubnetStatus } from '../../network/services/interSubnetHealth';
 import { validateAsgCapacityConfig } from '../../containers/validation/asgCapacity';
 
 export class ProjectController {
@@ -47,6 +48,16 @@ export class ProjectController {
     } catch (err: any) {
       res.status(500).json({ error: err.message });
     }
+  }
+
+  /**
+   * Runtime health of the project's virtual network on this host. Currently
+   * one signal: the inter-subnet connectivity self-test verdict (`ok` /
+   * `blocked` / `unknown`), so the UI can warn when the host drops routed
+   * traffic between subnets.
+   */
+  public static getNetworkHealth(req: Request, res: Response): void {
+    res.json({ interSubnet: getInterSubnetStatus(req.params.id as string) });
   }
 
   public static async getNetworkConfig(req: Request, res: Response): Promise<void> {

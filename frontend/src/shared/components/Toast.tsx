@@ -11,27 +11,27 @@ export function ToastNotification({ type, message, onDismiss }: ToastNotificatio
     switch (type) {
       case 'success':
         return {
-          border: '1px solid #10B981',
+          border: '1px solid var(--color-success)',
           background: 'rgba(240, 253, 250, 0.96)',
-          color: '#065F46',
-          iconColor: '#10B981',
+          color: 'var(--color-success-strong)',
+          iconColor: 'var(--color-success)',
           Icon: CheckCircle
         };
       case 'warning':
         return {
-          border: '1px solid #F59E0B',
+          border: '1px solid var(--color-warning)',
           background: 'rgba(255, 251, 235, 0.96)',
-          color: '#92400E',
-          iconColor: '#F59E0B',
+          color: 'var(--color-warning-strong)',
+          iconColor: 'var(--color-warning)',
           Icon: AlertTriangle
         };
       case 'error':
       default:
         return {
-          border: '1px solid #EF4444',
+          border: '1px solid var(--color-danger)',
           background: 'rgba(254, 242, 242, 0.96)',
-          color: '#991B1B',
-          iconColor: '#EF4444',
+          color: 'var(--color-danger-strong)',
+          iconColor: 'var(--color-danger)',
           Icon: XCircle
         };
     }

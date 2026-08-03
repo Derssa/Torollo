@@ -4,6 +4,7 @@ import { containerProvider } from '../../../infrastructure/docker/providers/dock
 import { ContainerInfo } from '../../../infrastructure/docker/providers/containerProvider';
 import { ProjectService } from '../../projects/services/projectService';
 import { NetworkService } from '../../network/services/networkService';
+import { getInterSubnetStatus } from '../../network/services/interSubnetHealth';
 import { SemanticRule } from '../../network/models/networkPolicy';
 import { validatorRegistry } from './registry';
 import {
@@ -18,6 +19,7 @@ import {
 export const defaultEngineDeps: EngineDeps = {
   listContainersByProject: (projectId) => containerProvider.listContainersByProject(projectId),
   getNetworkConfig: (projectId) => ProjectService.getNetworkConfig(projectId),
+  getInterSubnetStatus: (projectId) => getInterSubnetStatus(projectId),
   executePsqlCommand: (containerId, database, sqlQuery, extraArgs) =>
     containerProvider.executePsqlCommand(containerId, database, sqlQuery, extraArgs),
   executeRedisCommand: (containerId, args) => containerProvider.executeRedisCommand(containerId, args),
@@ -64,6 +66,7 @@ export async function runStepValidators(
       );
       return semanticRulesPromise;
     },
+    getInterSubnetStatus: () => deps.getInterSubnetStatus(projectId),
     executePsqlCommand: (containerId, database, sqlQuery, extraArgs) =>
       deps.executePsqlCommand(containerId, database, sqlQuery, extraArgs),
     executeRedisCommand: (containerId, args) => deps.executeRedisCommand(containerId, args),

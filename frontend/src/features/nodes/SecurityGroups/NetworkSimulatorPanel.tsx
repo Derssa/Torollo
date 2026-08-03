@@ -202,18 +202,18 @@ export default function NetworkSimulatorPanel({
         {simulationResult && (
           <div style={{
             ...styles.resultBox,
-            backgroundColor: simulationResult.success ? 'rgba(16, 185, 129, 0.05)' : 'rgba(239, 68, 68, 0.05)',
-            border: `1px solid ${simulationResult.success ? 'rgba(16, 185, 129, 0.2)' : 'rgba(239, 68, 68, 0.2)'}`
+            backgroundColor: simulationResult.success ? 'color-mix(in srgb, var(--color-success) 5%, transparent)' : 'color-mix(in srgb, var(--color-danger) 5%, transparent)',
+            border: `1px solid ${simulationResult.success ? 'color-mix(in srgb, var(--color-success) 20%, transparent)' : 'color-mix(in srgb, var(--color-danger) 20%, transparent)'}`
           }}>
             <div style={styles.resultTitleRow}>
               {simulationResult.success ? (
-                <CheckCircle2 size={16} color="#10B981" />
+                <CheckCircle2 size={16} color="var(--color-success)" />
               ) : (
-                <XCircle size={16} color="#EF4444" />
+                <XCircle size={16} color="var(--color-danger)" />
               )}
               <span style={{
                 ...styles.resultTitle,
-                color: simulationResult.success ? '#10B981' : '#EF4444'
+                color: simulationResult.success ? 'var(--color-success)' : 'var(--color-danger)'
               }}>
                 {simulationResult.message}
               </span>
@@ -281,7 +281,7 @@ const styles: Record<string, React.CSSProperties> = {
     border: '1px solid var(--border-color)',
     borderRadius: '6px',
     fontSize: '12px',
-    backgroundColor: '#FFF',
+    backgroundColor: 'var(--bg-surface-solid)',
     outline: 'none',
   },
   input: {
@@ -293,7 +293,7 @@ const styles: Record<string, React.CSSProperties> = {
   },
   simulateBtn: {
     backgroundColor: 'var(--color-accent)',
-    color: '#FFF',
+    color: 'var(--color-white)',
     border: 'none',
     borderRadius: '6px',
     padding: '8px',

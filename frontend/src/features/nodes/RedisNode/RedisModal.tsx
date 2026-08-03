@@ -106,12 +106,12 @@ export default function RedisModal({ containerId, nodeName, projectId, onClose }
     <InspectorModal tabs={tabs} activeTab={activeTab} onTabChange={setActiveTab} onClose={onClose}>
       <TabPanel visible={activeTab === 'details'}>
         <div style={inspectorStyles.tabContent}>
-          <h3 style={{ margin: '0 0 8px 0', fontSize: '16px', color: '#1E293B' }}>{t('redis.details.title')}</h3>
-          <p style={{ margin: '0 0 20px 0', fontSize: '13px', color: '#64748B' }}>
+          <h3 style={{ margin: '0 0 8px 0', fontSize: '16px', color: 'var(--neutral-800)' }}>{t('redis.details.title')}</h3>
+          <p style={{ margin: '0 0 20px 0', fontSize: '13px', color: 'var(--neutral-500)' }}>
             {t('redis.details.desc')}
           </p>
 
-          <div style={{ border: '1px solid #E2E8F0', borderRadius: '8px', padding: '16px', display: 'flex', flexDirection: 'column', gap: '12px' }}>
+          <div style={{ border: '1px solid var(--neutral-200)', borderRadius: '8px', padding: '16px', display: 'flex', flexDirection: 'column', gap: '12px' }}>
             <div style={styles.detailRow}>
               <span style={styles.detailLabel}>{t('redis.details.imageLabel')}</span>
               <span style={styles.detailValue}>{REDIS_IMAGE}</span>
@@ -141,12 +141,12 @@ export default function RedisModal({ containerId, nodeName, projectId, onClose }
             {explorerError ? (
               explorerError === 'starting_up' ? (
                 <div style={inspectorStyles.errorContainer}>
-                  <Loader2 size={24} className="spin" color="#3B82F6" style={{ marginBottom: 12 }} />
+                  <Loader2 size={24} className="spin" color="var(--color-accent)" style={{ marginBottom: 12 }} />
                   <span style={inspectorStyles.errorMessage}>{t('redis.explorer.initializing')}</span>
                 </div>
               ) : (
                 <div style={inspectorStyles.errorContainer}>
-                  <AlertCircle size={24} color="#EF4444" style={{ marginBottom: 12 }} />
+                  <AlertCircle size={24} color="var(--color-danger)" style={{ marginBottom: 12 }} />
                   <span style={inspectorStyles.errorMessage}>{explorerError}</span>
                   <button onClick={fetchExplorerData} style={inspectorStyles.retryBtn}>
                     <RefreshCw size={12} style={{ marginRight: 6 }} />
@@ -158,7 +158,7 @@ export default function RedisModal({ containerId, nodeName, projectId, onClose }
               explorerData.map(entry => (
                 <div key={entry.key} style={inspectorStyles.treeNode}>
                   <div style={inspectorStyles.treeRow}>
-                    <Key size={14} color="#DC2626" style={{ marginRight: 8 }} />
+                    <Key size={14} color="var(--color-danger)" style={{ marginRight: 8 }} />
                     <span style={styles.keyName}>{entry.key}</span>
                     <span style={styles.keyType}>{entry.type}</span>
 

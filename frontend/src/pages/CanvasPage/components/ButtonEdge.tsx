@@ -46,23 +46,23 @@ export default function ButtonEdge({
             display: 'flex',
             alignItems: 'center',
             gap: 4,
-            backgroundColor: '#F3F4F6',
+            backgroundColor: 'var(--neutral-100)',
             padding: '2px 6px',
             borderRadius: 4,
-            border: '1px solid #D1D5DB',
+            border: '1px solid var(--neutral-300)',
             boxShadow: '0 1px 2px 0 rgba(0, 0, 0, 0.05)',
             zIndex: 1000,
           }}
         >
-          {label && <span style={{ fontWeight: 600, color: '#374151' }}>{label}</span>}
+          {label && <span style={{ fontWeight: 600, color: 'var(--neutral-700)' }}>{label}</span>}
           <button
             onClick={onEdgeClick}
             style={{
               width: 14,
               height: 14,
               borderRadius: '50%',
-              backgroundColor: '#EF4444',
-              color: '#FFF',
+              backgroundColor: 'var(--color-danger)',
+              color: 'var(--color-white)',
               border: 'none',
               cursor: 'pointer',
               display: 'flex',
