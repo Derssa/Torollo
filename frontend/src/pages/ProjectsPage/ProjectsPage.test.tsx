@@ -2,6 +2,7 @@ import '../../i18n';
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { render, screen, fireEvent, waitFor, within } from '@testing-library/react';
 import ProjectsPage from './ProjectsPage';
+import { hasSeenLearningPitch } from '../../features/learning/onboarding';
 import type { Project } from '../../shared/types';
 import type { ProgressEntrySummary, RoadmapSummary } from '../../shared/types/roadmap';
 
@@ -315,5 +316,49 @@ describe('ProjectsPage', () => {
     });
     const createCall = fetchMock.mock.calls.find(call => call[1]?.method === 'POST');
     expect(JSON.parse(String(createCall?.[1]?.body))).toEqual({ name: 'My first lab' });
+  });
+
+  it('pitches the first roadmap of the catalogue, not the one touched last', async () => {
+    // A play-through with zero passed steps keeps this a first run while
+    // sorting cache-aside on top of the list: the pitch must ignore that and
+    // open the roadmap the catalogue leads with.
+    vi.stubGlobal('fetch', buildFetchMock({
+      projects: () => jsonResponse(true, { projects: [] }),
+      progress: () => jsonResponse(true, {
+        entries: [{ projectId: 'p1', roadmapId: 'cache-aside-redis', updatedAt: '2026-07-20T10:00:00.000Z', completedSteps: 0 }],
+      }),
+    }));
+    render(<ProjectsPage onSelectProject={vi.fn()} />);
+    goToLearning();
+
+    fireEvent.click(await screen.findByRole('button', { name: 'View the roadmap' }));
+
+    expect(
+      await screen.findByRole('heading', { name: 'Deploy a resilient three-tier app' })
+    ).toBeInTheDocument();
+  });
+
+  it('never pitches again once a roadmap has been launched', async () => {
+    const noProgress = {
+      projects: () => jsonResponse(true, { projects: [] }),
+      progress: () => jsonResponse(true, { entries: [] }),
+    };
+    vi.stubGlobal('fetch', buildFetchMock(noProgress));
+    const { unmount } = render(<ProjectsPage onSelectProject={vi.fn()} />);
+    goToLearning();
+
+    fireEvent.click(await openBriefing('Cache-aside with Redis'));
+    await waitFor(() => expect(hasSeenLearningPitch()).toBe(true));
+
+    // Same blank slate on the backend — nothing was validated — but the pitch
+    // has been acted on, so the page opens straight on the catalogue.
+    unmount();
+    vi.stubGlobal('fetch', buildFetchMock(noProgress));
+    render(<ProjectsPage onSelectProject={vi.fn()} />);
+    goToLearning();
+
+    expect(await screen.findByText('Roadmaps')).toBeInTheDocument();
+    expect(screen.queryByText('Learn system design by running real infrastructure.')).toBeNull();
+    expect(screen.queryByText('Sample validation receipt')).toBeNull();
   });
 });

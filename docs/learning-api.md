@@ -13,6 +13,8 @@ This document is the contract for API consumers (the roadmap player in the front
 
 Lists the available roadmaps as summaries — **one entry per file**. Translations of the same roadmap share an `id` and differ by `language` (see the format's language model), so they appear as separate catalogue entries; a selection UI should surface the `language` field.
 
+The list is a **suggested path, not a directory listing**: the roadmaps shipped with Torollo come first, in the order they are meant to be taken (`CURATED_ROADMAP_ORDER` in `roadmapService.ts`), and the rest — roadmaps you dropped into `roadmaps/` yourself — follow, ordered by `id`. Clients can rely on that order: the app pitches the first entry to a first-run user.
+
 ```json
 [
   {

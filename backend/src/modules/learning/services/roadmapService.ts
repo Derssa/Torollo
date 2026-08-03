@@ -20,6 +20,22 @@ export interface RoadmapSummary {
 const ROADMAPS_DIR = path.resolve(__dirname, '../../../../../roadmaps');
 
 /**
+ * The catalogue is a suggested path, not a directory listing: this is the order
+ * the shipped roadmaps are meant to be taken in, and its first entry is the one
+ * a first-run user is pitched on the landing page. Without it the order would
+ * fall back to file names — alphabetical, which pitches whichever roadmap
+ * happens to sort first.
+ *
+ * Roadmaps that are not listed here (community files dropped into `roadmaps/`)
+ * follow, ordered by id. Ids that no longer exist are simply ignored.
+ */
+export const CURATED_ROADMAP_ORDER = [
+  'resilient-three-tier',
+  'cache-aside-redis',
+  'redis-queue-workers',
+];
+
+/**
  * Loads roadmap files (format v1) from the roadmaps/ directory.
  *
  * Files are re-read on every call — they are a few kB, requested at human
@@ -29,15 +45,25 @@ const ROADMAPS_DIR = path.resolve(__dirname, '../../../../../roadmaps');
  */
 export class RoadmapService {
   public static listRoadmaps(dir: string = ROADMAPS_DIR): RoadmapSummary[] {
-    return this.readAll(dir).map(roadmap => ({
-      id: roadmap.id,
-      title: roadmap.title,
-      description: roadmap.description,
-      language: roadmap.language,
-      difficulty: roadmap.difficulty,
-      estimatedMinutes: roadmap.estimatedMinutes,
-      stepCount: roadmap.steps.length,
-    }));
+    return this.readAll(dir)
+      .map(roadmap => ({
+        id: roadmap.id,
+        title: roadmap.title,
+        description: roadmap.description,
+        language: roadmap.language,
+        difficulty: roadmap.difficulty,
+        estimatedMinutes: roadmap.estimatedMinutes,
+        stepCount: roadmap.steps.length,
+      }))
+      // Curated order first, then unlisted ids by id. Translations of one id
+      // compare equal and keep the file-name order readAll() guarantees, so
+      // the whole list stays deterministic.
+      .sort((a, b) => this.catalogueRank(a.id) - this.catalogueRank(b.id) || a.id.localeCompare(b.id));
+  }
+
+  private static catalogueRank(id: string): number {
+    const index = CURATED_ROADMAP_ORDER.indexOf(id);
+    return index === -1 ? CURATED_ROADMAP_ORDER.length : index;
   }
 
   /**

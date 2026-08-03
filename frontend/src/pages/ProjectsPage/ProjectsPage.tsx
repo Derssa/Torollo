@@ -11,6 +11,7 @@ import ProjectPickerModal from './components/ProjectPickerModal';
 import LearningSection from './components/learning/LearningSection';
 import RoadmapDetailPage from './components/learning/detail/RoadmapDetailPage';
 import { filterByUiLanguage } from '../../features/learning/roadmapLanguage';
+import { markLearningPitchSeen } from '../../features/learning/onboarding';
 import { API_BASE } from '../../shared/types';
 import type { LearningIntent, Project } from '../../shared/types';
 import type { ProgressEntrySummary, RoadmapSummary } from '../../shared/types/roadmap';
@@ -167,6 +168,9 @@ export default function ProjectsPage({ onSelectProject }: ProjectsPageProps) {
    */
   const startRoadmap = (summary: RoadmapSummary, progress?: ProgressEntrySummary) => {
     const intent: LearningIntent = { roadmap: { id: summary.id, language: summary.language } };
+    // Whatever happens next — picker, auto-create, resume — the first-run pitch
+    // has been acted on and must never be proposed again.
+    markLearningPitchSeen();
     if (progress) {
       const played = projects.find(p => p.id === progress.projectId);
       if (played) {

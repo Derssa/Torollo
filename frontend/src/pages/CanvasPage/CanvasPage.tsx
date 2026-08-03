@@ -15,6 +15,7 @@ import AsgNode from '../../features/nodes/AsgNode/AsgNode';
 import VpcNode from '../../features/nodes/VpcNode/VpcNode';
 import SubnetNode from '../../features/nodes/SubnetNode/SubnetNode';
 import NodeLibrary from './components/NodeLibrary';
+import CanvasEmptyState from './components/CanvasEmptyState';
 import LearningPanel from '../../features/learning/components/LearningPanel';
 import { useContainers } from '../../shared/hooks/useContainers';
 import { useToast } from '../../shared/hooks/useToast';
@@ -77,6 +78,7 @@ export default function CanvasPage({
   const {
     containers,
     loading,
+    loaded,
     creating,
     opErrors,
     dockerUnavailable,
@@ -109,8 +111,14 @@ export default function CanvasPage({
   // Ref to track saved positions (avoids re-render loops)
   const positionsRef = useRef<Record<string, { x: number; y: number }>>({});
 
-  const { networkConfig, saveNetworkConfig, fetchNetworkConfig, triggerArchitectureAudit, interSubnetBlocked } =
-    useNetworkConfig({ projectId, containers, showNotification });
+  const {
+    networkConfig,
+    loaded: networkConfigLoaded,
+    saveNetworkConfig,
+    fetchNetworkConfig,
+    triggerArchitectureAudit,
+    interSubnetBlocked,
+  } = useNetworkConfig({ projectId, containers, showNotification });
 
   // A service was dropped inside a subnet: stash the drop context and open the create modal
   const onRequestCreateNode = useCallback((drop: { position: { x: number; y: number }; type: string; subnetId: string }) => {
@@ -133,6 +141,12 @@ export default function CanvasPage({
       fetchContainers,
       onRequestCreateNode,
     });
+
+  // Nothing on the canvas and nothing loading: the canvas has to say what to do
+  // next. Both fetches must have landed first, or opening a project would flash
+  // the empty state before its nodes arrive.
+  const isCanvasEmpty =
+    loaded && networkConfigLoaded && containers.length === 0 && networkConfig.subnets.length === 0;
 
   const [showVpcSettings, setShowVpcSettings] = useState(false);
   const [showTrafficSimulator, setShowTrafficSimulator] = useState(false);
@@ -653,6 +667,11 @@ export default function CanvasPage({
             <Background variant={BackgroundVariant.Dots} color="var(--canvas-dots)" gap={24} size={1.5} />
             <Controls />
           </ReactFlow>
+
+          {/* The learning panel already answers "what now?" when it is open. */}
+          {isCanvasEmpty && !showLearning && (
+            <CanvasEmptyState onFollowRoadmap={() => setShowLearning(true)} />
+          )}
         </div>
 
         <NodeLibrary />

@@ -1,10 +1,11 @@
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { BookOpen, GraduationCap } from 'lucide-react';
 import Button from '../../../../shared/components/Button';
 import { useRoadmaps } from '../../../../features/learning/hooks/useRoadmaps';
 import { useLearningProgressSummaries } from '../../../../features/learning/hooks/useLearningProgressSummaries';
 import { filterByUiLanguage } from '../../../../features/learning/roadmapLanguage';
+import { hasSeenLearningPitch } from '../../../../features/learning/onboarding';
 import LearningHero from './LearningHero';
 import RoadmapShowcaseCard from './RoadmapShowcaseCard';
 import WhyPanel from './WhyPanel';
@@ -24,6 +25,9 @@ export default function LearningSection({ onOpenRoadmap }: LearningSectionProps)
   const { summaries, loading, error, fetchRoadmaps } = useRoadmaps();
   const { byRoadmapId, fetchProgress } = useLearningProgressSummaries();
   const roadmapsPanelRef = useRef<HTMLDivElement>(null);
+  // Read once per mount: launching a roadmap sets the flag, and the hero must
+  // not vanish under the click that used it.
+  const [pitchSeen] = useState(hasSeenLearningPitch);
 
   useEffect(() => {
     fetchRoadmaps();
@@ -49,8 +53,13 @@ export default function LearningSection({ onOpenRoadmap }: LearningSectionProps)
     const p = byRoadmapId[s.id];
     return p && p.completedSteps > 0 && p.completedSteps < s.stepCount;
   });
-  const isFirstRun = !sorted.some(s => (byRoadmapId[s.id]?.completedSteps ?? 0) > 0);
-  const heroTarget = sorted[0];
+  const isFirstRun =
+    !pitchSeen && !sorted.some(s => (byRoadmapId[s.id]?.completedSteps ?? 0) > 0);
+  // The pitch always opens on the same roadmap: the first of the catalogue,
+  // which the backend serves in its curated order (`CURATED_ROADMAP_ORDER`).
+  // `sorted` is the progress-first order and would pitch whatever was touched
+  // last — right for the list, wrong for an introduction.
+  const flagship = visible[0];
 
   const browseToRoadmaps = () => {
     roadmapsPanelRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
@@ -67,9 +76,9 @@ export default function LearningSection({ onOpenRoadmap }: LearningSectionProps)
 
       <div style={isFirstRun ? styles.columns : undefined}>
         <div style={isFirstRun ? styles.main : styles.single}>
-          {isFirstRun && heroTarget && (
+          {isFirstRun && flagship && (
             <LearningHero
-              onStart={() => onOpenRoadmap(heroTarget, byRoadmapId[heroTarget.id])}
+              onStart={() => onOpenRoadmap(flagship, byRoadmapId[flagship.id])}
               onBrowse={browseToRoadmaps}
             />
           )}

@@ -1,0 +1,22 @@
+{
+  "schemaVersion": 1,
+  "id": "zz-unlisted-roadmap",
+  "title": "Unlisted roadmap",
+  "description": "Sorts first by file name, last by id: proves the catalogue orders on ids.",
+  "language": "en",
+  "estimatedMinutes": 5,
+  "difficulty": "beginner",
+  "steps": [
+    {
+      "id": "start-web",
+      "title": "Start the web server",
+      "instruction": "Create a node named `web` and start it.",
+      "validators": [
+        {
+          "type": "container_running",
+          "params": { "node": "web" }
+        }
+      ]
+    }
+  ]
+}

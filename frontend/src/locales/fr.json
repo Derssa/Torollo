@@ -798,6 +798,14 @@
       "testPacket": "Tester le paquet"
     }
   },
+  "canvas": {
+    "empty": {
+      "title": "Ce canevas est vide",
+      "body": "Chaque nœud déposé ici devient un vrai conteneur Docker. Un parcours guidé vous dit quoi construire, étape par étape, et le vérifie sur ces conteneurs.",
+      "followRoadmap": "Suivre un parcours",
+      "dragHint": "ou glissez un nœud depuis la bibliothèque"
+    }
+  },
   "nodeLibrary": {
     "title": "Bibliothèque de nœuds",
     "search": "Rechercher des nœuds...",

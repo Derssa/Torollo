@@ -798,6 +798,14 @@
       "testPacket": "Test Packet"
     }
   },
+  "canvas": {
+    "empty": {
+      "title": "This canvas is empty",
+      "body": "Every node you drop here becomes a real Docker container. A guided roadmap tells you what to build, step by step, and checks it against those containers.",
+      "followRoadmap": "Follow a roadmap",
+      "dragHint": "or drag a node from the library"
+    }
+  },
   "nodeLibrary": {
     "title": "Node Library",
     "search": "Search nodes...",
