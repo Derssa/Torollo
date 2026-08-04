@@ -15,6 +15,7 @@ import AsgNode from '../../features/nodes/AsgNode/AsgNode';
 import VpcNode from '../../features/nodes/VpcNode/VpcNode';
 import SubnetNode from '../../features/nodes/SubnetNode/SubnetNode';
 import NodeLibrary from './components/NodeLibrary';
+import CanvasEmptyState from './components/CanvasEmptyState';
 import LearningPanel from '../../features/learning/components/LearningPanel';
 import { useContainers } from '../../shared/hooks/useContainers';
 import { useToast } from '../../shared/hooks/useToast';
@@ -27,6 +28,7 @@ import CanvasModals from './components/CanvasModals';
 import type { InspectorState } from './components/CanvasModals';
 import ButtonEdge from './components/ButtonEdge';
 import { API_BASE } from '../../shared/types';
+import type { LearningIntent } from '../../shared/types';
 import { useNetworkConfig } from './hooks/useNetworkConfig';
 import { useCanvasDragDrop } from './hooks/useCanvasDragDrop';
 import { positionToCell, resolveSubnetChildPosition, subnetSize } from './utils/canvasGeometry';
@@ -42,6 +44,10 @@ import { assignNodeToSubnet, removeNodeFromConfig } from './utils/networkConfigO
 interface CanvasPageProps {
   projectId: string;
   projectName: string;
+  /** Arrival intent from the landing page: open the learning panel, optionally on one roadmap. */
+  initialLearning?: LearningIntent | null;
+  /** Called once on mount so the owner can clear the one-shot intent. */
+  onLearningIntentConsumed?: () => void;
   onBackToProjects: () => void;
   onTerminalOpen: (id: string, name: string) => void;
 }
@@ -58,13 +64,21 @@ const INSPECTOR_KIND_BY_NODE_TYPE: Record<string, InspectorState['kind']> = {
   autoscalinggroup: 'asg',
 };
 
-export default function CanvasPage({ projectId, projectName, onBackToProjects, onTerminalOpen }: CanvasPageProps) {
+export default function CanvasPage({
+  projectId,
+  projectName,
+  initialLearning,
+  onLearningIntentConsumed,
+  onBackToProjects,
+  onTerminalOpen,
+}: CanvasPageProps) {
   const { t } = useTranslation();
   const { toast, showNotification, showToast, dismissToast } = useToast();
 
   const {
     containers,
     loading,
+    loaded,
     creating,
     opErrors,
     dockerUnavailable,
@@ -97,8 +111,14 @@ export default function CanvasPage({ projectId, projectName, onBackToProjects, o
   // Ref to track saved positions (avoids re-render loops)
   const positionsRef = useRef<Record<string, { x: number; y: number }>>({});
 
-  const { networkConfig, saveNetworkConfig, fetchNetworkConfig, triggerArchitectureAudit, interSubnetBlocked } =
-    useNetworkConfig({ projectId, containers, showNotification });
+  const {
+    networkConfig,
+    loaded: networkConfigLoaded,
+    saveNetworkConfig,
+    fetchNetworkConfig,
+    triggerArchitectureAudit,
+    interSubnetBlocked,
+  } = useNetworkConfig({ projectId, containers, showNotification });
 
   // A service was dropped inside a subnet: stash the drop context and open the create modal
   const onRequestCreateNode = useCallback((drop: { position: { x: number; y: number }; type: string; subnetId: string }) => {
@@ -122,9 +142,26 @@ export default function CanvasPage({ projectId, projectName, onBackToProjects, o
       onRequestCreateNode,
     });
 
+  // Nothing on the canvas and nothing loading: the canvas has to say what to do
+  // next. Both fetches must have landed first, or opening a project would flash
+  // the empty state before its nodes arrive.
+  const isCanvasEmpty =
+    loaded && networkConfigLoaded && containers.length === 0 && networkConfig.subnets.length === 0;
+
   const [showVpcSettings, setShowVpcSettings] = useState(false);
   const [showTrafficSimulator, setShowTrafficSimulator] = useState(false);
-  const [showLearning, setShowLearning] = useState(false);
+  const [showLearning, setShowLearning] = useState(() => Boolean(initialLearning));
+  // One-shot arrival intent (CanvasPage mounts fresh per project): the roadmap
+  // to auto-open is captured here, and the owner clears its copy right away so
+  // a later toggle of the panel can never replay it.
+  const initialRoadmapRef = useRef(initialLearning?.roadmap ?? null);
+  const intentConsumedRef = useRef(onLearningIntentConsumed);
+  useEffect(() => {
+    intentConsumedRef.current?.();
+    // Child effects ran first, so the panel (mounted on this same first render
+    // when an intent exists) has already captured its roadmap prop.
+    initialRoadmapRef.current = null;
+  }, []);
 
   const nodeTypes = useMemo(() => ({
     ubuntu: UbuntuNode,
@@ -584,6 +621,7 @@ export default function CanvasPage({ projectId, projectName, onBackToProjects, o
         {showLearning && (
           <LearningPanel
             projectId={projectId}
+            initialRoadmap={initialRoadmapRef.current}
             onClose={() => setShowLearning(false)}
             containers={containers}
             networkConfig={networkConfig}
@@ -629,6 +667,11 @@ export default function CanvasPage({ projectId, projectName, onBackToProjects, o
             <Background variant={BackgroundVariant.Dots} color="var(--canvas-dots)" gap={24} size={1.5} />
             <Controls />
           </ReactFlow>
+
+          {/* The learning panel already answers "what now?" when it is open. */}
+          {isCanvasEmpty && !showLearning && (
+            <CanvasEmptyState onFollowRoadmap={() => setShowLearning(true)} />
+          )}
         </div>
 
         <NodeLibrary />

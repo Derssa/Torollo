@@ -31,26 +31,22 @@
       "loadError": "Impossible de charger cette roadmap. Choisissez-en une ci-dessous pour réessayer.",
       "stepCounter": "Étape {{current}} sur {{total}}",
       "previous": "Précédent",
-      "next": "Suivant",
+      "skipStep": "Passer l'étape",
       "validate": "Valider",
       "validating": "Vérification...",
       "validationError": "Impossible de joindre le serveur. Votre travail est intact — réessayez.",
       "retry": "Réessayer",
-      "stepPassed": "Étape validée",
-      "stepFailed": "Pas encore — voir les résultats ci-dessous",
-      "expected": "Attendu",
-      "observed": "Observé",
-      "stepError": "Certaines vérifications n'ont pas pu s'exécuter — ce n'est pas de votre faute. Corrigez le problème ci-dessous ou réessayez simplement.",
+      "stepPassed": "Validation réussie",
+      "stepFailed": "Pas encore",
+      "checksBlocked": "Vérifications impossibles",
+      "stepError": "Certaines vérifications n'ont pas pu s'exécuter — ce n'est pas de votre faute. Corrigez le problème ou réessayez simplement.",
       "stepErrorDocker": "Docker n'était pas démarré, les vérifications n'ont pas pu s'exécuter. Démarrez Docker puis validez à nouveau.",
-      "nextStep": "Étape suivante",
-      "roadmapComplete": "Étape validée — c'était la dernière. Roadmap terminée !",
-      "checkNotRun": "Vérification impossible",
-      "markerPassed": "Validée",
-      "markerFailed": "Échouée",
-      "markerError": "Erreur de vérification",
-      "hintLabel": "Indice {{n}} sur {{total}}",
+      "moreChecks_one": "+{{count}} autre vérification à corriger",
+      "moreChecks_other": "+{{count}} autres vérifications à corriger",
+      "roadmapComplete": "Validation réussie — c'était la dernière étape. Roadmap terminée !",
+      "hintLabel": "indice {{n}}/{{total}}",
       "showHint": "Voir un indice ({{n}}/{{total}})",
-      "solutionLabel": "Solution",
+      "solutionLabel": "solution",
       "showSolution": "Révéler la solution",
       "confirmSolution": "Sûr ? Cliquez à nouveau pour révéler",
       "resetProgress": "Recommencer la roadmap",
@@ -58,31 +54,158 @@
       "resetProgressError": "Impossible de réinitialiser la progression. Rien n'a été modifié — réessayez.",
       "progressRecovered": "Votre progression sauvegardée était illisible et a dû être réinitialisée. Désolé — cette roadmap repart de zéro.",
       "dismissNotice": "Fermer"
+    },
+    "landing": {
+      "title": "Apprentissage",
+      "subtitle": "Des parcours guidés, vérifiés sur de vrais conteneurs",
+      "heroTitle": "Apprenez le system design en exécutant une vraie infrastructure.",
+      "heroBody": "Suivez un parcours, construisez le système sur le canevas et validez chaque étape sur vos vrais conteneurs Docker.",
+      "startRoadmap": "Voir le parcours",
+      "browseRoadmaps": "Parcourir tous les parcours",
+      "roadmapsTitle": "Parcours",
+      "continueLabel": "Continuer · étape {{current}} sur {{total}}",
+      "completedLabel": "Terminé",
+      "resumeLabel": "Reprendre",
+      "resumeAction": "Continuer",
+      "stepOf": "Étape {{current}} sur {{total}}",
+      "whyTitle": "Pourquoi c'est différent",
+      "whyContainersTitle": "De vrais conteneurs",
+      "whyContainersBody": "Chaque nœud que vous déposez est un vrai conteneur Docker qui tourne sur votre machine.",
+      "whyCommandsTitle": "De vraies commandes",
+      "whyCommandsBody": "Vous travaillez dans de vrais terminaux — redis-cli, psql, curl — pas dans une simulation.",
+      "whyReceiptsTitle": "De vrais reçus de validation",
+      "whyReceiptsBody": "Chaque vérification montre la commande exacte exécutée et ce qui a été observé.",
+      "sampleReceiptLabel": "Exemple de reçu de validation",
+      "sampleReceipt": {
+        "verdict": "Étape validée"
+      },
+      "pickProjectTitle": "Choisir un projet",
+      "pickProjectBody": "« {{roadmap}} » s'exécute sur les conteneurs d'un projet. Choisissez où travailler.",
+      "pickProjectNew": "Nouveau projet"
+    },
+    "detail": {
+      "breadcrumbLearning": "Apprentissage",
+      "breadcrumbRoadmaps": "Parcours",
+      "loading": "Chargement du parcours",
+      "loadError": "Impossible de charger ce parcours. Le backend est-il démarré ?",
+      "retry": "Réessayer",
+      "back": "Tous les parcours",
+      "stat": {
+        "difficulty": "Difficulté",
+        "steps": "Étapes",
+        "duration": "Durée estimée",
+        "skills": "Ce que vous pratiquez"
+      },
+      "skill": {
+        "containers": "Conteneurs",
+        "sql": "SQL",
+        "redis": "Redis",
+        "mongo": "MongoDB",
+        "networking": "Réseau",
+        "securityGroups": "Groupes de sécurité",
+        "loadBalancing": "Répartition de charge",
+        "autoScaling": "Mise à l'échelle",
+        "httpServices": "Services HTTP"
+      },
+      "build": {
+        "title": "Ce que vous allez construire",
+        "subtitle": "Les nœuds et les connexions que ce parcours vérifie sur votre machine.",
+        "linksTitle": "Connexions",
+        "allowed": "doit être joignable",
+        "denied": "doit être bloqué",
+        "anyPort": "n'importe quel port"
+      },
+      "role": {
+        "postgres": "PostgreSQL",
+        "redis": "Redis",
+        "mongo": "MongoDB",
+        "loadBalancer": "Répartiteur de charge",
+        "autoScaling": "Groupe de mise à l'échelle",
+        "httpService": "Service HTTP",
+        "container": "Conteneur"
+      },
+      "outline": {
+        "title": "Les étapes",
+        "subtitle": "Suivez ces étapes pour terminer le parcours.",
+        "passed": "Validée",
+        "current": "Vous êtes ici"
+      },
+      "verify": {
+        "title": "Comment Torollo vérifie",
+        "liveTitle": "Vérifications réelles",
+        "liveBody": "Chaque vérification s'exécute sur les conteneurs de votre machine, au fil de la construction.",
+        "receiptsTitle": "Reçus",
+        "receiptsBody": "Chaque vérification montre ce qu'elle a regardé et ce qu'elle a observé.",
+        "commandsTitle": "Vraies commandes",
+        "commandsBody": "Les outils que vous utiliseriez en production — psql, redis-cli, curl."
+      },
+      "check": {
+        "containerRunning": "vérif : le conteneur \"{{node}}\" tourne",
+        "tableExists": "vérif : la table \"{{table}}\" existe dans \"{{node}}\"",
+        "redisKey": "vérif : la clé \"{{redisKey}}\" existe dans \"{{node}}\"",
+        "mongoCollection": "vérif : la collection \"{{collection}}\" existe dans \"{{node}}\"",
+        "edgeAllowed": "vérif : {{source}} → {{target}} est joignable",
+        "edgeAllowedPort": "vérif : {{source}} → {{target}} est joignable sur :{{port}}",
+        "portDenied": "vérif : {{source}} → {{target}} est bloqué sur :{{port}}",
+        "lbUpstreams": "vérif : \"{{node}}\" répartit vers au moins {{min}} cibles",
+        "asgReplicas": "vérif : \"{{node}}\" fait tourner exactement {{count}} répliques",
+        "httpContains": "vérif : GET {{path}} sur \"{{node}}\" contient \"{{expectedText}}\""
+      },
+      "receipt": {
+        "sampleLabel": "Exemple de reçu de validation",
+        "lastRunLabel": "Votre dernière session · {{project}}",
+        "stepsPassing": "{{passed}} étapes validées sur {{total}}",
+        "lastChecked": "dernière vérification : {{date}}",
+        "nextStep": "suite : \"{{title}}\"",
+        "allPassing": "toutes les étapes validées — parcours terminé"
+      },
+      "prerequisites": {
+        "title": "Avant de commencer"
+      },
+      "launch": {
+        "start": "Lancer le lab",
+        "startCaption": "Démarrez votre environnement et commencez.",
+        "continue": "Continuer · étape {{current}} sur {{total}}",
+        "continueCaption": "Reprend dans \"{{project}}\".",
+        "restart": "Recommencer le parcours",
+        "restartTitle": "Recommencer le parcours",
+        "restartMessage": "Cela efface votre progression sur \"{{title}}\" dans \"{{project}}\". Vos conteneurs ne sont pas touchés.",
+        "restartConfirm": "Recommencer le parcours",
+        "restartError": "Impossible d'effacer la progression. Rien n'a été modifié — réessayez.",
+        "dockerOk": "Docker connecté",
+        "dockerDown": "Docker n'est pas démarré — démarrez Docker pour lancer les conteneurs.",
+        "dockerRetry": "Vérifier à nouveau"
+      }
     }
   },
   "projects": {
     "title": "Projets Torollo",
     "subtitle": "Organisez vos laboratoires d'infrastructure",
-    "newProject": "Nouveau Projet",
-    "loading": "Chargement des projets...",
-    "createTitle": "Créer un Projet",
+    "newProject": "Nouveau projet",
+    "createTitle": "Créer un projet",
     "createLabel": "Donnez un nom descriptif à votre projet pour organiser vos conteneurs.",
     "createPlaceholder": "ex: Lab App Web, Test API Gateway",
-    "createSubmit": "Créer le Projet",
-    "deleteTitle": "Supprimer le Projet",
-    "deleteConfirm": "Supprimer le Projet",
+    "createSubmit": "Créer le projet",
+    "deleteTitle": "Supprimer le projet",
+    "deleteConfirm": "Supprimer le projet",
     "deleteMessage": "Cela supprimera définitivement \"{{name}}\" et arrêtera/supprimera tous les conteneurs Docker associés. Cette action est irréversible.",
-    "noProjects": "Aucun projet trouvé. Créez-en un nouveau !",
-    "lastUpdated": "Dernière mise à jour :",
-    "open": "Ouvrir",
-    "delete": "Supprimer",
     "storeRecovered": "Votre fichier de projets était illisible et a dû être réinitialisé. Le fichier illisible a été conservé sous projects.json.corrupt dans votre dossier .torollo.",
     "dismissNotice": "Fermer l'avertissement",
-    "emptyTitle": "Aucun projet pour l'instant",
-    "emptyDesc": "Cliquez sur « Nouveau projet » pour créer votre première stack d'infrastructure.",
     "deleting": "Suppression...",
     "deleteProjectTooltip": "Supprimer le projet",
-    "openStack": "Ouvrir la stack"
+    "openStack": "Ouvrir le projet",
+    "docsLink": "Docs",
+    "sectionTitle": "Projets",
+    "loadError": "Impossible de charger les projets. Le backend est-il démarré ?",
+    "retry": "Réessayer",
+    "loadingAria": "Chargement des projets",
+    "firstLabName": "Mon premier lab",
+    "firstRun": {
+      "title": "Construisez une vraie infrastructure sur votre machine.",
+      "body": "Glissez des bases de données, des load balancers et des réseaux sur un canevas — chaque nœud est un vrai conteneur Docker. Apprenez le system design en l'exécutant, pas en le dessinant.",
+      "startLearning": "Commencer à apprendre",
+      "startScratch": "Partir de zéro"
+    }
   },
   "vpc": {
     "titleInfo": "Paramètres VPC du Projet",
@@ -540,7 +663,9 @@
     "genericError": "Une erreur s'est produite",
     "dockerUnavailable": "Démon Docker injoignable — démarrez Docker et le lab se reconnectera automatiquement.",
     "interSubnetBlocked": "Le pare-feu de cette machine bloque le trafic entre les sous-réseaux — les connexions inter-sous-réseaux ne fonctionneront pas ici, même avec des règles ALLOW correctes.",
-    "deleteConnection": "Supprimer la connexion"
+    "deleteConnection": "Supprimer la connexion",
+    "copy": "Copier",
+    "copied": "Copié"
   },
   "toasts": {
     "subnetDeleteBlocked": "Impossible de supprimer le sous-réseau : déplacez ou supprimez d'abord tous les nœuds qu'il contient.",
@@ -673,6 +798,14 @@
       "testPacket": "Tester le paquet"
     }
   },
+  "canvas": {
+    "empty": {
+      "title": "Ce canevas est vide",
+      "body": "Chaque nœud déposé ici devient un vrai conteneur Docker. Un parcours guidé vous dit quoi construire, étape par étape, et le vérifie sur ces conteneurs.",
+      "followRoadmap": "Suivre un parcours",
+      "dragHint": "ou glissez un nœud depuis la bibliothèque"
+    }
+  },
   "nodeLibrary": {
     "title": "Bibliothèque de nœuds",
     "search": "Rechercher des nœuds...",
@@ -752,5 +885,10 @@
         "autoscalinggroup": "ex. asg-1"
       }
     }
+  },
+  "nav": {
+    "main": "Navigation principale",
+    "projects": "Projets",
+    "learning": "Apprentissage"
   }
 }

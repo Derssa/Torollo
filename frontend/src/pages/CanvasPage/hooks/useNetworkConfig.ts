@@ -45,6 +45,10 @@ export function useNetworkConfig({ projectId, containers, showNotification }: Us
   // enforcement synchronously, so the verdict is fresh by the time it returns.
   const [interSubnetBlocked, setInterSubnetBlocked] = useState(false);
 
+  // True once a first config has been resolved (backend or localStorage
+  // fallback): until then an empty subnet list means "not read yet".
+  const [loaded, setLoaded] = useState(false);
+
   const refreshNetworkHealth = useCallback(() => {
     fetch(`${API_BASE}/api/projects/${projectId}/network-health`)
       .then(res => (res.ok ? res.json() : null))
@@ -128,7 +132,8 @@ export function useNetworkConfig({ projectId, containers, showNotification }: Us
             console.error(e);
           }
         }
-      });
+      })
+      .finally(() => setLoaded(true));
   }, [projectId, defaultVpcConfig]);
 
   const triggerArchitectureAudit = useCallback((configToValidate: NetworkConfig) => {
@@ -172,5 +177,5 @@ export function useNetworkConfig({ projectId, containers, showNotification }: Us
     }
   }, [containers, showNotification, t]);
 
-  return { networkConfig, saveNetworkConfig, fetchNetworkConfig, triggerArchitectureAudit, interSubnetBlocked };
+  return { networkConfig, loaded, saveNetworkConfig, fetchNetworkConfig, triggerArchitectureAudit, interSubnetBlocked };
 }

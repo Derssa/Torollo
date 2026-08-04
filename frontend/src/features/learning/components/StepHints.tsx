@@ -1,6 +1,5 @@
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Lightbulb, KeyRound } from 'lucide-react';
 import { renderInstruction } from './InstructionMarkdown';
 import type { RoadmapStep } from '../../../shared/types/roadmap';
 
@@ -19,6 +18,11 @@ import type { RoadmapStep } from '../../../shared/types/roadmap';
  *   The armed state is local and resets on step change (`key={step.id}` at
  *   the call site) — no modal.
  * - A step with neither hints nor solution renders nothing.
+ *
+ * Visually the ladder is marginalia, not a stack of alert cards: one hairline
+ * rule bounds the whole column, each rung carries a lowercase mono marker
+ * (`hint 1/3`, `solution`), and the reveal control is the last line of the
+ * same column. No icons, no fills — only the solution marker takes color.
  */
 
 interface StepHintsProps {
@@ -50,11 +54,12 @@ export default function StepHints({ step, revealedCount, onReveal }: StepHintsPr
   };
 
   return (
-    <div style={styles.container}>
+    // The rule marks revealed marginalia; before the first reveal the lone
+    // button stands unruled.
+    <div style={{ ...styles.container, ...(revealed > 0 ? styles.containerRuled : {}) }}>
       {hints.slice(0, revealed).map((hint, index) => (
-        <div key={index} style={styles.hintBox}>
-          <span style={styles.hintLabel}>
-            <Lightbulb size={12} style={styles.labelIcon} />
+        <div key={index} style={styles.rung}>
+          <span style={styles.marker}>
             {t('learning.player.hintLabel', { n: index + 1, total: hints.length })}
           </span>
           {renderInstruction(hint)}
@@ -62,9 +67,8 @@ export default function StepHints({ step, revealedCount, onReveal }: StepHintsPr
       ))}
 
       {solutionRevealed && (
-        <div style={{ ...styles.hintBox, ...styles.solutionBox }}>
-          <span style={{ ...styles.hintLabel, ...styles.solutionLabel }}>
-            <KeyRound size={12} style={styles.labelIcon} />
+        <div style={styles.rung}>
+          <span style={{ ...styles.marker, ...styles.solutionMarker }}>
             {t('learning.player.solutionLabel')}
           </span>
           {renderInstruction(step.solution!)}
@@ -76,11 +80,6 @@ export default function StepHints({ step, revealedCount, onReveal }: StepHintsPr
           onClick={handleReveal}
           style={{ ...styles.revealBtn, ...(nextIsSolution ? styles.revealSolutionBtn : {}) }}
         >
-          {nextIsSolution ? (
-            <KeyRound size={13} style={styles.labelIcon} />
-          ) : (
-            <Lightbulb size={13} style={styles.labelIcon} />
-          )}
           {nextIsSolution
             ? solutionArmed
               ? t('learning.player.confirmSolution')
@@ -96,55 +95,41 @@ const styles: Record<string, React.CSSProperties> = {
   container: {
     display: 'flex',
     flexDirection: 'column',
-    gap: '8px',
-    marginTop: '10px',
+    gap: '12px',
+    marginTop: '12px',
   },
-  hintBox: {
+  containerRuled: {
+    paddingLeft: '10px',
+    borderLeft: '2px solid var(--border-color)',
+  },
+  rung: {
     display: 'flex',
     flexDirection: 'column',
-    gap: '4px',
-    padding: '8px 10px',
-    border: '1px solid var(--border-color)',
-    borderLeft: '3px solid var(--color-accent)',
-    borderRadius: '6px',
+    gap: '3px',
   },
-  solutionBox: {
-    borderColor: 'var(--color-warning)',
-    borderLeft: '3px solid var(--color-warning)',
-    backgroundColor: 'var(--color-warning-glow)',
-  },
-  hintLabel: {
-    display: 'flex',
-    alignItems: 'center',
+  marker: {
+    fontFamily: 'var(--font-mono)',
     fontSize: '10px',
-    fontWeight: 700,
     color: 'var(--color-text-muted)',
-    textTransform: 'uppercase',
-    letterSpacing: '0.5px',
   },
-  solutionLabel: {
+  solutionMarker: {
     color: 'var(--color-warning-strong)',
   },
-  labelIcon: {
-    marginRight: '5px',
-    flexShrink: 0,
-  },
   revealBtn: {
-    display: 'flex',
-    alignItems: 'center',
     alignSelf: 'flex-start',
-    padding: '6px 12px',
-    border: '1px dashed var(--border-color)',
-    borderRadius: '6px',
+    padding: 0,
+    border: 'none',
     background: 'none',
     color: 'var(--color-text-secondary)',
     fontSize: '11px',
     fontWeight: 600,
     cursor: 'pointer',
     fontFamily: 'var(--font-sans)',
+    textDecoration: 'underline',
+    textDecorationStyle: 'dotted',
+    textUnderlineOffset: '3px',
   },
   revealSolutionBtn: {
-    border: '1px dashed var(--color-warning)',
     color: 'var(--color-warning-strong)',
   },
 };

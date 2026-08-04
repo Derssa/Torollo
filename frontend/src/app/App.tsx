@@ -2,7 +2,7 @@ import { useState } from 'react';
 import CanvasPage from '../pages/CanvasPage/CanvasPage';
 import TerminalModal from '../features/terminal/components/TerminalModal';
 import ProjectsPage from '../pages/ProjectsPage/ProjectsPage';
-import type { ProjectInfo, TerminalInfo } from '../shared/types';
+import type { LearningIntent, ProjectInfo, TerminalInfo } from '../shared/types';
 
 function App() {
   const [activeProject, setActiveProject] = useState<ProjectInfo | null>(() => {
@@ -14,6 +14,9 @@ function App() {
     }
   });
   const [activeTerminal, setActiveTerminal] = useState<TerminalInfo | null>(null);
+  // Session-only, deliberately not persisted: a reload must never replay
+  // an "open the learning panel" intent from a past navigation.
+  const [learningIntent, setLearningIntent] = useState<LearningIntent | null>(null);
 
   const handleSelectProject = (project: ProjectInfo | null) => {
     setActiveProject(project);
@@ -27,18 +30,23 @@ function App() {
   return (
     <div style={{ height: '100vh', width: '100vw', display: 'flex', flexDirection: 'column' }}>
       {!activeProject ? (
-        <ProjectsPage 
-          onSelectProject={(id, name) => handleSelectProject({ id, name })} 
+        <ProjectsPage
+          onSelectProject={(id, name, intent) => {
+            setLearningIntent(intent ?? null);
+            handleSelectProject({ id, name });
+          }}
         />
       ) : (
-        <CanvasPage 
+        <CanvasPage
           projectId={activeProject.id}
           projectName={activeProject.name}
+          initialLearning={learningIntent}
+          onLearningIntentConsumed={() => setLearningIntent(null)}
           onBackToProjects={() => {
             handleSelectProject(null);
             setActiveTerminal(null);
           }}
-          onTerminalOpen={(id, name) => setActiveTerminal({ id, name })} 
+          onTerminalOpen={(id, name) => setActiveTerminal({ id, name })}
         />
       )}
 

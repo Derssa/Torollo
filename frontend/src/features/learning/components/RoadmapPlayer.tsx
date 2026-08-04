@@ -1,44 +1,19 @@
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { AlertTriangle, ArrowLeft, ChevronLeft, ChevronRight, Globe, RotateCcw, X } from 'lucide-react';
-import StepValidationResults from './StepValidationResults';
+import ValidationToast from './ValidationToast';
 import StepHints from './StepHints';
 import { renderInstruction } from './InstructionMarkdown';
-import { outcomePreset, STATUS_PRESETS } from '../validationStatus';
-import type { StepValidationResponse } from '../../../shared/types/roadmap';
+import ProgressBar from '../../../shared/components/ProgressBar';
 import type { useLearningPlayer } from '../hooks/useLearningPlayer';
 import type { ContainerData } from '../../../shared/types';
 import type { NetworkConfig } from '../../../shared/types/network';
+import type { StepValidationResponse } from '../../../shared/types/roadmap';
 
 interface RoadmapPlayerProps {
   player: ReturnType<typeof useLearningPlayer>;
   containers: ContainerData[];
   networkConfig: NetworkConfig;
-}
-
-function StepMarker({ response }: { response: StepValidationResponse }) {
-  const { t } = useTranslation();
-  const { icon: Icon, color, labelKey } = outcomePreset(response);
-  return (
-    <span style={styles.stepMarker} title={t(labelKey)}>
-      <Icon size={13} color={color} role="img" aria-label={t(labelKey)} />
-    </span>
-  );
-}
-
-/**
- * ✓ for a step whose recorded validation passed in a previous session. Only
- * the verdict is persisted — validator results describe a past container
- * state — so there is no response object and no results card behind it.
- */
-function RestoredStepMarker() {
-  const { t } = useTranslation();
-  const { icon: Icon, color, labelKey } = STATUS_PRESETS.pass;
-  return (
-    <span style={styles.stepMarker} title={t(labelKey)}>
-      <Icon size={13} color={color} role="img" aria-label={t(labelKey)} />
-    </span>
-  );
 }
 
 export default function RoadmapPlayer({
@@ -76,6 +51,21 @@ export default function RoadmapPlayer({
   // same light two-click brake as the solution reveal: first click arms a
   // confirmation label, second executes; leaving the button disarms.
   const [resetArmed, setResetArmed] = useState(false);
+
+  // Which validation result the learner closed, per step. A new attempt
+  // clears the step's entry, so the toast reappears for every fresh verdict.
+  const [dismissedByStepId, setDismissedByStepId] = useState<
+    Record<string, StepValidationResponse>
+  >({});
+  const handleValidate = () => {
+    setDismissedByStepId(prev => {
+      const next = { ...prev };
+      delete next[currentStep!.id];
+      return next;
+    });
+    validateCurrentStep();
+  };
+
   const handleReset = () => {
     if (!resetArmed) {
       setResetArmed(true);
@@ -89,6 +79,11 @@ export default function RoadmapPlayer({
 
   const atFirstStep = currentStepIndex === 0;
   const atLastStep = currentStepIndex === roadmap.steps.length - 1;
+  // Steps count as done when persisted progress says so or this session's
+  // validation passed — the bar tracks achievement, not navigation position.
+  const completedCount = roadmap.steps.filter(
+    step => completedStepIds[step.id] || resultsByStepId[step.id]?.stepPassed
+  ).length;
 
   return (
     <div style={styles.container}>
@@ -113,6 +108,23 @@ export default function RoadmapPlayer({
       </div>
       <span style={styles.roadmapTitle}>{roadmap.title}</span>
 
+      <div style={styles.progressBlock}>
+        <ProgressBar
+          value={completedCount}
+          max={roadmap.steps.length}
+          ariaLabel={t('learning.player.stepCounter', {
+            current: currentStepIndex + 1,
+            total: roadmap.steps.length,
+          })}
+        />
+        <span style={styles.stepCounter}>
+          {t('learning.player.stepCounter', {
+            current: currentStepIndex + 1,
+            total: roadmap.steps.length,
+          })}
+        </span>
+      </div>
+
       {resetError !== null && (
         <div style={styles.errorBox}>
           <span>{resetError || t('learning.player.resetProgressError')}</span>
@@ -132,31 +144,6 @@ export default function RoadmapPlayer({
           </button>
         </div>
       )}
-
-      <div style={styles.stepList}>
-        {roadmap.steps.map((step, index) => {
-          const result = resultsByStepId[step.id];
-          const isCurrent = index === currentStepIndex;
-          return (
-            <button
-              key={step.id}
-              onClick={() => goToStep(index)}
-              style={{
-                ...styles.stepItem,
-                ...(isCurrent ? styles.stepItemCurrent : {}),
-              }}
-            >
-              <span style={styles.stepIndex}>{index + 1}.</span>
-              <span style={styles.stepItemTitle}>{step.title}</span>
-              {result ? (
-                <StepMarker response={result} />
-              ) : (
-                completedStepIds[step.id] && <RestoredStepMarker />
-              )}
-            </button>
-          );
-        })}
-      </div>
 
       {/* Determine if we should show a localhost link to the container. */}
       {(() => {
@@ -189,13 +176,10 @@ export default function RoadmapPlayer({
 
         return (
           <div style={styles.currentStep}>
-            <span style={styles.stepCounter}>
-              {t('learning.player.stepCounter', {
-                current: currentStepIndex + 1,
-                total: roadmap.steps.length,
-              })}
-            </span>
-            <span style={styles.stepTitle}>{currentStep.title}</span>
+            <div style={styles.stepTitleRow}>
+              <span style={styles.stepBadge}>{currentStepIndex + 1}</span>
+              <span style={styles.stepTitle}>{currentStep.title}</span>
+            </div>
             <div style={styles.instructionContainer}>
               {renderInstruction(currentStep.instruction)}
             </div>
@@ -221,6 +205,14 @@ export default function RoadmapPlayer({
         );
       })()}
 
+      <button
+        onClick={handleValidate}
+        disabled={validating}
+        style={{ ...styles.validateBtn, opacity: validating ? 0.6 : 1 }}
+      >
+        {validating ? t('learning.player.validating') : t('learning.player.validate')}
+      </button>
+
       <div style={styles.navRow}>
         <button
           onClick={() => goToStep(currentStepIndex - 1)}
@@ -235,35 +227,33 @@ export default function RoadmapPlayer({
           disabled={atLastStep}
           style={{ ...styles.navBtn, opacity: atLastStep ? 0.4 : 1 }}
         >
-          {t('learning.player.next')}
+          {t('learning.player.skipStep')}
           <ChevronRight size={13} />
         </button>
       </div>
 
-      <button
-        onClick={validateCurrentStep}
-        disabled={validating}
-        style={{ ...styles.validateBtn, opacity: validating ? 0.6 : 1 }}
-      >
-        {validating ? t('learning.player.validating') : t('learning.player.validate')}
-      </button>
-
       {validationError !== null && (
         <div style={styles.errorBox}>
           <span>{validationError || t('learning.player.validationError')}</span>
-          <button onClick={validateCurrentStep} style={styles.retryBtn}>
+          <button onClick={handleValidate} style={styles.retryBtn}>
             {t('learning.player.retry')}
           </button>
         </div>
       )}
 
-      {resultsByStepId[currentStep.id] && (
-        <StepValidationResults
-          response={resultsByStepId[currentStep.id]}
-          isLastStep={atLastStep}
-          onNextStep={() => goToStep(currentStepIndex + 1)}
-        />
-      )}
+      {resultsByStepId[currentStep.id] &&
+        dismissedByStepId[currentStep.id] !== resultsByStepId[currentStep.id] && (
+          <ValidationToast
+            response={resultsByStepId[currentStep.id]}
+            isLastStep={atLastStep}
+            onDismiss={() =>
+              setDismissedByStepId(prev => ({
+                ...prev,
+                [currentStep.id]: resultsByStepId[currentStep.id],
+              }))
+            }
+          />
+        )}
     </div>
   );
 }
@@ -339,42 +329,10 @@ const styles: Record<string, React.CSSProperties> = {
     color: 'var(--color-text-primary)',
     lineHeight: 1.4,
   },
-  stepList: {
+  progressBlock: {
     display: 'flex',
     flexDirection: 'column',
-    gap: '4px',
-  },
-  stepItem: {
-    display: 'flex',
-    alignItems: 'center',
-    gap: '6px',
-    padding: '7px 10px',
-    border: '1px solid transparent',
-    borderRadius: '6px',
-    background: 'none',
-    cursor: 'pointer',
-    textAlign: 'left',
-    fontFamily: 'var(--font-sans)',
-    color: 'var(--color-text-secondary)',
-  },
-  stepItemCurrent: {
-    border: '1px solid var(--color-accent)',
-    backgroundColor: 'color-mix(in srgb, var(--color-accent) 6%, transparent)',
-    color: 'var(--color-text-primary)',
-  },
-  stepIndex: {
-    fontSize: '11px',
-    fontWeight: 700,
-    color: 'var(--color-text-muted)',
-  },
-  stepItemTitle: {
-    fontSize: '12px',
-    fontWeight: 500,
-    flex: 1,
-  },
-  stepMarker: {
-    display: 'flex',
-    alignItems: 'center',
+    gap: '5px',
   },
   currentStep: {
     display: 'flex',
@@ -384,16 +342,36 @@ const styles: Record<string, React.CSSProperties> = {
     paddingTop: '12px',
   },
   stepCounter: {
+    alignSelf: 'flex-end',
     fontSize: '10px',
     fontWeight: 700,
     color: 'var(--color-text-muted)',
     textTransform: 'uppercase',
     letterSpacing: '0.5px',
   },
+  stepTitleRow: {
+    display: 'flex',
+    alignItems: 'flex-start',
+    gap: '8px',
+  },
+  stepBadge: {
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    width: '20px',
+    height: '20px',
+    flexShrink: 0,
+    border: '1px solid var(--border-color)',
+    borderRadius: '50%',
+    fontSize: '11px',
+    fontWeight: 700,
+    color: 'var(--color-text-primary)',
+  },
   stepTitle: {
     fontSize: '13px',
     fontWeight: 600,
     color: 'var(--color-text-primary)',
+    lineHeight: '20px',
   },
   instruction: {
     margin: 0,

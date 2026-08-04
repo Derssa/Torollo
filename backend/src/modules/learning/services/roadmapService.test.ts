@@ -1,5 +1,5 @@
 import path from 'path';
-import { RoadmapService } from './roadmapService';
+import { CURATED_ROADMAP_ORDER, RoadmapService } from './roadmapService';
 
 const FIXTURES_DIR = path.resolve(__dirname, '__fixtures__/roadmaps');
 
@@ -34,7 +34,33 @@ describe('RoadmapService', () => {
           estimatedMinutes: 10,
           stepCount: 2,
         },
+        {
+          id: 'zz-unlisted-roadmap',
+          title: 'Unlisted roadmap',
+          description: 'Sorts first by file name, last by id: proves the catalogue orders on ids.',
+          language: 'en',
+          difficulty: 'beginner',
+          estimatedMinutes: 5,
+          stepCount: 1,
+        },
       ]);
+    });
+
+    it('orders roadmaps outside the curated list by id, not by file name', () => {
+      const ids = RoadmapService.listRoadmaps(FIXTURES_DIR).map(summary => summary.id);
+
+      // a-unlisted-id.json holds `zz-unlisted-roadmap`: file name first, id last.
+      expect(ids).toEqual(['fixture-roadmap', 'fixture-roadmap', 'zz-unlisted-roadmap']);
+    });
+
+    it('opens the shipped catalogue on the curated order — the first entry is what a first-run user is pitched', () => {
+      const summaries = RoadmapService.listRoadmaps();
+      const curated = summaries.map(s => s.id).filter(id => CURATED_ROADMAP_ORDER.includes(id));
+      // Translations share an id and sit next to each other: collapse the runs.
+      const distinct = curated.filter((id, index) => id !== curated[index - 1]);
+
+      expect(summaries[0].id).toBe(CURATED_ROADMAP_ORDER[0]);
+      expect(distinct).toEqual(CURATED_ROADMAP_ORDER.filter(id => curated.includes(id)));
     });
 
     it('skips invalid roadmap files and warns with the file name', () => {

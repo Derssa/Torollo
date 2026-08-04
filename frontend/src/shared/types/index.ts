@@ -30,6 +30,15 @@ export interface TerminalInfo {
   name: string;
 }
 
+/**
+ * Intent carried from the landing page into the canvas: open the learning
+ * panel, optionally directly on one roadmap. Session-only, never persisted —
+ * a reload must not replay it.
+ */
+export interface LearningIntent {
+  roadmap?: { id: string; language: string };
+}
+
 /** API base URL for the backend */
 export const API_BASE = import.meta.env.DEV
   ? 'http://localhost:23233'

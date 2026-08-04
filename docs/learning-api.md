@@ -13,6 +13,8 @@ This document is the contract for API consumers (the roadmap player in the front
 
 Lists the available roadmaps as summaries — **one entry per file**. Translations of the same roadmap share an `id` and differ by `language` (see the format's language model), so they appear as separate catalogue entries; a selection UI should surface the `language` field.
 
+The list is a **suggested path, not a directory listing**: the roadmaps shipped with Torollo come first, in the order they are meant to be taken (`CURATED_ROADMAP_ORDER` in `roadmapService.ts`), and the rest — roadmaps you dropped into `roadmaps/` yourself — follow, ordered by `id`. Clients can rely on that order: the app pitches the first entry to a first-run user.
+
 ```json
 [
   {
@@ -112,6 +114,10 @@ Roadmap progression is persisted locally in `~/.torollo/progress.json`, next to 
 ```
 
 `passed` is the verdict of the **latest** validation (same semantics as the player's in-session display); `attempts` counts the validation runs that reached evaluation; `revealedHints` is the absolute number of revealed rungs on the step's hint ladder `[...hints, solution?]`. Validator results are deliberately **not** persisted — they describe a past container state; only the verdict survives. The top-level `version` is the migration contract: a reader that finds an unknown version (or an unparseable file) must not guess — the server moves the file aside as `progress.json.corrupt`, starts fresh, and reports it once via `storeRecovered` on the next progress read so the UI can tell the user. Writes are write-then-rename, so a crash mid-write cannot truncate the store. Deleting a project deletes its progress entries.
+
+### `GET /api/learning/progress`
+
+Returns `{ "entries": [ { "projectId", "roadmapId", "updatedAt", "completedSteps" } ] }` — one summary per `(projectId, roadmapId)` play-through in the store, where `completedSteps` counts the steps whose latest validation passed. Used by surfaces that show progress across projects (e.g. the landing page's roadmap cards, which keep the most recent entry per roadmap). This endpoint never emits `storeRecovered` — that one-shot notice is reserved for the per-pair read below.
 
 ### `GET /api/learning/progress/:projectId/:roadmapId`
 

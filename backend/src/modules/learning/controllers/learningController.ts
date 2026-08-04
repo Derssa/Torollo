@@ -115,6 +115,14 @@ export class LearningController {
     }
   }
 
+  public static async listProgress(req: Request, res: Response): Promise<void> {
+    try {
+      res.json({ entries: ProgressService.listProgress() });
+    } catch (err: unknown) {
+      res.status(500).json({ error: err instanceof Error ? err.message : String(err) });
+    }
+  }
+
   public static async getProgress(req: Request, res: Response): Promise<void> {
     try {
       res.json(

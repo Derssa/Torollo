@@ -18,6 +18,10 @@ export function useContainers({ projectId, onNotify }: UseContainersOptions) {
   const { t } = useTranslation();
   const [containers, setContainers] = useState<ContainerData[]>([]);
   const [loading, setLoading] = useState(false);
+  // True once a first list has come back, whatever it held. Empty states must
+  // wait for it: `containers` starts empty and `loading` is only true while a
+  // request is in flight, so "nothing yet" and "nothing at all" look alike.
+  const [loaded, setLoaded] = useState(false);
   const [creating, setCreating] = useState(false);
   // Last failed operation per container id, so nodes can show why they are not running.
   const [opErrors, setOpErrors] = useState<Record<string, string>>({});
@@ -62,6 +66,7 @@ export function useContainers({ projectId, onNotify }: UseContainersOptions) {
       registerFailedPoll();
     } finally {
       setLoading(false);
+      setLoaded(true);
     }
   }, [baseUrl]);
 
@@ -145,6 +150,7 @@ export function useContainers({ projectId, onNotify }: UseContainersOptions) {
   return {
     containers,
     loading,
+    loaded,
     creating,
     opErrors,
     dockerUnavailable,

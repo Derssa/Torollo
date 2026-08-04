@@ -89,6 +89,8 @@ async function renderCanvasPage(fetchMock: ReturnType<typeof vi.fn>, props: Part
     <CanvasPage
       projectId="p1"
       projectName="Test Project"
+      initialLearning={props.initialLearning}
+      onLearningIntentConsumed={props.onLearningIntentConsumed}
       onBackToProjects={props.onBackToProjects || vi.fn()}
       onTerminalOpen={props.onTerminalOpen || vi.fn()}
     />
@@ -115,6 +117,72 @@ describe('CanvasPage', () => {
   afterEach(() => {
     vi.unstubAllGlobals();
     vi.useRealTimers();
+  });
+
+  it('opens the learning panel on mount when an arrival intent is given, and consumes it once', async () => {
+    const fetchMock = buildFetchMock({ containers: [], networkConfig: { vpcConfig: validVpcConfig, subnets: [], nodeSubnetMap: {}, nodeSecurityGroups: {}, nodeIpMap: {} } });
+    const onLearningIntentConsumed = vi.fn();
+    await renderCanvasPage(fetchMock, { initialLearning: {}, onLearningIntentConsumed });
+
+    // Topbar button + panel header both say "Learning": 2 means the panel is open.
+    expect(screen.getAllByText('Learning')).toHaveLength(2);
+    expect(onLearningIntentConsumed).toHaveBeenCalledTimes(1);
+  });
+
+  it('keeps the learning panel closed without an arrival intent', async () => {
+    const fetchMock = buildFetchMock({ containers: [], networkConfig: { vpcConfig: validVpcConfig, subnets: [], nodeSubnetMap: {}, nodeSecurityGroups: {}, nodeIpMap: {} } });
+    await renderCanvasPage(fetchMock);
+
+    // The topbar button is labeled via topbar.learning; the panel header ("Learning")
+    // must not be there. Both resolve to the same string, so count occurrences.
+    expect(screen.getAllByText('Learning')).toHaveLength(1);
+  });
+
+  it('offers a roadmap on an empty canvas, and opens the learning panel from it', async () => {
+    const fetchMock = buildFetchMock({ containers: [], networkConfig: { vpcConfig: validVpcConfig, subnets: [], nodeSubnetMap: {}, nodeSecurityGroups: {}, nodeIpMap: {} } });
+    await renderCanvasPage(fetchMock);
+
+    expect(await screen.findByText('This canvas is empty')).toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole('button', { name: /Follow a roadmap/ }));
+
+    // The panel now answers the same question, so the empty state steps aside.
+    expect(screen.getAllByText('Learning')).toHaveLength(2);
+    expect(screen.queryByText('This canvas is empty')).toBeNull();
+  });
+
+  it('waits for the first container list before declaring the canvas empty', async () => {
+    // "Nothing yet" must not be shown as "nothing at all": a project that is
+    // still loading would otherwise flash the empty state before its nodes.
+    const neverSettles = vi.fn((url: string) =>
+      url.includes('/network-config')
+        ? jsonResponse(true, { vpcConfig: validVpcConfig, subnets: [], nodeSubnetMap: {}, nodeSecurityGroups: {}, nodeIpMap: {} })
+        : new Promise<Response>(() => {})
+    );
+    await renderCanvasPage(neverSettles as unknown as ReturnType<typeof vi.fn>);
+
+    expect(screen.queryByText('This canvas is empty')).toBeNull();
+  });
+
+  it('keeps the empty state off a canvas that holds something', async () => {
+    const withSubnetOnly = buildFetchMock({
+      containers: [],
+      networkConfig: { vpcConfig: validVpcConfig, subnets: [subnetFixture()], nodeSubnetMap: {}, nodeSecurityGroups: {}, nodeIpMap: {} },
+    });
+    const { unmount } = await renderCanvasPage(withSubnetOnly);
+
+    await waitFor(() => expect(screen.getByText('Public Subnet-1')).toBeInTheDocument());
+    expect(screen.queryByText('This canvas is empty')).toBeNull();
+
+    unmount();
+    const withContainerOnly = buildFetchMock({
+      containers: [{ id: 'c1', name: 'web-1', state: 'running', status: 'running', type: 'ubuntu' }],
+      networkConfig: { vpcConfig: validVpcConfig, subnets: [], nodeSubnetMap: {}, nodeSecurityGroups: {}, nodeIpMap: {} },
+    });
+    await renderCanvasPage(withContainerOnly);
+
+    await waitFor(() => expect(screen.getByText('web-1')).toBeInTheDocument());
+    expect(screen.queryByText('This canvas is empty')).toBeNull();
   });
 
   it('fetches containers and network config on mount and renders the project header', async () => {
