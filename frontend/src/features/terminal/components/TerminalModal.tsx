@@ -6,6 +6,7 @@ import { useTranslation } from 'react-i18next';
 import { X, Terminal as TermIcon, BookOpen } from 'lucide-react';
 import '@xterm/xterm/css/xterm.css';
 import LinuxCheatSheet from './LinuxCheatSheet';
+import { shouldProcessKeyInTerminal } from '../terminalKeyboard';
 import { API_BASE } from '../../../shared/types';
 
 interface TerminalModalProps {
@@ -42,6 +43,8 @@ export default function TerminalModal({ containerId, projectId, nodeName, onClos
     const fitAddon = new FitAddon();
     term.loadAddon(fitAddon);
 
+    term.attachCustomKeyEventHandler(shouldProcessKeyInTerminal);
+
     if (terminalRef.current) {
       term.open(terminalRef.current);
       fitAddon.fit();
@@ -74,6 +77,12 @@ export default function TerminalModal({ containerId, projectId, nodeName, onClos
       term.dispose();
     };
   }, [containerId, projectId]);
+
+  useEffect(() => {
+    if (activeTab === 'terminal') {
+      termRef.current?.focus();
+    }
+  }, [activeTab]);
 
   return (
     <div style={styles.overlay}>
