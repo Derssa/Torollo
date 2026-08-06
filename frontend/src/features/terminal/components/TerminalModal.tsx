@@ -48,6 +48,7 @@ export default function TerminalModal({ containerId, projectId, nodeName, onClos
     if (terminalRef.current) {
       term.open(terminalRef.current);
       fitAddon.fit();
+      term.focus();
     }
 
     socket.emit('join-terminal', { containerId, projectId });
@@ -77,12 +78,6 @@ export default function TerminalModal({ containerId, projectId, nodeName, onClos
       term.dispose();
     };
   }, [containerId, projectId]);
-
-  useEffect(() => {
-    if (activeTab === 'terminal') {
-      termRef.current?.focus();
-    }
-  }, [activeTab]);
 
   return (
     <div style={styles.overlay}>
