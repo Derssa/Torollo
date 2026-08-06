@@ -73,7 +73,15 @@
         "keepBuilding": "Continuer à construire",
         "keepBuildingHint": "Vos conteneurs tournent toujours.",
         "completeBadge": "Roadmap terminée",
-        "viewSummary": "Voir le récap"
+        "viewSummary": "Voir le récap",
+        "shareCardLabel": "Image de partage",
+        "shareCardStats": "{{steps}} étapes sur {{steps}} validées · {{checks}} vérifications sur {{checks}} passées",
+        "shareCardTopology": "Topologie",
+        "shareCardMore": "+{{count}} de plus",
+        "shareCardFooterBrand": "Torollo — gratuit, MIT, en local",
+        "shareCardAlt": "Image de partage pour « {{title}} »",
+        "downloadImage": "Télécharger l'image",
+        "imageDownloaded": "Téléchargée"
       }
     },
     "landing": {

@@ -5,13 +5,18 @@ import Modal from '../../../shared/components/Modal';
 import Button from '../../../shared/components/Button';
 import Skeleton from '../../../shared/components/Skeleton';
 import Receipt from '../../../shared/components/Receipt';
+import ShareImageCard from './ShareImageCard';
 import { deriveTopology } from '../roadmapTopology';
 import { filterByUiLanguage } from '../roadmapLanguage';
 import { useRoadmaps } from '../hooks/useRoadmaps';
 import { useLearningProgressSummaries } from '../hooks/useLearningProgressSummaries';
 import type { RunTimes } from '../hooks/useLearningPlayer';
+import type { ShareCardData } from '../shareImageCard';
 import type { LearningExit } from '../../../shared/types';
 import type { Roadmap, RoadmapSummary } from '../../../shared/types/roadmap';
+
+/** Share-card topology rows beyond this count collapse into a "+N more" line. */
+const MAX_SHARE_CARD_TOPOLOGY_ROWS = 6;
 
 interface RoadmapCompletionScreenProps {
   roadmap: Roadmap;
@@ -52,7 +57,8 @@ export default function RoadmapCompletionScreen({
   }, [fetchRoadmaps, fetchProgress]);
   useEffect(() => () => window.clearTimeout(shareResetRef.current), []);
 
-  const skills = useMemo(() => deriveTopology(roadmap).skills, [roadmap]);
+  const topology = useMemo(() => deriveTopology(roadmap), [roadmap]);
+  const skills = topology.skills;
 
   // "Next" follows the catalogue's curated order: the first roadmap the
   // learner hasn't started, then the first they haven't finished. Progress is
@@ -108,6 +114,27 @@ export default function RoadmapCompletionScreen({
   // Column-major like a printed checklist: steps 1..k down the left column,
   // the rest down the right, so the recap reads in roadmap order.
   const recapRows = Math.ceil(total / 2);
+
+  // The completion screen only ever opens once every step's own validators
+  // have passed, so both fractions in the share card are always whole — but
+  // reading the real counts (rather than hardcoding "10 of 10") keeps it
+  // truthful if that invariant ever changes.
+  const shareCardData: ShareCardData = useMemo(() => {
+    const checksTotal = roadmap.steps.reduce((sum, step) => sum + step.validators.length, 0);
+    const shownNodes = topology.nodes.slice(0, MAX_SHARE_CARD_TOPOLOGY_ROWS);
+    const hiddenCount = topology.nodes.length - shownNodes.length;
+    return {
+      title: roadmap.title,
+      statsLine: t('learning.player.completion.shareCardStats', { steps: total, checks: checksTotal }),
+      skills: skills.map(skill => t(`learning.detail.skill.${skill}`)),
+      topologyLabel: t('learning.player.completion.shareCardTopology'),
+      topology: shownNodes.map(node => ({ name: node.name, role: t(`learning.detail.role.${node.role}`) })),
+      moreTopologyLabel:
+        hiddenCount > 0 ? t('learning.player.completion.shareCardMore', { count: hiddenCount }) : undefined,
+      footerBrand: t('learning.player.completion.shareCardFooterBrand'),
+      footerUrl: 'torollo.app',
+    };
+  }, [roadmap, total, topology, skills, t]);
 
   return (
     <Modal onClose={onDismiss} width="608px">
@@ -167,6 +194,15 @@ export default function RoadmapCompletionScreen({
             </div>
           </div>
         )}
+
+        <div style={styles.section}>
+          <span style={styles.sectionLabel}>{t('learning.player.completion.shareCardLabel')}</span>
+          <ShareImageCard
+            data={shareCardData}
+            alt={t('learning.player.completion.shareCardAlt', { title: roadmap.title })}
+            fileName={`torollo-${roadmap.id}-share.png`}
+          />
+        </div>
 
         {nextResolved && !nextRoadmap && (
           <div style={styles.noteBox}>

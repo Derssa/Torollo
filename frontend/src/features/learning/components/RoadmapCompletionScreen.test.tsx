@@ -117,6 +117,13 @@ describe('RoadmapCompletionScreen', () => {
     expect(screen.getByText('SQL')).toBeInTheDocument();
 
     expect(await screen.findByText('Next roadmap')).toBeInTheDocument();
+
+    // The share card: same facts as the receipt/recap, rendered onto a canvas.
+    expect(screen.getByText('Share image')).toBeInTheDocument();
+    expect(
+      screen.getByRole('img', { name: 'Shareable image card for “Your first architecture”' })
+    ).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Download image' })).toBeInTheDocument();
   });
 
   it('copies a share post that can be pasted as-is', async () => {
