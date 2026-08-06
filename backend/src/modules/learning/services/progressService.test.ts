@@ -62,6 +62,36 @@ describe('ProgressService', () => {
     expect(progress.steps['step-a']).toEqual({ passed: false, attempts: 0, revealedHints: 3 });
   });
 
+  it('stamps startedAt when the play-through begins and never moves it', () => {
+    ProgressService.recordValidation('project-1', 'roadmap-1', 'step-a', false, '2026-07-16T10:00:00.000Z', file);
+    const startedAt = ProgressService.getProgress('project-1', 'roadmap-1', file).startedAt;
+    expect(typeof startedAt).toBe('string');
+
+    ProgressService.recordValidation('project-1', 'roadmap-1', 'step-b', true, '2026-07-16T11:00:00.000Z', file);
+    ProgressService.recordRevealedHints('project-1', 'roadmap-1', 'step-a', 1, file);
+
+    expect(ProgressService.getProgress('project-1', 'roadmap-1', file).startedAt).toBe(startedAt);
+  });
+
+  it('leaves startedAt absent on entries written before the field existed', () => {
+    fs.writeFileSync(
+      file,
+      JSON.stringify({
+        version: 1,
+        entries: [
+          {
+            projectId: 'project-1',
+            roadmapId: 'roadmap-1',
+            updatedAt: '2026-07-16T10:00:00.000Z',
+            steps: { 'step-a': { passed: true, attempts: 1, revealedHints: 0 } },
+          },
+        ],
+      })
+    );
+
+    expect(ProgressService.getProgress('project-1', 'roadmap-1', file).startedAt).toBeUndefined();
+  });
+
   it('keys steps by stable id, independent of any ordering', () => {
     ProgressService.recordValidation('project-1', 'roadmap-1', 'step-c', true, '2026-07-16T10:00:00.000Z', file);
     ProgressService.recordValidation('project-1', 'roadmap-1', 'step-a', true, '2026-07-16T10:01:00.000Z', file);

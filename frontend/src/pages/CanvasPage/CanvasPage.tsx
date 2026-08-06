@@ -28,7 +28,7 @@ import CanvasModals from './components/CanvasModals';
 import type { InspectorState } from './components/CanvasModals';
 import ButtonEdge from './components/ButtonEdge';
 import { API_BASE } from '../../shared/types';
-import type { LearningIntent } from '../../shared/types';
+import type { LearningExit, LearningIntent } from '../../shared/types';
 import { useNetworkConfig } from './hooks/useNetworkConfig';
 import { useCanvasDragDrop } from './hooks/useCanvasDragDrop';
 import { positionToCell, resolveSubnetChildPosition, subnetSize } from './utils/canvasGeometry';
@@ -49,6 +49,8 @@ interface CanvasPageProps {
   /** Called once on mount so the owner can clear the one-shot intent. */
   onLearningIntentConsumed?: () => void;
   onBackToProjects: () => void;
+  /** Leave for the home shell's learning views (the completion screen's navigation). */
+  onExitToLearning?: (target: LearningExit) => void;
   onTerminalOpen: (id: string, name: string) => void;
 }
 
@@ -70,6 +72,7 @@ export default function CanvasPage({
   initialLearning,
   onLearningIntentConsumed,
   onBackToProjects,
+  onExitToLearning,
   onTerminalOpen,
 }: CanvasPageProps) {
   const { t } = useTranslation();
@@ -621,8 +624,10 @@ export default function CanvasPage({
         {showLearning && (
           <LearningPanel
             projectId={projectId}
+            projectName={projectName}
             initialRoadmap={initialRoadmapRef.current}
             onClose={() => setShowLearning(false)}
+            onExit={onExitToLearning}
             containers={containers}
             networkConfig={networkConfig}
           />

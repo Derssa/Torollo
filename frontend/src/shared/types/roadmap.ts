@@ -115,6 +115,8 @@ export interface StepProgress {
 export interface RoadmapProgressResponse {
   projectId: string;
   roadmapId: string;
+  /** When this play-through began — absent when it hasn't started, or predates the field. */
+  startedAt?: string;
   steps: Record<string, StepProgress>;
   /** Present (true) once after an unreadable store was moved aside — tell the user. */
   storeRecovered?: boolean;

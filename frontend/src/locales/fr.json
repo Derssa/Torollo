@@ -43,7 +43,6 @@
       "stepErrorDocker": "Docker n'était pas démarré, les vérifications n'ont pas pu s'exécuter. Démarrez Docker puis validez à nouveau.",
       "moreChecks_one": "+{{count}} autre vérification à corriger",
       "moreChecks_other": "+{{count}} autres vérifications à corriger",
-      "roadmapComplete": "Validation réussie — c'était la dernière étape. Roadmap terminée !",
       "hintLabel": "indice {{n}}/{{total}}",
       "showHint": "Voir un indice ({{n}}/{{total}})",
       "solutionLabel": "solution",
@@ -53,7 +52,29 @@
       "resetProgressConfirm": "Sûr ? Cliquez à nouveau pour recommencer",
       "resetProgressError": "Impossible de réinitialiser la progression. Rien n'a été modifié — réessayez.",
       "progressRecovered": "Votre progression sauvegardée était illisible et a dû être réinitialisée. Désolé — cette roadmap repart de zéro.",
-      "dismissNotice": "Fermer"
+      "dismissNotice": "Fermer",
+      "completion": {
+        "eyebrow": "Roadmap terminée",
+        "subtitle": "Chaque étape a été validée sur vos conteneurs en cours d'exécution.",
+        "runLabel": "Votre parcours",
+        "runLineRoadmap": "roadmap : {{id}}",
+        "runLineProject": "projet : {{name}}",
+        "runLineSteps": "étapes : {{total}}/{{total}} validées",
+        "runLineStarted": "début : {{when}}",
+        "runLineFinished": "fin : {{when}}",
+        "stepsRecap": "Récap des étapes",
+        "skills": "Compétences travaillées",
+        "catalogueDone": "C'est toute l'étendue du catalogue pour l'instant — de nouvelles roadmaps arrivent régulièrement. Votre canvas reste à vous pour aller plus loin.",
+        "copyShare": "Copier le post de partage",
+        "copiedShare": "Copié — collez-le où vous voulez",
+        "shareText": "Je viens de terminer « {{title}} » sur Torollo — {{total}}/{{total}} étapes vérifiées sur de vrais conteneurs Docker, sur ma machine. Gratuit et open source : torollo.app",
+        "nextRoadmap": "Roadmap suivante",
+        "allRoadmaps": "Toutes les roadmaps",
+        "keepBuilding": "Continuer à construire",
+        "keepBuildingHint": "Vos conteneurs tournent toujours.",
+        "completeBadge": "Roadmap terminée",
+        "viewSummary": "Voir le récap"
+      }
     },
     "landing": {
       "title": "Apprentissage",

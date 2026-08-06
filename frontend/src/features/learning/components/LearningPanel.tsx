@@ -4,14 +4,18 @@ import { GraduationCap, X } from 'lucide-react';
 import { useLearningPlayer } from '../hooks/useLearningPlayer';
 import RoadmapCatalog from './RoadmapCatalog';
 import RoadmapPlayer from './RoadmapPlayer';
-import type { ContainerData } from '../../../shared/types';
+import type { ContainerData, LearningExit } from '../../../shared/types';
 import type { NetworkConfig } from '../../../shared/types/network';
 
 interface LearningPanelProps {
   projectId: string;
+  /** Name of the project — shown on the completion receipt. */
+  projectName?: string;
   /** Deep-link from the landing page: open directly on this roadmap. One-shot, consumed on mount. */
   initialRoadmap?: { id: string; language: string } | null;
   onClose: () => void;
+  /** Leave the canvas for the home shell (completion screen's navigation). */
+  onExit?: (target: LearningExit) => void;
   containers?: ContainerData[];
   networkConfig?: NetworkConfig;
 }
@@ -23,8 +27,10 @@ interface LearningPanelProps {
  */
 export default function LearningPanel({
   projectId,
+  projectName,
   initialRoadmap,
   onClose,
+  onExit,
   containers = [],
   networkConfig = {
     vpcConfig: { name: '', cidr: '' },
@@ -65,6 +71,8 @@ export default function LearningPanel({
             player={player}
             containers={containers}
             networkConfig={networkConfig}
+            projectName={projectName}
+            onExit={onExit}
           />
         ) : player.roadmapLoading ? (
           <div style={styles.loading}>{t('learning.player.loading')}</div>

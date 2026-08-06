@@ -6,7 +6,6 @@ import type { StepValidationResponse } from '../../../shared/types/roadmap';
 
 interface ValidationToastProps {
   response: StepValidationResponse;
-  isLastStep: boolean;
   onDismiss: () => void;
 }
 
@@ -17,11 +16,7 @@ interface ValidationToastProps {
  * one verdict and a single detail line — the full instruction, hints and
  * navigation live in the sidebar, the toast only answers "did it work?".
  */
-export default function ValidationToast({
-  response,
-  isLastStep,
-  onDismiss,
-}: ValidationToastProps) {
+export default function ValidationToast({ response, onDismiss }: ValidationToastProps) {
   const { t } = useTranslation();
   const outcome = stepOutcome(response);
 
@@ -37,7 +32,7 @@ export default function ValidationToast({
   if (outcome === 'passed') {
     disc = { backgroundColor: 'var(--color-success)' };
     DiscIcon = Check;
-    title = isLastStep ? t('learning.player.roadmapComplete') : t('learning.player.stepPassed');
+    title = t('learning.player.stepPassed');
     titleColor = 'var(--color-success)';
     detail = response.results[0]?.message;
   } else if (outcome === 'error') {

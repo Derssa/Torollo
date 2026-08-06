@@ -39,6 +39,15 @@ export interface LearningIntent {
   roadmap?: { id: string; language: string };
 }
 
+/**
+ * Reverse of LearningIntent: where the completion screen sends the learner
+ * when they leave the canvas — the learning catalogue, or one roadmap's
+ * briefing. Session-only for the same reason.
+ */
+export type LearningExit =
+  | { kind: 'catalog' }
+  | { kind: 'roadmap'; summary: import('./roadmap').RoadmapSummary };
+
 /** API base URL for the backend */
 export const API_BASE = import.meta.env.DEV
   ? 'http://localhost:23233'
