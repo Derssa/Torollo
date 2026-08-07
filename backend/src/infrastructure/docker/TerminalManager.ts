@@ -18,7 +18,7 @@ export class TerminalManager {
     });
 
     const stream = await new Promise<NodeJS.ReadWriteStream>((resolve, reject) => {
-      exec.start({ hijack: true, stdin: true }, (err, execStream) => {
+      exec.start({ hijack: true, stdin: true, Tty: true }, (err, execStream) => {
         if (err || !execStream) return reject(err || new Error('Failed to start terminal stream'));
         resolve(execStream);
       });
