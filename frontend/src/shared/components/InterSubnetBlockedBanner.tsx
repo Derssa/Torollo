@@ -12,7 +12,7 @@ export function InterSubnetBlockedBanner() {
   return (
     <div style={bannerStyles.wrapper}>
       <div style={bannerStyles.banner}>
-        <AlertTriangle size={16} color="#F59E0B" style={{ flexShrink: 0 }} />
+        <AlertTriangle size={16} color="var(--color-warning)" style={{ flexShrink: 0 }} />
         <span>{t('common.interSubnetBlocked')}</span>
       </div>
     </div>
@@ -33,12 +33,12 @@ const bannerStyles: Record<string, React.CSSProperties> = {
     gap: '10px',
     padding: '12px 18px',
     borderRadius: '12px',
-    border: '1px solid #F59E0B',
-    background: 'rgba(255, 251, 235, 0.96)',
-    color: '#92400E',
+    border: '1px solid var(--color-warning)',
+    background: 'var(--color-warning-surface)',
+    color: 'var(--color-warning-strong)',
     backdropFilter: 'blur(16px)',
     WebkitBackdropFilter: 'blur(16px)',
-    boxShadow: '0 8px 32px -8px rgba(0, 0, 0, 0.12)',
+    boxShadow: 'var(--shadow-floating)',
     fontSize: '13px',
     fontWeight: 600,
     maxWidth: '640px',

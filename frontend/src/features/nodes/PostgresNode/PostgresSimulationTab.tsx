@@ -305,8 +305,8 @@ export default function PostgresSimulationTab({
     <div style={{ ...styles.tabContent, display: 'flex', flexDirection: 'column', gap: '16px' }}>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
         <div>
-          <h3 style={{ margin: '0 0 4px 0', fontSize: '15px', color: 'var(--neutral-800)' }}>{t('postgres.simulation.title')}</h3>
-          <p style={{ margin: 0, fontSize: '12px', color: 'var(--neutral-500)' }}>
+          <h3 style={{ margin: '0 0 4px 0', fontSize: '15px', color: 'var(--color-text-primary)' }}>{t('postgres.simulation.title')}</h3>
+          <p style={{ margin: 0, fontSize: '12px', color: 'var(--color-text-muted)' }}>
             {t('postgres.simulation.desc')}
           </p>
         </div>
@@ -384,15 +384,15 @@ export default function PostgresSimulationTab({
 
       {/* Simulation metrics */}
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '16px' }}>
-        <div style={{ border: '1px solid var(--neutral-200)', borderRadius: '8px', padding: '12px', textAlign: 'center', backgroundColor: 'var(--neutral-50)' }}>
-          <span style={{ fontSize: '11px', textTransform: 'uppercase', color: 'var(--neutral-500)', fontWeight: 600 }}>{t('postgres.simulation.reads')}</span>
+        <div style={{ border: '1px solid var(--border-color)', borderRadius: '8px', padding: '12px', textAlign: 'center', backgroundColor: 'var(--bg-subtle)' }}>
+          <span style={{ fontSize: '11px', textTransform: 'uppercase', color: 'var(--color-text-muted)', fontWeight: 600 }}>{t('postgres.simulation.reads')}</span>
           <div style={{ fontSize: '20px', fontWeight: 'bold', color: 'var(--color-accent)', marginTop: '4px' }}>{simMetrics.reads}</div>
         </div>
-        <div style={{ border: '1px solid var(--neutral-200)', borderRadius: '8px', padding: '12px', textAlign: 'center', backgroundColor: 'var(--neutral-50)' }}>
-          <span style={{ fontSize: '11px', textTransform: 'uppercase', color: 'var(--neutral-500)', fontWeight: 600 }}>{t('postgres.simulation.writes')}</span>
+        <div style={{ border: '1px solid var(--border-color)', borderRadius: '8px', padding: '12px', textAlign: 'center', backgroundColor: 'var(--bg-subtle)' }}>
+          <span style={{ fontSize: '11px', textTransform: 'uppercase', color: 'var(--color-text-muted)', fontWeight: 600 }}>{t('postgres.simulation.writes')}</span>
           <div style={{ fontSize: '20px', fontWeight: 'bold', color: 'var(--color-success)', marginTop: '4px' }}>{simMetrics.writes}</div>
         </div>
-        <div style={{ border: '1px solid var(--neutral-200)', borderRadius: '8px', padding: '12px', textAlign: 'center', backgroundColor: 'var(--color-danger-soft)' }}>
+        <div style={{ border: '1px solid var(--border-color)', borderRadius: '8px', padding: '12px', textAlign: 'center', backgroundColor: 'var(--color-danger-soft)' }}>
           <span style={{ fontSize: '11px', textTransform: 'uppercase', color: 'var(--color-danger-strong)', fontWeight: 600 }}>{t('postgres.simulation.errors')}</span>
           <div style={{ fontSize: '20px', fontWeight: 'bold', color: 'var(--color-danger)', marginTop: '4px' }}>{simMetrics.errors}</div>
         </div>
@@ -434,9 +434,9 @@ export default function PostgresSimulationTab({
         style={{
           flex: 1,
           minHeight: '260px',
-          border: '1px solid var(--neutral-200)',
+          border: '1px solid var(--border-color)',
           borderRadius: '8px',
-          backgroundColor: 'var(--neutral-900)',
+          backgroundColor: 'var(--terminal-panel)',
           position: 'relative',
           overflow: 'hidden',
           cursor: isPanning ? 'grabbing' : 'grab',
@@ -454,10 +454,10 @@ export default function PostgresSimulationTab({
             position: 'absolute',
             top: '10px',
             left: '10px',
-            backgroundColor: 'rgba(15, 23, 42, 0.8)',
-            border: '1px solid var(--neutral-700)',
+            backgroundColor: 'var(--simulation-bg)',
+            border: '1px solid var(--terminal-border)',
             borderRadius: '4px',
-            color: 'var(--neutral-400)',
+            color: 'var(--terminal-muted)',
             padding: '2px 8px',
             fontSize: '11px',
             cursor: 'pointer',
@@ -481,23 +481,23 @@ export default function PostgresSimulationTab({
           {/* SVG Connection Paths */}
           <svg style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', pointerEvents: 'none', zIndex: 5 }}>
             {/* Path to primary */}
-            <line x1="12%" y1="50%" x2="42%" y2="50%" stroke="rgba(255,255,255,0.12)" strokeWidth="2" strokeDasharray="5,5" />
+            <line x1="12%" y1="50%" x2="42%" y2="50%" stroke="var(--simulation-line)" strokeWidth="2" strokeDasharray="5,5" />
             {/* Paths to replicas */}
             {replicas > 0 && Array.from({ length: replicas }).map((_, i) => {
               let repTop = '50%';
               if (replicas === 2) repTop = i === 0 ? '35%' : '65%';
               else if (replicas === 3) repTop = i === 0 ? '20%' : i === 1 ? '50%' : '80%';
               return (
-                <line key={i} x1="12%" y1="50%" x2="78%" y2={repTop} stroke="rgba(255,255,255,0.12)" strokeWidth="2" strokeDasharray="5,5" />
+                <line key={i} x1="12%" y1="50%" x2="78%" y2={repTop} stroke="var(--simulation-line)" strokeWidth="2" strokeDasharray="5,5" />
               );
             })}
           </svg>
 
           {/* Client source */}
           <div style={{ position: 'absolute', left: '10%', top: '50%', transform: 'translateY(-50%)', display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
-            <Server size={32} color="var(--neutral-400)" />
-            <span style={{ color: 'var(--neutral-200)', fontSize: '11px', marginTop: '6px', fontWeight: 600 }}>App Server</span>
-            <span style={{ color: 'var(--neutral-500)', fontSize: '10px' }}>10.0.1.1</span>
+            <Server size={32} color="var(--terminal-muted)" />
+            <span style={{ color: 'var(--terminal-fg)', fontSize: '11px', marginTop: '6px', fontWeight: 600 }}>App Server</span>
+            <span style={{ color: 'var(--terminal-muted)', fontSize: '10px' }}>10.0.1.1</span>
           </div>
 
           {/* Flowing Query Particles */}
@@ -525,7 +525,7 @@ export default function PostgresSimulationTab({
           })}
 
           {/* Arrow indicator */}
-          <div style={{ position: 'absolute', left: '30%', top: '50%', transform: 'translateY(-50%)', color: trafficActive ? 'var(--color-success)' : 'var(--neutral-600)' }}>
+          <div style={{ position: 'absolute', left: '30%', top: '50%', transform: 'translateY(-50%)', color: trafficActive ? 'var(--color-success)' : 'var(--terminal-border)' }}>
             <span className={trafficActive ? 'pulse' : ''} style={{ fontSize: '18px', fontWeight: 'bold' }}>➔</span>
           </div>
            {/* Primary DB Node */}
@@ -536,14 +536,14 @@ export default function PostgresSimulationTab({
                 <div className="ring-glow" style={{ color: isPrimaryCrashed ? 'var(--color-danger)' : 'var(--color-success)' }} />
               )}
             </div>
-            <span style={{ color: 'var(--neutral-200)', fontSize: '12px', fontWeight: 'bold', marginTop: '6px' }}>Primary SQL DB</span>
+            <span style={{ color: 'var(--terminal-fg)', fontSize: '12px', fontWeight: 'bold', marginTop: '6px' }}>Primary SQL DB</span>
             <span style={{ color: isPrimaryCrashed ? 'var(--color-danger)' : 'var(--color-success)', fontSize: '10px' }}>
               {isPrimaryCrashed ? 'OFFLINE (Crashed)' : 'ONLINE (10.0.1.2)'}
             </span>
 
             {/* Table Partitions Display */}
             {!isPrimaryCrashed && (
-              <div style={{ display: 'flex', gap: '4px', marginTop: '10px', backgroundColor: 'rgba(30, 41, 59, 0.5)', padding: '4px 8px', borderRadius: '6px', border: '1px solid var(--neutral-700)' }}>
+              <div style={{ display: 'flex', gap: '4px', marginTop: '10px', backgroundColor: 'var(--simulation-panel)', padding: '4px 8px', borderRadius: '6px', border: '1px solid var(--terminal-muted)' }}>
                 {Array.from({ length: partitions }).map((_, pIdx) => {
                   const isPartActive = activeHighlightNode === 'primary' && lastPartitionTarget === pIdx;
                   return (
@@ -553,9 +553,9 @@ export default function PostgresSimulationTab({
                         fontSize: '9px',
                         padding: '2px 5px',
                         borderRadius: '4px',
-                        backgroundColor: isPartActive ? 'color-mix(in srgb, var(--color-success) 25%, transparent)' : 'rgba(15, 23, 42, 0.6)',
-                        border: isPartActive ? '1px solid var(--color-success)' : '1px solid var(--neutral-600)',
-                        color: isPartActive ? 'var(--color-success)' : 'var(--neutral-400)',
+                        backgroundColor: isPartActive ? 'color-mix(in srgb, var(--color-success) 25%, transparent)' : 'var(--simulation-bg-soft)',
+                        border: isPartActive ? '1px solid var(--color-success)' : '1px solid var(--terminal-border)',
+                        color: isPartActive ? 'var(--color-success)' : 'var(--terminal-muted)',
                         fontWeight: 'bold',
                         fontFamily: 'monospace',
                         transition: 'all 0.15s ease-in-out'
@@ -585,8 +585,8 @@ export default function PostgresSimulationTab({
                           <div className="ring-glow" style={{ color: 'var(--color-accent)' }} />
                         )}
                       </div>
-                      <span style={{ color: 'var(--neutral-200)', fontSize: '10px', fontWeight: 600 }}>Replica #{i + 1}</span>
-                      <span style={{ color: 'var(--neutral-500)', fontSize: '9px' }}>10.0.1.{3 + i}</span>
+                      <span style={{ color: 'var(--terminal-fg)', fontSize: '10px', fontWeight: 600 }}>Replica #{i + 1}</span>
+                      <span style={{ color: 'var(--terminal-muted)', fontSize: '9px' }}>10.0.1.{3 + i}</span>
                     </div>
                   </div>
                 );
@@ -598,10 +598,10 @@ export default function PostgresSimulationTab({
 
       {/* Logs output */}
       <div style={{ height: '150px', display: 'flex', flexDirection: 'column' }}>
-        <div style={{ fontSize: '11px', fontWeight: 600, color: 'var(--neutral-500)', textTransform: 'uppercase', marginBottom: '6px' }}>
+        <div style={{ fontSize: '11px', fontWeight: 600, color: 'var(--color-text-muted)', textTransform: 'uppercase', marginBottom: '6px' }}>
           {t('postgres.simulation.logTitle')}
         </div>
-        <div style={{ flex: 1, backgroundColor: 'var(--neutral-900)', color: 'var(--neutral-400)', borderRadius: '8px', padding: '10px', fontFamily: 'monospace', fontSize: '11px', overflowY: 'auto' }}>
+        <div style={{ flex: 1, backgroundColor: 'var(--terminal-panel)', color: 'var(--terminal-muted)', borderRadius: '8px', padding: '10px', fontFamily: 'monospace', fontSize: '11px', overflowY: 'auto' }}>
           {simLogs.map(log => (
             <div key={log.id} style={{ marginBottom: '4px', color: log.type === 'err' ? 'var(--color-danger-light)' : log.type === 'sys' ? 'var(--color-success-light)' : log.type === 'write' ? 'var(--color-success-border)' : 'var(--color-accent-light)' }}>
               [{log.time}] {log.msg}

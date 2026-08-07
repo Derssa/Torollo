@@ -99,7 +99,7 @@ const styles: Record<string, React.CSSProperties> = {
     padding: '12px',
     border: '1px solid var(--border-color)',
     borderRadius: '8px',
-    backgroundColor: 'rgba(255, 255, 255, 0.02)',
+    backgroundColor: 'var(--interactive-subtle)',
     cursor: 'pointer',
     textAlign: 'left',
     fontFamily: 'var(--font-sans)',

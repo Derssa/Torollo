@@ -47,7 +47,7 @@ export default function VpcNode({ data }: VpcNodeProps) {
         display: 'flex',
         alignItems: 'center',
         gap: '6px',
-        boxShadow: '0 2px 4px rgba(0,0,0,0.1)',
+        boxShadow: 'var(--shadow-sm)',
         zIndex: 10,
       }}>
         <Shield size={12} />
@@ -74,7 +74,7 @@ export default function VpcNode({ data }: VpcNodeProps) {
           alignItems: 'center',
           gap: '3px',
           cursor: 'pointer',
-          boxShadow: '0 1px 2px rgba(0,0,0,0.05)',
+          boxShadow: 'var(--shadow-sm)',
           zIndex: 10,
         }}
         title={t('nodeviz.configureVpcTitle')}
@@ -101,7 +101,7 @@ export default function VpcNode({ data }: VpcNodeProps) {
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
-          boxShadow: '0 1px 2px rgba(0,0,0,0.1)',
+          boxShadow: 'var(--shadow-sm)',
           zIndex: 10,
         }}
         title={t('nodeviz.deleteVpc')}

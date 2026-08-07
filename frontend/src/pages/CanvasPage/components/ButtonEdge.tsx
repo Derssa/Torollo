@@ -46,15 +46,15 @@ export default function ButtonEdge({
             display: 'flex',
             alignItems: 'center',
             gap: 4,
-            backgroundColor: 'var(--neutral-100)',
+            backgroundColor: 'var(--bg-subtle)',
             padding: '2px 6px',
             borderRadius: 4,
-            border: '1px solid var(--neutral-300)',
-            boxShadow: '0 1px 2px 0 rgba(0, 0, 0, 0.05)',
+            border: '1px solid var(--border-color-hover)',
+            boxShadow: 'var(--shadow-sm)',
             zIndex: 1000,
           }}
         >
-          {label && <span style={{ fontWeight: 600, color: 'var(--neutral-700)' }}>{label}</span>}
+          {label && <span style={{ fontWeight: 600, color: 'var(--color-text-secondary)' }}>{label}</span>}
           <button
             onClick={onEdgeClick}
             style={{

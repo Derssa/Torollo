@@ -44,7 +44,7 @@ const styles: Record<string, React.CSSProperties> = {
   overlay: {
     position: 'fixed',
     inset: 0,
-    backgroundColor: 'rgba(0, 0, 0, 0.25)',
+    backgroundColor: 'var(--overlay-scrim)',
     backdropFilter: 'blur(4px)',
     WebkitBackdropFilter: 'blur(4px)',
     zIndex: 2000,
@@ -55,13 +55,12 @@ const styles: Record<string, React.CSSProperties> = {
     transition: 'opacity 0.2s ease-out',
   },
   panel: {
-    background: 'rgba(255, 255, 255, 0.92)',
+    background: 'var(--bg-surface)',
     backdropFilter: 'blur(24px)',
     WebkitBackdropFilter: 'blur(24px)',
     borderRadius: '16px',
-    border: '1px solid rgba(0, 0, 0, 0.06)',
-    boxShadow:
-      '0 24px 48px -12px rgba(0, 0, 0, 0.18), 0 0 0 1px rgba(0, 0, 0, 0.03)',
+    border: '1px solid var(--border-color)',
+    boxShadow: 'var(--shadow-lg)',
     padding: '28px',
     opacity: 0,
     transform: 'scale(0.96) translateY(8px)',

@@ -106,12 +106,12 @@ export default function RedisModal({ containerId, nodeName, projectId, onClose }
     <InspectorModal tabs={tabs} activeTab={activeTab} onTabChange={setActiveTab} onClose={onClose}>
       <TabPanel visible={activeTab === 'details'}>
         <div style={inspectorStyles.tabContent}>
-          <h3 style={{ margin: '0 0 8px 0', fontSize: '16px', color: 'var(--neutral-800)' }}>{t('redis.details.title')}</h3>
-          <p style={{ margin: '0 0 20px 0', fontSize: '13px', color: 'var(--neutral-500)' }}>
+          <h3 style={{ margin: '0 0 8px 0', fontSize: '16px', color: 'var(--color-text-primary)' }}>{t('redis.details.title')}</h3>
+          <p style={{ margin: '0 0 20px 0', fontSize: '13px', color: 'var(--color-text-muted)' }}>
             {t('redis.details.desc')}
           </p>
 
-          <div style={{ border: '1px solid var(--neutral-200)', borderRadius: '8px', padding: '16px', display: 'flex', flexDirection: 'column', gap: '12px' }}>
+          <div style={{ border: '1px solid var(--border-color)', borderRadius: '8px', padding: '16px', display: 'flex', flexDirection: 'column', gap: '12px' }}>
             <div style={styles.detailRow}>
               <span style={styles.detailLabel}>{t('redis.details.imageLabel')}</span>
               <span style={styles.detailValue}>{REDIS_IMAGE}</span>

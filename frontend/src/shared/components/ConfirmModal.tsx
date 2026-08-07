@@ -112,7 +112,7 @@ const styles: Record<string, React.CSSProperties> = {
     fontWeight: 600,
     fontFamily: 'var(--font-sans)',
     borderRadius: '10px',
-    border: '1px solid rgba(0, 0, 0, 0.1)',
+    border: '1px solid var(--border-color-hover)',
     background: 'transparent',
     color: 'var(--color-text-secondary)',
     cursor: 'pointer',

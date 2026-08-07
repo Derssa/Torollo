@@ -276,8 +276,8 @@ export default function NoSqlSimulationTab({
     <div style={{ ...styles.tabContent, display: 'flex', flexDirection: 'column', gap: '16px' }}>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
         <div>
-          <h3 style={{ margin: '0 0 4px 0', fontSize: '15px', color: 'var(--neutral-800)' }}>{t('nosql.simulation.title')}</h3>
-          <p style={{ margin: 0, fontSize: '12px', color: 'var(--neutral-500)' }}>
+          <h3 style={{ margin: '0 0 4px 0', fontSize: '15px', color: 'var(--color-text-primary)' }}>{t('nosql.simulation.title')}</h3>
+          <p style={{ margin: 0, fontSize: '12px', color: 'var(--color-text-muted)' }}>
             {t('nosql.simulation.desc')}
           </p>
         </div>
@@ -332,11 +332,11 @@ export default function NoSqlSimulationTab({
 
       {/* Simulation metrics */}
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
-        <div style={{ border: '1px solid var(--neutral-200)', borderRadius: '8px', padding: '12px', textAlign: 'center', backgroundColor: 'var(--neutral-50)' }}>
-          <span style={{ fontSize: '11px', textTransform: 'uppercase', color: 'var(--neutral-500)', fontWeight: 600 }}>{t('nosql.simulation.routed')}</span>
+        <div style={{ border: '1px solid var(--border-color)', borderRadius: '8px', padding: '12px', textAlign: 'center', backgroundColor: 'var(--bg-subtle)' }}>
+          <span style={{ fontSize: '11px', textTransform: 'uppercase', color: 'var(--color-text-muted)', fontWeight: 600 }}>{t('nosql.simulation.routed')}</span>
           <div style={{ fontSize: '20px', fontWeight: 'bold', color: 'var(--color-accent)', marginTop: '4px' }}>{simMetrics.routed}</div>
         </div>
-        <div style={{ border: '1px solid var(--neutral-200)', borderRadius: '8px', padding: '12px', textAlign: 'center', backgroundColor: 'var(--color-warning-soft)' }}>
+        <div style={{ border: '1px solid var(--border-color)', borderRadius: '8px', padding: '12px', textAlign: 'center', backgroundColor: 'var(--color-warning-soft)' }}>
           <span style={{ fontSize: '11px', textTransform: 'uppercase', color: 'var(--color-warning-strong)', fontWeight: 600 }}>{t('nosql.simulation.stale')}</span>
           <div style={{ fontSize: '20px', fontWeight: 'bold', color: 'var(--color-warning-hover)', marginTop: '4px' }}>{simMetrics.staleReads}</div>
         </div>
@@ -378,9 +378,9 @@ export default function NoSqlSimulationTab({
         style={{
           flex: 1,
           minHeight: '260px',
-          border: '1px solid var(--neutral-200)',
+          border: '1px solid var(--border-color)',
           borderRadius: '8px',
-          backgroundColor: 'var(--neutral-900)',
+          backgroundColor: 'var(--terminal-panel)',
           position: 'relative',
           overflow: 'hidden',
           cursor: isPanning ? 'grabbing' : 'grab',
@@ -398,10 +398,10 @@ export default function NoSqlSimulationTab({
             position: 'absolute',
             top: '10px',
             left: '10px',
-            backgroundColor: 'rgba(15, 23, 42, 0.8)',
-            border: '1px solid var(--neutral-700)',
+            backgroundColor: 'var(--simulation-bg)',
+            border: '1px solid var(--terminal-border)',
             borderRadius: '4px',
-            color: 'var(--neutral-400)',
+            color: 'var(--terminal-muted)',
             padding: '2px 8px',
             fontSize: '11px',
             cursor: 'pointer',
@@ -448,13 +448,13 @@ export default function NoSqlSimulationTab({
               const topPercent = shards === 1 ? 50 : 15 + (i * 70) / (shards - 1);
               return (
                 <g key={i}>
-                  <line x1="12%" y1="50%" x2="42%" y2={`${topPercent}%`} stroke="rgba(255,255,255,0.12)" strokeWidth="2" strokeDasharray="5,5" />
+                  <line x1="12%" y1="50%" x2="42%" y2={`${topPercent}%`} stroke="var(--simulation-line)" strokeWidth="2" strokeDasharray="5,5" />
                   {/* Paths from Shard Primary to its Replicas */}
                   {replicas > 0 && Array.from({ length: replicas }).map((_, r) => {
                     const repOffset = (r - (replicas - 1) / 2) * 12;
                     const repTopPercent = topPercent + (replicas > 1 ? repOffset : 0);
                     return (
-                      <line key={r} x1="42%" y1={`${topPercent}%`} x2="78%" y2={`${repTopPercent}%`} stroke="rgba(255,255,255,0.08)" strokeWidth="1.5" strokeDasharray="3,3" />
+                      <line key={r} x1="42%" y1={`${topPercent}%`} x2="78%" y2={`${repTopPercent}%`} stroke="var(--simulation-line-subtle)" strokeWidth="1.5" strokeDasharray="3,3" />
                     );
                   })}
                 </g>
@@ -464,9 +464,9 @@ export default function NoSqlSimulationTab({
 
           {/* mongos Router */}
           <div style={{ position: 'absolute', left: '10%', top: '50%', transform: 'translateY(-50%)', display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
-            <Server size={32} color="var(--neutral-400)" />
-            <span style={{ color: 'var(--neutral-200)', fontSize: '11px', marginTop: '6px', fontWeight: 600 }}>mongos Router</span>
-            <span style={{ color: 'var(--neutral-500)', fontSize: '10px' }}>10.0.2.1</span>
+            <Server size={32} color="var(--terminal-muted)" />
+            <span style={{ color: 'var(--terminal-fg)', fontSize: '11px', marginTop: '6px', fontWeight: 600 }}>mongos Router</span>
+            <span style={{ color: 'var(--terminal-muted)', fontSize: '10px' }}>10.0.2.1</span>
           </div>
 
           {/* Flowing Query Particles */}
@@ -511,12 +511,12 @@ export default function NoSqlSimulationTab({
                 }}
               >
                 <div style={{ position: 'relative', display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
-                  <Database size={40} color={isShardCrashed ? 'var(--color-danger)' : (isNodeActive ? 'var(--color-success)' : 'var(--neutral-500)')} />
+                  <Database size={40} color={isShardCrashed ? 'var(--color-danger)' : (isNodeActive ? 'var(--color-success)' : 'var(--terminal-muted)')} />
                   {isNodeActive && (
                     <div className="ring-glow" style={{ color: isShardCrashed ? 'var(--color-danger)' : 'var(--color-success)' }} />
                   )}
                 </div>
-                <span style={{ color: 'var(--neutral-200)', fontSize: '11px', fontWeight: 'bold', marginTop: '4px' }}>Shard Primary #{i + 1}</span>
+                <span style={{ color: 'var(--terminal-fg)', fontSize: '11px', fontWeight: 'bold', marginTop: '4px' }}>Shard Primary #{i + 1}</span>
                 <span style={{ color: isShardCrashed ? 'var(--color-danger)' : 'var(--color-success)', fontSize: '9px' }}>
                   {isShardCrashed ? 'OFFLINE' : `ONLINE (10.0.2.${10 + i * 10})`}
                 </span>
@@ -559,13 +559,13 @@ export default function NoSqlSimulationTab({
                       <span style={{ color: 'var(--color-accent)', fontSize: '12px' }}>➔</span>
                       <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
                         <div style={{ position: 'relative', display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
-                          <Database size={24} color={isNodeActive ? 'var(--color-accent)' : 'var(--neutral-600)'} />
+                          <Database size={24} color={isNodeActive ? 'var(--color-accent)' : 'var(--terminal-border)'} />
                           {isNodeActive && (
                             <div className="ring-glow" style={{ color: 'var(--color-accent)' }} />
                           )}
                         </div>
-                        <span style={{ color: 'var(--neutral-200)', fontSize: '9px' }}>Replica #{r + 1}</span>
-                        <span style={{ color: 'var(--neutral-500)', fontSize: '8px' }}>10.0.2.${10 + i * 10 + r + 1}</span>
+                        <span style={{ color: 'var(--terminal-fg)', fontSize: '9px' }}>Replica #{r + 1}</span>
+                        <span style={{ color: 'var(--terminal-muted)', fontSize: '8px' }}>10.0.2.${10 + i * 10 + r + 1}</span>
                       </div>
                     </div>
                   );
@@ -577,10 +577,10 @@ export default function NoSqlSimulationTab({
       </div>
       {/* Logs output */}
       <div style={{ height: '140px', display: 'flex', flexDirection: 'column' }}>
-        <div style={{ fontSize: '11px', fontWeight: 600, color: 'var(--neutral-500)', textTransform: 'uppercase', marginBottom: '6px' }}>
+        <div style={{ fontSize: '11px', fontWeight: 600, color: 'var(--color-text-muted)', textTransform: 'uppercase', marginBottom: '6px' }}>
           {t('nosql.simulation.logTitle')}
         </div>
-        <div style={{ flex: 1, backgroundColor: 'var(--neutral-900)', color: 'var(--neutral-400)', borderRadius: '8px', padding: '10px', fontFamily: 'monospace', fontSize: '11px', overflowY: 'auto' }}>
+        <div style={{ flex: 1, backgroundColor: 'var(--terminal-panel)', color: 'var(--terminal-muted)', borderRadius: '8px', padding: '10px', fontFamily: 'monospace', fontSize: '11px', overflowY: 'auto' }}>
           {simLogs.map(log => (
             <div key={log.id} style={{ marginBottom: '4px', color: log.type === 'warn' ? 'var(--color-warning)' : log.type === 'route' ? 'var(--color-success-light)' : 'var(--color-accent-light)' }}>
               [{log.time}] {log.msg}
