@@ -1,7 +1,8 @@
 import '../../i18n';
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import { render, screen, fireEvent, createEvent, waitFor, within, act } from '@testing-library/react';
+import { screen, fireEvent, createEvent, waitFor, within, act } from '@testing-library/react';
 import CanvasPage from './CanvasPage';
+import { renderWithProviders as render } from '../../test-utils/renderWithProviders';
 
 // Drag geometry, security-rule creation and rule->edge derivation cannot be
 // driven through jsdom (no layout engine, no measurable React Flow handles).

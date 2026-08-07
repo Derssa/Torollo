@@ -1,6 +1,7 @@
 import { ArrowLeft, RefreshCw, Save, Network, Play, GraduationCap } from 'lucide-react';
 import logo from '../../../assets/logo.png';
 import { useTranslation } from 'react-i18next';
+import ThemeSelector from '../../../shared/components/ThemeSelector';
 
 interface CanvasTopbarProps {
   projectName: string;
@@ -48,6 +49,7 @@ export default function CanvasTopbar({
       </div>
 
       <div style={styles.actions}>
+        <ThemeSelector />
         <button
           onClick={toggleLanguage}
           style={{...styles.saveBtn, padding: '0 10px', minWidth: '40px'}}
@@ -104,7 +106,7 @@ const styles: Record<string, React.CSSProperties> = {
     gap: '10px',
   },
   backBtn: {
-    background: 'rgba(0, 0, 0, 0.04)',
+    background: 'var(--interactive-hover)',
     border: '1px solid var(--border-color)',
     borderRadius: '8px',
     color: 'var(--color-text-secondary)',
@@ -137,7 +139,7 @@ const styles: Record<string, React.CSSProperties> = {
     gap: '10px',
   },
   refreshBtn: {
-    background: 'rgba(0, 0, 0, 0.04)',
+    background: 'var(--interactive-hover)',
     border: '1px solid var(--border-color)',
     borderRadius: '10px',
     color: 'var(--color-text-secondary)',
@@ -185,8 +187,8 @@ const styles: Record<string, React.CSSProperties> = {
     height: '32px',
     borderRadius: '50%',
     background: 'var(--bg-surface-solid)',
-    border: '1px solid rgba(0, 0, 0, 0.08)',
-    boxShadow: '0 2px 6px rgba(0, 0, 0, 0.05)',
+    border: '1px solid var(--border-color)',
+    boxShadow: 'var(--shadow-sm)',
     display: 'flex',
     alignItems: 'center',
     justifyContent: 'center',
