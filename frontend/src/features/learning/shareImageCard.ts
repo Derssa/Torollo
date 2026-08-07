@@ -2,8 +2,11 @@
  * The 1200x630 share card: a completed roadmap rendered as a standalone PNG,
  * the standard social-image size so it drops straight into an X/LinkedIn/
  * Reddit post. Drawn on a plain <canvas> instead of a DOM screenshot library —
- * the layout is fixed and text-only, so hand-drawing it is both the simplest
- * and the only dependency-free way to get pixel-identical output everywhere.
+ * the content is text-only, so hand-drawing it is both the simplest and the
+ * only dependency-free way to get pixel-identical output everywhere. The card
+ * itself sizes to its content (steps/checks/skills/topology all vary per
+ * roadmap) and is centered on the fixed 1200x630 canvas, so a two-step
+ * roadmap doesn't render as a mostly-empty image next to a ten-step one.
  *
  * Kept translation-free like the rest of this feature's data layer: callers
  * pass already-translated strings in, so this module is just geometry.
@@ -33,7 +36,8 @@ export interface ShareCardData {
 }
 
 const PALETTE = {
-  background: '#FFFFFF',
+  pageBg: '#EEF1F4',
+  cardBg: '#FFFFFF',
   border: 'rgba(0, 0, 0, 0.10)',
   textPrimary: '#1F2937',
   textSecondary: '#4B5563',
@@ -45,8 +49,17 @@ const PALETTE = {
 };
 
 const FONT_FAMILY = "'Plus Jakarta Sans', system-ui, -apple-system, sans-serif";
-const PAD = 64;
 const MAX_TOPOLOGY_ROWS = 6;
+
+// The card's height tracks its content instead of stretching to fill the
+// 1200x630 canvas — a two-step roadmap and a ten-step one shouldn't produce
+// the same amount of visual whitespace. Only the width is fixed; the card is
+// then centered vertically (clamped to a minimum page margin) once its
+// natural content height is known.
+const CARD_MARGIN_X = 24;
+const CARD_MIN_MARGIN_Y = 24;
+const CARD_PAD = 40;
+const CARD_RADIUS = 20;
 
 function font(px: number, weight = 400): string {
   return `${weight} ${px}px ${FONT_FAMILY}`;
@@ -139,41 +152,80 @@ export function drawShareCard(canvas: HTMLCanvasElement, data: ShareCardData): v
   const ctx = canvas.getContext('2d');
   if (!ctx) return;
 
-  const contentX0 = PAD;
-  const contentX1 = SHARE_CARD_WIDTH - PAD;
-  const contentWidth = contentX1 - contentX0;
-
-  ctx.fillStyle = PALETTE.background;
-  ctx.fillRect(0, 0, SHARE_CARD_WIDTH, SHARE_CARD_HEIGHT);
-  ctx.strokeStyle = PALETTE.border;
-  ctx.lineWidth = 1;
-  ctx.strokeRect(0.5, 0.5, SHARE_CARD_WIDTH - 1, SHARE_CARD_HEIGHT - 1);
-
+  const cardWidth = SHARE_CARD_WIDTH - CARD_MARGIN_X * 2;
+  const contentX0 = CARD_MARGIN_X + CARD_PAD;
+  const contentWidth = cardWidth - CARD_PAD * 2;
   ctx.textBaseline = 'top';
-  ctx.fillStyle = PALETTE.textPrimary;
 
-  // Title + status disc, full width.
-  const titleSize = 34;
-  const discR = 15;
+  // Everything below is measured before anything is painted, so the card's
+  // height can be derived from its actual content instead of a fixed guess.
+  const titleSize = 30;
+  const discR = 13;
   ctx.font = font(titleSize, 700);
   const title = fitText(ctx, data.title, contentWidth - discR * 2 - 16);
-  ctx.fillText(title, contentX0, PAD);
+
+  const statsSize = 18;
+  const statsGap = 12;
+  const columnsGap = 28;
+
+  const rightColWidth = 260;
+  const columnGap = 40;
+  const leftColWidth = contentWidth - rightColWidth - columnGap;
+  const dividerX = contentX0 + leftColWidth + columnGap / 2;
+  const rightColX = dividerX + columnGap / 2;
+
+  ctx.font = font(15, 600);
+  const chipRows = layoutChips(ctx, data.skills, leftColWidth);
+  const chipHeight = 34;
+  const chipRowGap = 10;
+  const chipsHeight =
+    chipRows.length > 0 ? chipRows.length * chipHeight + (chipRows.length - 1) * chipRowGap : 0;
+
+  const topoLabelHeight = 12 * 1.3;
+  const topoLabelGap = 14;
+  const topoRowHeight = 32;
+  const topoRows = data.topology.slice(0, MAX_TOPOLOGY_ROWS);
+  const topoRowCount = topoRows.length + (data.moreTopologyLabel ? 1 : 0);
+  const topologyHeight = topoLabelHeight + topoLabelGap + topoRowCount * topoRowHeight;
+
+  const columnsHeight = Math.max(chipsHeight, topologyHeight);
+
+  const footerGap = 28;
+  const footerTextSize = 16;
+
+  const contentHeight =
+    titleSize * 1.3 + statsGap + statsSize * 1.3 + columnsGap + columnsHeight + footerGap + 1 + 18 + footerTextSize;
+  const cardHeight = CARD_PAD * 2 + contentHeight;
+  const cardY = Math.max(CARD_MIN_MARGIN_Y, (SHARE_CARD_HEIGHT - cardHeight) / 2);
+
+  // Page background, then the card itself.
+  ctx.fillStyle = PALETTE.pageBg;
+  ctx.fillRect(0, 0, SHARE_CARD_WIDTH, SHARE_CARD_HEIGHT);
+  roundedRectPath(ctx, CARD_MARGIN_X, cardY, cardWidth, cardHeight, CARD_RADIUS);
+  ctx.fillStyle = PALETTE.cardBg;
+  ctx.fill();
+  ctx.strokeStyle = PALETTE.border;
+  ctx.lineWidth = 1;
+  ctx.stroke();
+
+  const contentY0 = cardY + CARD_PAD;
+
+  // Title + status disc, full width.
+  ctx.font = font(titleSize, 700);
+  ctx.fillStyle = PALETTE.textPrimary;
+  ctx.fillText(title, contentX0, contentY0);
   const titleWidth = ctx.measureText(title).width;
-  drawCheckGlyph(ctx, contentX0 + titleWidth + 16 + discR, PAD + titleSize * 0.42, discR, PALETTE.success);
+  drawCheckGlyph(ctx, contentX0 + titleWidth + 16 + discR, contentY0 + titleSize * 0.42, discR, PALETTE.success);
 
   // Stats line.
-  const statsY = PAD + titleSize * 1.3 + 12;
-  ctx.font = font(20, 600);
+  const statsY = contentY0 + titleSize * 1.3 + statsGap;
+  ctx.font = font(statsSize, 600);
   ctx.fillStyle = PALETTE.success;
   ctx.fillText(data.statsLine, contentX0, statsY);
 
   // Two columns: skill chips on the left, topology on the right.
-  const columnsY = statsY + 20 * 1.3 + 36;
-  const columnsBottom = SHARE_CARD_HEIGHT - PAD - 56;
-  const rightColWidth = 340;
-  const columnGap = 48;
-  const leftColWidth = contentWidth - rightColWidth - columnGap;
-  const dividerX = contentX0 + leftColWidth + columnGap / 2;
+  const columnsY = statsY + statsSize * 1.3 + columnsGap;
+  const columnsBottom = columnsY + columnsHeight;
 
   ctx.strokeStyle = PALETTE.border;
   ctx.lineWidth = 1;
@@ -184,9 +236,6 @@ export function drawShareCard(canvas: HTMLCanvasElement, data: ShareCardData): v
 
   // Skill chips, left column.
   ctx.font = font(15, 600);
-  const chipRows = layoutChips(ctx, data.skills, leftColWidth);
-  const chipHeight = 34;
-  const chipRowGap = 12;
   let chipY = columnsY;
   for (const row of chipRows) {
     let chipX = contentX0;
@@ -205,49 +254,45 @@ export function drawShareCard(canvas: HTMLCanvasElement, data: ShareCardData): v
   }
 
   // Topology, right column.
-  const rightColX = dividerX + columnGap / 2;
   ctx.font = font(12, 600);
   ctx.fillStyle = PALETTE.textMuted;
   ctx.fillText(data.topologyLabel.toUpperCase(), rightColX, columnsY);
 
-  const rows = data.topology.slice(0, MAX_TOPOLOGY_ROWS);
-  const rowCount = rows.length + (data.moreTopologyLabel ? 1 : 0);
-  const listTop = columnsY + 12 * 1.3 + 16;
-  const rowHeight = rowCount > 0 ? Math.min(44, Math.max(28, (columnsBottom - listTop) / rowCount)) : 0;
+  const listTop = columnsY + topoLabelHeight + topoLabelGap;
   const glyphR = 7;
   ctx.font = font(15, 500);
-  rows.forEach((entry, index) => {
-    const rowY = listTop + rowHeight * index;
-    drawCheckGlyph(ctx, rightColX + glyphR, rowY + rowHeight / 2 - 1, glyphR, PALETTE.success);
+  topoRows.forEach((entry, index) => {
+    const rowY = listTop + topoRowHeight * index;
+    drawCheckGlyph(ctx, rightColX + glyphR, rowY + topoRowHeight / 2 - 1, glyphR, PALETTE.success);
     const text = fitText(ctx, `${entry.name} (${entry.role})`, rightColWidth - glyphR * 2 - 12);
     ctx.fillStyle = PALETTE.textPrimary;
-    ctx.fillText(text, rightColX + glyphR * 2 + 12, rowY + rowHeight / 2 - 8);
+    ctx.fillText(text, rightColX + glyphR * 2 + 12, rowY + topoRowHeight / 2 - 8);
   });
   if (data.moreTopologyLabel) {
-    const rowY = listTop + rowHeight * rows.length;
+    const rowY = listTop + topoRowHeight * topoRows.length;
     ctx.font = font(14, 500);
     ctx.fillStyle = PALETTE.textMuted;
-    ctx.fillText(data.moreTopologyLabel, rightColX + glyphR * 2 + 12, rowY + rowHeight / 2 - 7);
+    ctx.fillText(data.moreTopologyLabel, rightColX + glyphR * 2 + 12, rowY + topoRowHeight / 2 - 7);
   }
 
   // Footer.
-  const footerDividerY = SHARE_CARD_HEIGHT - PAD - 40;
+  const footerDividerY = columnsBottom + footerGap;
   ctx.strokeStyle = PALETTE.border;
   ctx.lineWidth = 1;
   ctx.beginPath();
   ctx.moveTo(contentX0, footerDividerY);
-  ctx.lineTo(contentX1, footerDividerY);
+  ctx.lineTo(contentX0 + contentWidth, footerDividerY);
   ctx.stroke();
 
   const footerY = footerDividerY + 18;
-  ctx.font = font(16, 500);
+  ctx.font = font(footerTextSize, 500);
   ctx.fillStyle = PALETTE.textMuted;
   ctx.fillText(data.footerBrand, contentX0, footerY);
   const brandWidth = ctx.measureText(data.footerBrand).width;
   const sep = '  ·  ';
   ctx.fillText(sep, contentX0 + brandWidth, footerY);
   const sepWidth = ctx.measureText(sep).width;
-  ctx.font = font(16, 600);
+  ctx.font = font(footerTextSize, 600);
   ctx.fillStyle = PALETTE.accent;
   ctx.fillText(data.footerUrl, contentX0 + brandWidth + sepWidth, footerY);
 }
