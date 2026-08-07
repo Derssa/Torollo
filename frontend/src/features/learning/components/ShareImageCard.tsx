@@ -10,14 +10,16 @@ interface ShareImageCardProps {
 }
 
 /**
- * The share card preview: a <canvas> sized to exactly the card's own content
- * (via `drawShareCardPreview`), so a short roadmap's card renders as a small
- * box instead of a mostly-empty 1200x630 one. The actual download is the full
- * social-sized image, rendered separately on an offscreen canvas at export
- * time — the two never need to share pixel dimensions.
+ * The share card preview: a <canvas> drawn at the width of its container and
+ * the height of its own content (via `drawShareCardPreview`), so it lines up
+ * flush with the modal's other sections and a short roadmap's card stays a
+ * small box instead of a mostly-empty 1200x630 one. The actual download is
+ * the full social-sized image, rendered separately on an offscreen canvas at
+ * export time — the two never need to share pixel dimensions.
  */
 export default function ShareImageCard({ data, alt, fileName }: ShareImageCardProps) {
   const { t } = useTranslation();
+  const wrapRef = useRef<HTMLDivElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const [downloaded, setDownloaded] = useState(false);
   const resetRef = useRef<number | undefined>(undefined);
@@ -25,11 +27,12 @@ export default function ShareImageCard({ data, alt, fileName }: ShareImageCardPr
   useLayoutEffect(() => {
     const canvas = canvasRef.current;
     if (!canvas) return;
-    drawShareCardPreview(canvas, data);
+    const draw = () => drawShareCardPreview(canvas, data, wrapRef.current?.clientWidth);
+    draw();
     let cancelled = false;
     document.fonts?.ready
       ?.then(() => {
-        if (!cancelled) drawShareCardPreview(canvas, data);
+        if (!cancelled) draw();
       })
       .catch(() => {});
     return () => {
@@ -59,7 +62,7 @@ export default function ShareImageCard({ data, alt, fileName }: ShareImageCardPr
     : t('learning.player.completion.downloadImage');
 
   return (
-    <div style={styles.wrap}>
+    <div ref={wrapRef} style={styles.wrap}>
       <canvas ref={canvasRef} role="img" aria-label={alt} style={styles.canvas} />
       <button
         type="button"
@@ -75,12 +78,11 @@ export default function ShareImageCard({ data, alt, fileName }: ShareImageCardPr
 }
 
 const styles: Record<string, React.CSSProperties> = {
+  // No border or background of its own: the card's border, corners and fill
+  // are part of the drawing, and the canvas is transparent outside them —
+  // a styled wrapper would double the border and betray the canvas box.
   wrap: {
     position: 'relative',
-    display: 'inline-block',
-    borderRadius: 'var(--radius-md)',
-    overflow: 'hidden',
-    border: '1px solid var(--border-color)',
     lineHeight: 0,
   },
   // Width/height are set imperatively in pixels by drawShareCardPreview

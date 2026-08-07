@@ -449,19 +449,26 @@ export function drawShareCard(canvas: HTMLCanvasElement, data: ShareCardData): v
 /**
  * Draws just the card at PREVIEW_SCALE — sized exactly to its content (no
  * page background or margin), with its own legible font sizes rather than a
- * shrunk copy of the download design. Renders at device pixel ratio for
- * sharpness while keeping its CSS size at the logical (unscaled) dimensions.
- * Used for the compact in-app preview. Returns the logical (CSS px) size.
+ * shrunk copy of the download design. `cssWidth` lets the caller match the
+ * card to its container so the preview never leaves a dead strip beside it;
+ * fonts are absolute, so a wider card just gives the columns more room.
+ * Renders at device pixel ratio for sharpness while keeping its CSS size at
+ * the logical (unscaled) dimensions. Returns the logical (CSS px) size.
  */
-export function drawShareCardPreview(canvas: HTMLCanvasElement, data: ShareCardData): { width: number; height: number } {
+export function drawShareCardPreview(
+  canvas: HTMLCanvasElement,
+  data: ShareCardData,
+  cssWidth?: number
+): { width: number; height: number } {
+  const cardWidth = cssWidth && cssWidth > 0 ? cssWidth : PREVIEW_SCALE.cardWidth;
   const ctx = canvas.getContext('2d');
   if (!ctx) {
-    canvas.width = PREVIEW_SCALE.cardWidth;
+    canvas.width = cardWidth;
     canvas.height = PREVIEW_SCALE.cardPad * 2;
     return { width: canvas.width, height: canvas.height };
   }
 
-  const layout = computeLayout(ctx, data, PREVIEW_SCALE);
+  const layout = computeLayout(ctx, data, { ...PREVIEW_SCALE, cardWidth });
   const dpr = typeof window !== 'undefined' && window.devicePixelRatio ? window.devicePixelRatio : 1;
 
   canvas.width = Math.round(layout.scale.cardWidth * dpr);
