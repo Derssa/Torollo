@@ -1,13 +1,7 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Check, Download } from 'lucide-react';
-import {
-  drawShareCard,
-  renderShareCardBlob,
-  SHARE_CARD_HEIGHT,
-  SHARE_CARD_WIDTH,
-  type ShareCardData,
-} from '../shareImageCard';
+import { drawShareCardPreview, renderShareCardBlob, type ShareCardData } from '../shareImageCard';
 
 interface ShareImageCardProps {
   data: ShareCardData;
@@ -16,11 +10,11 @@ interface ShareImageCardProps {
 }
 
 /**
- * The downloadable 1200x630 image preview: a real <canvas>, drawn once and
- * redrawn when web fonts finish loading so the on-brand typeface has a chance
- * to land before the export. `toBlob` on that same element is the download —
- * no offscreen buffer needed since the canvas already holds the full-resolution
- * pixels regardless of how small its CSS display size is.
+ * The share card preview: a <canvas> sized to exactly the card's own content
+ * (via `drawShareCardPreview`), so a short roadmap's card renders as a small
+ * box instead of a mostly-empty 1200x630 one. The actual download is the full
+ * social-sized image, rendered separately on an offscreen canvas at export
+ * time — the two never need to share pixel dimensions.
  */
 export default function ShareImageCard({ data, alt, fileName }: ShareImageCardProps) {
   const { t } = useTranslation();
@@ -28,14 +22,14 @@ export default function ShareImageCard({ data, alt, fileName }: ShareImageCardPr
   const [downloaded, setDownloaded] = useState(false);
   const resetRef = useRef<number | undefined>(undefined);
 
-  useEffect(() => {
+  useLayoutEffect(() => {
     const canvas = canvasRef.current;
     if (!canvas) return;
-    drawShareCard(canvas, data);
+    drawShareCardPreview(canvas, data);
     let cancelled = false;
     document.fonts?.ready
       ?.then(() => {
-        if (!cancelled) drawShareCard(canvas, data);
+        if (!cancelled) drawShareCardPreview(canvas, data);
       })
       .catch(() => {});
     return () => {
@@ -46,9 +40,8 @@ export default function ShareImageCard({ data, alt, fileName }: ShareImageCardPr
   useEffect(() => () => window.clearTimeout(resetRef.current), []);
 
   const handleDownload = async () => {
-    const canvas = canvasRef.current;
-    if (!canvas) return;
-    const blob = await renderShareCardBlob(canvas, data);
+    const exportCanvas = document.createElement('canvas');
+    const blob = await renderShareCardBlob(exportCanvas, data);
     if (!blob) return;
     const url = URL.createObjectURL(blob);
     const link = document.createElement('a');
@@ -67,14 +60,7 @@ export default function ShareImageCard({ data, alt, fileName }: ShareImageCardPr
 
   return (
     <div style={styles.wrap}>
-      <canvas
-        ref={canvasRef}
-        width={SHARE_CARD_WIDTH}
-        height={SHARE_CARD_HEIGHT}
-        role="img"
-        aria-label={alt}
-        style={styles.canvas}
-      />
+      <canvas ref={canvasRef} role="img" aria-label={alt} style={styles.canvas} />
       <button
         type="button"
         onClick={handleDownload}
@@ -91,6 +77,8 @@ export default function ShareImageCard({ data, alt, fileName }: ShareImageCardPr
 const styles: Record<string, React.CSSProperties> = {
   wrap: {
     position: 'relative',
+    display: 'inline-block',
+    maxWidth: '420px',
     borderRadius: 'var(--radius-md)',
     overflow: 'hidden',
     border: '1px solid var(--border-color)',
@@ -100,7 +88,6 @@ const styles: Record<string, React.CSSProperties> = {
     display: 'block',
     width: '100%',
     height: 'auto',
-    aspectRatio: `${SHARE_CARD_WIDTH} / ${SHARE_CARD_HEIGHT}`,
   },
   downloadBtn: {
     position: 'absolute',

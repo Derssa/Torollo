@@ -1,5 +1,11 @@
 import { describe, expect, it, vi } from 'vitest';
-import { drawShareCard, renderShareCardBlob, SHARE_CARD_HEIGHT, SHARE_CARD_WIDTH } from './shareImageCard';
+import {
+  drawShareCard,
+  drawShareCardPreview,
+  renderShareCardBlob,
+  SHARE_CARD_HEIGHT,
+  SHARE_CARD_WIDTH,
+} from './shareImageCard';
 import type { ShareCardData } from './shareImageCard';
 
 const DATA: ShareCardData = {
@@ -28,6 +34,24 @@ describe('drawShareCard', () => {
   it('does not throw when the canvas cannot produce a 2D context (jsdom default)', () => {
     const canvas = document.createElement('canvas');
     expect(() => drawShareCard(canvas, DATA)).not.toThrow();
+  });
+});
+
+describe('drawShareCardPreview', () => {
+  it('sizes the canvas to the card, not the full 1200x630 buffer (jsdom default)', () => {
+    const canvas = document.createElement('canvas');
+    canvas.width = 10;
+    canvas.height = 10;
+    const size = drawShareCardPreview(canvas, DATA);
+    expect(canvas.width).toBe(size.width);
+    expect(canvas.height).toBe(size.height);
+    expect(canvas.width).toBeLessThan(SHARE_CARD_WIDTH);
+    expect(canvas.height).toBeLessThan(SHARE_CARD_HEIGHT);
+  });
+
+  it('does not throw when the canvas cannot produce a 2D context (jsdom default)', () => {
+    const canvas = document.createElement('canvas');
+    expect(() => drawShareCardPreview(canvas, DATA)).not.toThrow();
   });
 });
 

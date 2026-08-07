@@ -3,10 +3,15 @@
  * the standard social-image size so it drops straight into an X/LinkedIn/
  * Reddit post. Drawn on a plain <canvas> instead of a DOM screenshot library —
  * the content is text-only, so hand-drawing it is both the simplest and the
- * only dependency-free way to get pixel-identical output everywhere. The card
- * itself sizes to its content (steps/checks/skills/topology all vary per
- * roadmap) and is centered on the fixed 1200x630 canvas, so a two-step
- * roadmap doesn't render as a mostly-empty image next to a ten-step one.
+ * only dependency-free way to get pixel-identical output everywhere.
+ *
+ * The card sizes itself to its content (steps/checks/skills/topology all vary
+ * per roadmap) rather than stretching to fill a fixed box. Two entry points
+ * share that same geometry: `drawShareCard` paints the full 1200x630 social
+ * image (card centered on a page background — this is what gets downloaded),
+ * while `drawShareCardPreview` paints only the card itself, sized exactly to
+ * its content, for a compact in-app preview that doesn't reserve a big empty
+ * box for a short roadmap's card.
  *
  * Kept translation-free like the rest of this feature's data layer: callers
  * pass already-translated strings in, so this module is just geometry.
@@ -51,11 +56,9 @@ const PALETTE = {
 const FONT_FAMILY = "'Plus Jakarta Sans', system-ui, -apple-system, sans-serif";
 const MAX_TOPOLOGY_ROWS = 6;
 
-// The card's height tracks its content instead of stretching to fill the
-// 1200x630 canvas — a two-step roadmap and a ten-step one shouldn't produce
-// the same amount of visual whitespace. Only the width is fixed; the card is
-// then centered vertically (clamped to a minimum page margin) once its
-// natural content height is known.
+// The full social image centers the (content-sized) card on a fixed 1200x630
+// canvas — CARD_MARGIN_X is the horizontal margin around it, CARD_MIN_MARGIN_Y
+// the minimum vertical one once centering is clamped for a tall card.
 const CARD_MARGIN_X = 24;
 const CARD_MIN_MARGIN_Y = 24;
 const CARD_PAD = 40;
@@ -145,20 +148,42 @@ function layoutChips(ctx: CanvasRenderingContext2D, labels: string[], maxWidth: 
   return rows;
 }
 
-/** Draws the full share card into `canvas`, resizing it to the fixed 1200x630 buffer. */
-export function drawShareCard(canvas: HTMLCanvasElement, data: ShareCardData): void {
-  canvas.width = SHARE_CARD_WIDTH;
-  canvas.height = SHARE_CARD_HEIGHT;
-  const ctx = canvas.getContext('2d');
-  if (!ctx) return;
+interface CardLayout {
+  cardWidth: number;
+  cardHeight: number;
+  title: string;
+  titleSize: number;
+  discR: number;
+  contentX0: number;
+  contentWidth: number;
+  statsY: number;
+  statsSize: number;
+  columnsY: number;
+  columnsBottom: number;
+  dividerX: number;
+  rightColX: number;
+  rightColWidth: number;
+  chipRows: ChipEntry[][];
+  chipHeight: number;
+  chipRowGap: number;
+  topoRows: ShareCardTopologyEntry[];
+  topoRowHeight: number;
+  listTop: number;
+  footerDividerY: number;
+  footerY: number;
+  footerTextSize: number;
+}
 
-  const cardWidth = SHARE_CARD_WIDTH - CARD_MARGIN_X * 2;
-  const contentX0 = CARD_MARGIN_X + CARD_PAD;
+/**
+ * Measures everything the card needs to draw itself, in card-local
+ * coordinates (0,0 is the card's own top-left corner) — independent of
+ * where that card then gets painted on the canvas.
+ */
+function computeLayout(ctx: CanvasRenderingContext2D, data: ShareCardData, cardWidth: number): CardLayout {
+  const contentX0 = CARD_PAD;
   const contentWidth = cardWidth - CARD_PAD * 2;
   ctx.textBaseline = 'top';
 
-  // Everything below is measured before anything is painted, so the card's
-  // height can be derived from its actual content instead of a fixed guess.
   const titleSize = 30;
   const discR = 13;
   ctx.font = font(titleSize, 700);
@@ -193,111 +218,189 @@ export function drawShareCard(canvas: HTMLCanvasElement, data: ShareCardData): v
   const footerGap = 28;
   const footerTextSize = 16;
 
-  const contentHeight =
-    titleSize * 1.3 + statsGap + statsSize * 1.3 + columnsGap + columnsHeight + footerGap + 1 + 18 + footerTextSize;
-  const cardHeight = CARD_PAD * 2 + contentHeight;
-  const cardY = Math.max(CARD_MIN_MARGIN_Y, (SHARE_CARD_HEIGHT - cardHeight) / 2);
+  const contentY0 = CARD_PAD;
+  const statsY = contentY0 + titleSize * 1.3 + statsGap;
+  const columnsY = statsY + statsSize * 1.3 + columnsGap;
+  const columnsBottom = columnsY + columnsHeight;
+  const listTop = columnsY + topoLabelHeight + topoLabelGap;
+  const footerDividerY = columnsBottom + footerGap;
+  const footerY = footerDividerY + 18;
 
-  // Page background, then the card itself.
-  ctx.fillStyle = PALETTE.pageBg;
-  ctx.fillRect(0, 0, SHARE_CARD_WIDTH, SHARE_CARD_HEIGHT);
-  roundedRectPath(ctx, CARD_MARGIN_X, cardY, cardWidth, cardHeight, CARD_RADIUS);
+  const cardHeight = footerY + footerTextSize + CARD_PAD;
+
+  return {
+    cardWidth,
+    cardHeight,
+    title,
+    titleSize,
+    discR,
+    contentX0,
+    contentWidth,
+    statsY,
+    statsSize,
+    columnsY,
+    columnsBottom,
+    dividerX,
+    rightColX,
+    rightColWidth,
+    chipRows,
+    chipHeight,
+    chipRowGap,
+    topoRows,
+    topoRowHeight,
+    listTop,
+    footerDividerY,
+    footerY,
+    footerTextSize,
+  };
+}
+
+/** Paints the card (background, border and all content) with its top-left corner at the current origin. */
+function paintCard(ctx: CanvasRenderingContext2D, data: ShareCardData, layout: CardLayout): void {
+  const { contentX0, contentWidth } = layout;
+
+  roundedRectPath(ctx, 0, 0, layout.cardWidth, layout.cardHeight, CARD_RADIUS);
   ctx.fillStyle = PALETTE.cardBg;
   ctx.fill();
   ctx.strokeStyle = PALETTE.border;
   ctx.lineWidth = 1;
   ctx.stroke();
 
-  const contentY0 = cardY + CARD_PAD;
-
   // Title + status disc, full width.
-  ctx.font = font(titleSize, 700);
+  ctx.textBaseline = 'top';
+  ctx.font = font(layout.titleSize, 700);
   ctx.fillStyle = PALETTE.textPrimary;
-  ctx.fillText(title, contentX0, contentY0);
-  const titleWidth = ctx.measureText(title).width;
-  drawCheckGlyph(ctx, contentX0 + titleWidth + 16 + discR, contentY0 + titleSize * 0.42, discR, PALETTE.success);
+  ctx.fillText(layout.title, contentX0, CARD_PAD);
+  const titleWidth = ctx.measureText(layout.title).width;
+  drawCheckGlyph(
+    ctx,
+    contentX0 + titleWidth + 16 + layout.discR,
+    CARD_PAD + layout.titleSize * 0.42,
+    layout.discR,
+    PALETTE.success
+  );
 
   // Stats line.
-  const statsY = contentY0 + titleSize * 1.3 + statsGap;
-  ctx.font = font(statsSize, 600);
+  ctx.font = font(layout.statsSize, 600);
   ctx.fillStyle = PALETTE.success;
-  ctx.fillText(data.statsLine, contentX0, statsY);
+  ctx.fillText(data.statsLine, contentX0, layout.statsY);
 
-  // Two columns: skill chips on the left, topology on the right.
-  const columnsY = statsY + statsSize * 1.3 + columnsGap;
-  const columnsBottom = columnsY + columnsHeight;
-
+  // Divider between the two columns.
   ctx.strokeStyle = PALETTE.border;
   ctx.lineWidth = 1;
   ctx.beginPath();
-  ctx.moveTo(dividerX, columnsY);
-  ctx.lineTo(dividerX, columnsBottom);
+  ctx.moveTo(layout.dividerX, layout.columnsY);
+  ctx.lineTo(layout.dividerX, layout.columnsBottom);
   ctx.stroke();
 
   // Skill chips, left column.
   ctx.font = font(15, 600);
-  let chipY = columnsY;
-  for (const row of chipRows) {
+  let chipY = layout.columnsY;
+  for (const row of layout.chipRows) {
     let chipX = contentX0;
     for (const chip of row) {
-      roundedRectPath(ctx, chipX, chipY, chip.width, chipHeight, chipHeight / 2);
+      roundedRectPath(ctx, chipX, chipY, chip.width, layout.chipHeight, layout.chipHeight / 2);
       ctx.fillStyle = PALETTE.chipBg;
       ctx.fill();
       ctx.strokeStyle = PALETTE.chipBorder;
       ctx.lineWidth = 1;
       ctx.stroke();
       ctx.fillStyle = PALETTE.textSecondary;
-      ctx.fillText(chip.label, chipX + 16, chipY + (chipHeight - 15) / 2);
+      ctx.fillText(chip.label, chipX + 16, chipY + (layout.chipHeight - 15) / 2);
       chipX += chip.width + 10;
     }
-    chipY += chipHeight + chipRowGap;
+    chipY += layout.chipHeight + layout.chipRowGap;
   }
 
   // Topology, right column.
   ctx.font = font(12, 600);
   ctx.fillStyle = PALETTE.textMuted;
-  ctx.fillText(data.topologyLabel.toUpperCase(), rightColX, columnsY);
+  ctx.fillText(data.topologyLabel.toUpperCase(), layout.rightColX, layout.columnsY);
 
-  const listTop = columnsY + topoLabelHeight + topoLabelGap;
   const glyphR = 7;
   ctx.font = font(15, 500);
-  topoRows.forEach((entry, index) => {
-    const rowY = listTop + topoRowHeight * index;
-    drawCheckGlyph(ctx, rightColX + glyphR, rowY + topoRowHeight / 2 - 1, glyphR, PALETTE.success);
-    const text = fitText(ctx, `${entry.name} (${entry.role})`, rightColWidth - glyphR * 2 - 12);
+  layout.topoRows.forEach((entry, index) => {
+    const rowY = layout.listTop + layout.topoRowHeight * index;
+    drawCheckGlyph(ctx, layout.rightColX + glyphR, rowY + layout.topoRowHeight / 2 - 1, glyphR, PALETTE.success);
+    const text = fitText(ctx, `${entry.name} (${entry.role})`, layout.rightColWidth - glyphR * 2 - 12);
     ctx.fillStyle = PALETTE.textPrimary;
-    ctx.fillText(text, rightColX + glyphR * 2 + 12, rowY + topoRowHeight / 2 - 8);
+    ctx.fillText(text, layout.rightColX + glyphR * 2 + 12, rowY + layout.topoRowHeight / 2 - 8);
   });
   if (data.moreTopologyLabel) {
-    const rowY = listTop + topoRowHeight * topoRows.length;
+    const rowY = layout.listTop + layout.topoRowHeight * layout.topoRows.length;
     ctx.font = font(14, 500);
     ctx.fillStyle = PALETTE.textMuted;
-    ctx.fillText(data.moreTopologyLabel, rightColX + glyphR * 2 + 12, rowY + topoRowHeight / 2 - 7);
+    ctx.fillText(data.moreTopologyLabel, layout.rightColX + glyphR * 2 + 12, rowY + layout.topoRowHeight / 2 - 7);
   }
 
   // Footer.
-  const footerDividerY = columnsBottom + footerGap;
   ctx.strokeStyle = PALETTE.border;
   ctx.lineWidth = 1;
   ctx.beginPath();
-  ctx.moveTo(contentX0, footerDividerY);
-  ctx.lineTo(contentX0 + contentWidth, footerDividerY);
+  ctx.moveTo(contentX0, layout.footerDividerY);
+  ctx.lineTo(contentX0 + contentWidth, layout.footerDividerY);
   ctx.stroke();
 
-  const footerY = footerDividerY + 18;
-  ctx.font = font(footerTextSize, 500);
+  ctx.font = font(layout.footerTextSize, 500);
   ctx.fillStyle = PALETTE.textMuted;
-  ctx.fillText(data.footerBrand, contentX0, footerY);
+  ctx.fillText(data.footerBrand, contentX0, layout.footerY);
   const brandWidth = ctx.measureText(data.footerBrand).width;
   const sep = '  ·  ';
-  ctx.fillText(sep, contentX0 + brandWidth, footerY);
+  ctx.fillText(sep, contentX0 + brandWidth, layout.footerY);
   const sepWidth = ctx.measureText(sep).width;
-  ctx.font = font(footerTextSize, 600);
+  ctx.font = font(layout.footerTextSize, 600);
   ctx.fillStyle = PALETTE.accent;
-  ctx.fillText(data.footerUrl, contentX0 + brandWidth + sepWidth, footerY);
+  ctx.fillText(data.footerUrl, contentX0 + brandWidth + sepWidth, layout.footerY);
 }
 
-/** Draws then exports `canvas` as a PNG blob, or `null` if the canvas can't encode one. */
+/** Draws the full 1200x630 social image (card centered on a page background) — this is what gets downloaded. */
+export function drawShareCard(canvas: HTMLCanvasElement, data: ShareCardData): void {
+  const ctx = canvas.getContext('2d');
+  if (!ctx) {
+    canvas.width = SHARE_CARD_WIDTH;
+    canvas.height = SHARE_CARD_HEIGHT;
+    return;
+  }
+
+  const cardWidth = SHARE_CARD_WIDTH - CARD_MARGIN_X * 2;
+  const layout = computeLayout(ctx, data, cardWidth);
+
+  canvas.width = SHARE_CARD_WIDTH;
+  canvas.height = SHARE_CARD_HEIGHT;
+
+  const cardY = Math.max(CARD_MIN_MARGIN_Y, (SHARE_CARD_HEIGHT - layout.cardHeight) / 2);
+
+  ctx.fillStyle = PALETTE.pageBg;
+  ctx.fillRect(0, 0, SHARE_CARD_WIDTH, SHARE_CARD_HEIGHT);
+
+  ctx.save();
+  ctx.translate(CARD_MARGIN_X, cardY);
+  paintCard(ctx, data, layout);
+  ctx.restore();
+}
+
+/**
+ * Draws just the card, sized exactly to its content (no page background or
+ * margin) — used for the compact in-app preview, so a short roadmap's card
+ * doesn't reserve the same box as a long one's. Returns the pixel size drawn.
+ */
+export function drawShareCardPreview(canvas: HTMLCanvasElement, data: ShareCardData): { width: number; height: number } {
+  const previewCardWidth = SHARE_CARD_WIDTH - CARD_MARGIN_X * 2;
+  const ctx = canvas.getContext('2d');
+  if (!ctx) {
+    canvas.width = previewCardWidth;
+    canvas.height = CARD_PAD * 2;
+    return { width: canvas.width, height: canvas.height };
+  }
+
+  const layout = computeLayout(ctx, data, previewCardWidth);
+  canvas.width = layout.cardWidth;
+  canvas.height = layout.cardHeight;
+  paintCard(ctx, data, layout);
+  return { width: layout.cardWidth, height: layout.cardHeight };
+}
+
+/** Draws the full social image then exports `canvas` as a PNG blob, or `null` if the canvas can't encode one. */
 export function renderShareCardBlob(canvas: HTMLCanvasElement, data: ShareCardData): Promise<Blob | null> {
   drawShareCard(canvas, data);
   return new Promise(resolve => {
