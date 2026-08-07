@@ -13,9 +13,9 @@ interface ShareImageCardProps {
  * The share card preview: a <canvas> drawn at the width of its container and
  * the height of its own content (via `drawShareCardPreview`), so it lines up
  * flush with the modal's other sections and a short roadmap's card stays a
- * small box instead of a mostly-empty 1200x630 one. The actual download is
- * the full social-sized image, rendered separately on an offscreen canvas at
- * export time — the two never need to share pixel dimensions.
+ * small box. The actual download is the social-width image, rendered
+ * separately on an offscreen canvas at export time — the two never need to
+ * share pixel dimensions.
  */
 export default function ShareImageCard({ data, alt, fileName }: ShareImageCardProps) {
   const { t } = useTranslation();

@@ -1,15 +1,18 @@
 /**
- * The 1200x630 share card: a completed roadmap rendered as a standalone PNG,
- * the standard social-image size so it drops straight into an X/LinkedIn/
- * Reddit post. Drawn on a plain <canvas> instead of a DOM screenshot library —
- * the content is text-only, so hand-drawing it is both the simplest and the
- * only dependency-free way to get pixel-identical output everywhere.
+ * The share card: a completed roadmap rendered as a standalone PNG at the
+ * standard social-image width (1200px) so it drops straight into an
+ * X/LinkedIn/Reddit post. The image's height follows the card's content —
+ * attached images can be any aspect ratio, and a fixed 630px canvas would
+ * letterbox a short roadmap's card between big empty bands. Drawn on a plain
+ * <canvas> instead of a DOM screenshot library — the content is text-only, so
+ * hand-drawing it is both the simplest and the only dependency-free way to
+ * get pixel-identical output everywhere.
  *
  * The card sizes itself to its content (steps/checks/skills/topology all vary
  * per roadmap) rather than stretching to fill a fixed box. Two entry points
- * share the same layout logic but use different `CardScale`s:
- * `drawShareCard` paints the full 1200x630 social image at DOWNLOAD_SCALE
- * (card centered on a page background — this is what gets downloaded), while
+ * share the same layout logic but use different `CardScale`s: `drawShareCard`
+ * paints the shareable image at DOWNLOAD_SCALE (the card on a slim page-
+ * background frame — this is what gets downloaded/copied), while
  * `drawShareCardPreview` paints only the card at PREVIEW_SCALE, a distinct,
  * deliberately larger font-to-width ratio so the in-app preview stays legible
  * at the small size it's actually displayed at — simply shrinking the download
@@ -20,7 +23,6 @@
  */
 
 export const SHARE_CARD_WIDTH = 1200;
-export const SHARE_CARD_HEIGHT = 630;
 
 export interface ShareCardTopologyEntry {
   name: string;
@@ -58,11 +60,10 @@ const PALETTE = {
 const FONT_FAMILY = "'Plus Jakarta Sans', system-ui, -apple-system, sans-serif";
 const MAX_TOPOLOGY_ROWS = 6;
 
-// The full social image centers the (content-sized) card on a fixed 1200x630
-// canvas — CARD_MARGIN_X is the horizontal margin around it, CARD_MIN_MARGIN_Y
-// the minimum vertical one once centering is clamped for a tall card.
-const CARD_MARGIN_X = 24;
-const CARD_MIN_MARGIN_Y = 24;
+// The shareable image is the content-sized card plus this slim, even frame of
+// page background on every side — enough to read as a card wherever it's
+// pasted, never enough to look like empty letterboxing.
+const CARD_MARGIN = 24;
 
 interface CardScale {
   cardWidth: number;
@@ -95,7 +96,7 @@ interface CardScale {
 
 /** The design the downloaded 1200x630 PNG is drawn at. */
 const DOWNLOAD_SCALE: CardScale = {
-  cardWidth: SHARE_CARD_WIDTH - CARD_MARGIN_X * 2,
+  cardWidth: SHARE_CARD_WIDTH - CARD_MARGIN * 2,
   cardPad: 40,
   cardRadius: 20,
   titleSize: 30,
@@ -421,27 +422,29 @@ function paintCard(ctx: CanvasRenderingContext2D, data: ShareCardData, layout: C
   ctx.fillText(data.footerUrl, contentX0 + brandWidth + sepWidth, layout.footerY);
 }
 
-/** Draws the full 1200x630 social image (card centered on a page background) — this is what gets downloaded. */
+/**
+ * Draws the shareable image — the card cropped tight, with just the slim
+ * CARD_MARGIN frame around it. 1200 wide, as tall as the card needs. This is
+ * what gets downloaded and copied.
+ */
 export function drawShareCard(canvas: HTMLCanvasElement, data: ShareCardData): void {
   const ctx = canvas.getContext('2d');
   if (!ctx) {
     canvas.width = SHARE_CARD_WIDTH;
-    canvas.height = SHARE_CARD_HEIGHT;
+    canvas.height = CARD_MARGIN * 2;
     return;
   }
 
   const layout = computeLayout(ctx, data, DOWNLOAD_SCALE);
 
   canvas.width = SHARE_CARD_WIDTH;
-  canvas.height = SHARE_CARD_HEIGHT;
-
-  const cardY = Math.max(CARD_MIN_MARGIN_Y, (SHARE_CARD_HEIGHT - layout.cardHeight) / 2);
+  canvas.height = Math.round(layout.cardHeight + CARD_MARGIN * 2);
 
   ctx.fillStyle = PALETTE.pageBg;
-  ctx.fillRect(0, 0, SHARE_CARD_WIDTH, SHARE_CARD_HEIGHT);
+  ctx.fillRect(0, 0, canvas.width, canvas.height);
 
   ctx.save();
-  ctx.translate(CARD_MARGIN_X, cardY);
+  ctx.translate(CARD_MARGIN, CARD_MARGIN);
   paintCard(ctx, data, layout);
   ctx.restore();
 }
