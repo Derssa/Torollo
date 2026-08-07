@@ -78,16 +78,15 @@ const styles: Record<string, React.CSSProperties> = {
   wrap: {
     position: 'relative',
     display: 'inline-block',
-    maxWidth: '420px',
     borderRadius: 'var(--radius-md)',
     overflow: 'hidden',
     border: '1px solid var(--border-color)',
     lineHeight: 0,
   },
+  // Width/height are set imperatively in pixels by drawShareCardPreview
+  // (device-pixel-ratio-aware, so the card stays crisp) — no CSS sizing here.
   canvas: {
     display: 'block',
-    width: '100%',
-    height: 'auto',
   },
   downloadBtn: {
     position: 'absolute',

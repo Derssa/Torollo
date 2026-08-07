@@ -7,11 +7,13 @@
  *
  * The card sizes itself to its content (steps/checks/skills/topology all vary
  * per roadmap) rather than stretching to fill a fixed box. Two entry points
- * share that same geometry: `drawShareCard` paints the full 1200x630 social
- * image (card centered on a page background — this is what gets downloaded),
- * while `drawShareCardPreview` paints only the card itself, sized exactly to
- * its content, for a compact in-app preview that doesn't reserve a big empty
- * box for a short roadmap's card.
+ * share the same layout logic but use different `CardScale`s:
+ * `drawShareCard` paints the full 1200x630 social image at DOWNLOAD_SCALE
+ * (card centered on a page background — this is what gets downloaded), while
+ * `drawShareCardPreview` paints only the card at PREVIEW_SCALE, a distinct,
+ * deliberately larger font-to-width ratio so the in-app preview stays legible
+ * at the small size it's actually displayed at — simply shrinking the download
+ * design to fit a few hundred pixels makes every secondary line unreadable.
  *
  * Kept translation-free like the rest of this feature's data layer: callers
  * pass already-translated strings in, so this module is just geometry.
@@ -61,8 +63,100 @@ const MAX_TOPOLOGY_ROWS = 6;
 // the minimum vertical one once centering is clamped for a tall card.
 const CARD_MARGIN_X = 24;
 const CARD_MIN_MARGIN_Y = 24;
-const CARD_PAD = 40;
-const CARD_RADIUS = 20;
+
+interface CardScale {
+  cardWidth: number;
+  cardPad: number;
+  cardRadius: number;
+  titleSize: number;
+  discR: number;
+  titleDiscGap: number;
+  statsSize: number;
+  statsGap: number;
+  columnsGap: number;
+  rightColWidth: number;
+  columnGap: number;
+  chipFontSize: number;
+  chipHeight: number;
+  chipRowGap: number;
+  chipGapX: number;
+  chipPaddingX: number;
+  topoLabelSize: number;
+  topoLabelGap: number;
+  topoRowHeight: number;
+  topoFontSize: number;
+  topoMoreFontSize: number;
+  glyphR: number;
+  glyphTextGap: number;
+  footerGap: number;
+  footerDividerGap: number;
+  footerTextSize: number;
+}
+
+/** The design the downloaded 1200x630 PNG is drawn at. */
+const DOWNLOAD_SCALE: CardScale = {
+  cardWidth: SHARE_CARD_WIDTH - CARD_MARGIN_X * 2,
+  cardPad: 40,
+  cardRadius: 20,
+  titleSize: 30,
+  discR: 13,
+  titleDiscGap: 16,
+  statsSize: 18,
+  statsGap: 12,
+  columnsGap: 28,
+  rightColWidth: 260,
+  columnGap: 40,
+  chipFontSize: 15,
+  chipHeight: 34,
+  chipRowGap: 10,
+  chipGapX: 10,
+  chipPaddingX: 16,
+  topoLabelSize: 12,
+  topoLabelGap: 14,
+  topoRowHeight: 32,
+  topoFontSize: 15,
+  topoMoreFontSize: 14,
+  glyphR: 7,
+  glyphTextGap: 12,
+  footerGap: 28,
+  footerDividerGap: 18,
+  footerTextSize: 16,
+};
+
+/**
+ * The design the in-app preview is drawn at. Not a linear scale-down of
+ * DOWNLOAD_SCALE — a 460px-wide card needs a much higher font-to-width ratio
+ * than a 1152px-wide one to stay readable, so every size here was picked for
+ * legibility at this card's own width, not derived by proportion.
+ */
+const PREVIEW_SCALE: CardScale = {
+  cardWidth: 460,
+  cardPad: 20,
+  cardRadius: 12,
+  titleSize: 17,
+  discR: 8,
+  titleDiscGap: 8,
+  statsSize: 12,
+  statsGap: 8,
+  columnsGap: 16,
+  rightColWidth: 150,
+  columnGap: 18,
+  chipFontSize: 11,
+  chipHeight: 22,
+  chipRowGap: 6,
+  chipGapX: 6,
+  chipPaddingX: 9,
+  topoLabelSize: 9,
+  topoLabelGap: 8,
+  topoRowHeight: 20,
+  topoFontSize: 11,
+  topoMoreFontSize: 10,
+  glyphR: 5,
+  glyphTextGap: 6,
+  footerGap: 14,
+  footerDividerGap: 10,
+  footerTextSize: 11,
+};
 
 function font(px: number, weight = 400): string {
   return `${weight} ${px}px ${FONT_FAMILY}`;
@@ -126,9 +220,13 @@ interface ChipEntry {
 }
 
 /** Wraps chip labels into rows that fit `maxWidth`, pill padding included. */
-function layoutChips(ctx: CanvasRenderingContext2D, labels: string[], maxWidth: number): ChipEntry[][] {
-  const gap = 10;
-  const paddingX = 16;
+function layoutChips(
+  ctx: CanvasRenderingContext2D,
+  labels: string[],
+  maxWidth: number,
+  gap: number,
+  paddingX: number
+): ChipEntry[][] {
   const rows: ChipEntry[][] = [];
   let row: ChipEntry[] = [];
   let rowWidth = 0;
@@ -149,117 +247,86 @@ function layoutChips(ctx: CanvasRenderingContext2D, labels: string[], maxWidth: 
 }
 
 interface CardLayout {
-  cardWidth: number;
+  scale: CardScale;
   cardHeight: number;
   title: string;
-  titleSize: number;
-  discR: number;
   contentX0: number;
   contentWidth: number;
   statsY: number;
-  statsSize: number;
   columnsY: number;
   columnsBottom: number;
   dividerX: number;
   rightColX: number;
-  rightColWidth: number;
   chipRows: ChipEntry[][];
-  chipHeight: number;
-  chipRowGap: number;
   topoRows: ShareCardTopologyEntry[];
-  topoRowHeight: number;
   listTop: number;
   footerDividerY: number;
   footerY: number;
-  footerTextSize: number;
 }
 
 /**
- * Measures everything the card needs to draw itself, in card-local
- * coordinates (0,0 is the card's own top-left corner) — independent of
- * where that card then gets painted on the canvas.
+ * Measures everything the card needs to draw itself at the given `scale`, in
+ * card-local coordinates (0,0 is the card's own top-left corner) — independent
+ * of where that card then gets painted on the canvas.
  */
-function computeLayout(ctx: CanvasRenderingContext2D, data: ShareCardData, cardWidth: number): CardLayout {
-  const contentX0 = CARD_PAD;
-  const contentWidth = cardWidth - CARD_PAD * 2;
+function computeLayout(ctx: CanvasRenderingContext2D, data: ShareCardData, scale: CardScale): CardLayout {
+  const contentX0 = scale.cardPad;
+  const contentWidth = scale.cardWidth - scale.cardPad * 2;
   ctx.textBaseline = 'top';
 
-  const titleSize = 30;
-  const discR = 13;
-  ctx.font = font(titleSize, 700);
-  const title = fitText(ctx, data.title, contentWidth - discR * 2 - 16);
+  ctx.font = font(scale.titleSize, 700);
+  const title = fitText(ctx, data.title, contentWidth - scale.discR * 2 - scale.titleDiscGap);
 
-  const statsSize = 18;
-  const statsGap = 12;
-  const columnsGap = 28;
+  const leftColWidth = contentWidth - scale.rightColWidth - scale.columnGap;
+  const dividerX = contentX0 + leftColWidth + scale.columnGap / 2;
+  const rightColX = dividerX + scale.columnGap / 2;
 
-  const rightColWidth = 260;
-  const columnGap = 40;
-  const leftColWidth = contentWidth - rightColWidth - columnGap;
-  const dividerX = contentX0 + leftColWidth + columnGap / 2;
-  const rightColX = dividerX + columnGap / 2;
-
-  ctx.font = font(15, 600);
-  const chipRows = layoutChips(ctx, data.skills, leftColWidth);
-  const chipHeight = 34;
-  const chipRowGap = 10;
+  ctx.font = font(scale.chipFontSize, 600);
+  const chipRows = layoutChips(ctx, data.skills, leftColWidth, scale.chipGapX, scale.chipPaddingX);
   const chipsHeight =
-    chipRows.length > 0 ? chipRows.length * chipHeight + (chipRows.length - 1) * chipRowGap : 0;
+    chipRows.length > 0 ? chipRows.length * scale.chipHeight + (chipRows.length - 1) * scale.chipRowGap : 0;
 
-  const topoLabelHeight = 12 * 1.3;
-  const topoLabelGap = 14;
-  const topoRowHeight = 32;
+  const topoLabelHeight = scale.topoLabelSize * 1.3;
   const topoRows = data.topology.slice(0, MAX_TOPOLOGY_ROWS);
   const topoRowCount = topoRows.length + (data.moreTopologyLabel ? 1 : 0);
-  const topologyHeight = topoLabelHeight + topoLabelGap + topoRowCount * topoRowHeight;
+  const topologyHeight = topoLabelHeight + scale.topoLabelGap + topoRowCount * scale.topoRowHeight;
 
   const columnsHeight = Math.max(chipsHeight, topologyHeight);
 
-  const footerGap = 28;
-  const footerTextSize = 16;
-
-  const contentY0 = CARD_PAD;
-  const statsY = contentY0 + titleSize * 1.3 + statsGap;
-  const columnsY = statsY + statsSize * 1.3 + columnsGap;
+  const contentY0 = scale.cardPad;
+  const statsY = contentY0 + scale.titleSize * 1.3 + scale.statsGap;
+  const columnsY = statsY + scale.statsSize * 1.3 + scale.columnsGap;
   const columnsBottom = columnsY + columnsHeight;
-  const listTop = columnsY + topoLabelHeight + topoLabelGap;
-  const footerDividerY = columnsBottom + footerGap;
-  const footerY = footerDividerY + 18;
+  const listTop = columnsY + topoLabelHeight + scale.topoLabelGap;
+  const footerDividerY = columnsBottom + scale.footerGap;
+  const footerY = footerDividerY + scale.footerDividerGap;
 
-  const cardHeight = footerY + footerTextSize + CARD_PAD;
+  const cardHeight = footerY + scale.footerTextSize + scale.cardPad;
 
   return {
-    cardWidth,
+    scale,
     cardHeight,
     title,
-    titleSize,
-    discR,
     contentX0,
     contentWidth,
     statsY,
-    statsSize,
     columnsY,
     columnsBottom,
     dividerX,
     rightColX,
-    rightColWidth,
     chipRows,
-    chipHeight,
-    chipRowGap,
     topoRows,
-    topoRowHeight,
     listTop,
     footerDividerY,
     footerY,
-    footerTextSize,
   };
 }
 
 /** Paints the card (background, border and all content) with its top-left corner at the current origin. */
 function paintCard(ctx: CanvasRenderingContext2D, data: ShareCardData, layout: CardLayout): void {
-  const { contentX0, contentWidth } = layout;
+  const { scale, contentX0, contentWidth } = layout;
 
-  roundedRectPath(ctx, 0, 0, layout.cardWidth, layout.cardHeight, CARD_RADIUS);
+  roundedRectPath(ctx, 0, 0, scale.cardWidth, layout.cardHeight, scale.cardRadius);
   ctx.fillStyle = PALETTE.cardBg;
   ctx.fill();
   ctx.strokeStyle = PALETTE.border;
@@ -268,20 +335,20 @@ function paintCard(ctx: CanvasRenderingContext2D, data: ShareCardData, layout: C
 
   // Title + status disc, full width.
   ctx.textBaseline = 'top';
-  ctx.font = font(layout.titleSize, 700);
+  ctx.font = font(scale.titleSize, 700);
   ctx.fillStyle = PALETTE.textPrimary;
-  ctx.fillText(layout.title, contentX0, CARD_PAD);
+  ctx.fillText(layout.title, contentX0, scale.cardPad);
   const titleWidth = ctx.measureText(layout.title).width;
   drawCheckGlyph(
     ctx,
-    contentX0 + titleWidth + 16 + layout.discR,
-    CARD_PAD + layout.titleSize * 0.42,
-    layout.discR,
+    contentX0 + titleWidth + scale.titleDiscGap + scale.discR,
+    scale.cardPad + scale.titleSize * 0.42,
+    scale.discR,
     PALETTE.success
   );
 
   // Stats line.
-  ctx.font = font(layout.statsSize, 600);
+  ctx.font = font(scale.statsSize, 600);
   ctx.fillStyle = PALETTE.success;
   ctx.fillText(data.statsLine, contentX0, layout.statsY);
 
@@ -294,43 +361,44 @@ function paintCard(ctx: CanvasRenderingContext2D, data: ShareCardData, layout: C
   ctx.stroke();
 
   // Skill chips, left column.
-  ctx.font = font(15, 600);
+  ctx.font = font(scale.chipFontSize, 600);
   let chipY = layout.columnsY;
   for (const row of layout.chipRows) {
     let chipX = contentX0;
     for (const chip of row) {
-      roundedRectPath(ctx, chipX, chipY, chip.width, layout.chipHeight, layout.chipHeight / 2);
+      roundedRectPath(ctx, chipX, chipY, chip.width, scale.chipHeight, scale.chipHeight / 2);
       ctx.fillStyle = PALETTE.chipBg;
       ctx.fill();
       ctx.strokeStyle = PALETTE.chipBorder;
       ctx.lineWidth = 1;
       ctx.stroke();
       ctx.fillStyle = PALETTE.textSecondary;
-      ctx.fillText(chip.label, chipX + 16, chipY + (layout.chipHeight - 15) / 2);
-      chipX += chip.width + 10;
+      ctx.fillText(chip.label, chipX + scale.chipPaddingX, chipY + (scale.chipHeight - scale.chipFontSize) / 2);
+      chipX += chip.width + scale.chipGapX;
     }
-    chipY += layout.chipHeight + layout.chipRowGap;
+    chipY += scale.chipHeight + scale.chipRowGap;
   }
 
   // Topology, right column.
-  ctx.font = font(12, 600);
+  ctx.font = font(scale.topoLabelSize, 600);
   ctx.fillStyle = PALETTE.textMuted;
   ctx.fillText(data.topologyLabel.toUpperCase(), layout.rightColX, layout.columnsY);
 
-  const glyphR = 7;
-  ctx.font = font(15, 500);
+  const glyphR = scale.glyphR;
+  const textX = layout.rightColX + glyphR * 2 + scale.glyphTextGap;
+  ctx.font = font(scale.topoFontSize, 500);
   layout.topoRows.forEach((entry, index) => {
-    const rowY = layout.listTop + layout.topoRowHeight * index;
-    drawCheckGlyph(ctx, layout.rightColX + glyphR, rowY + layout.topoRowHeight / 2 - 1, glyphR, PALETTE.success);
-    const text = fitText(ctx, `${entry.name} (${entry.role})`, layout.rightColWidth - glyphR * 2 - 12);
+    const rowY = layout.listTop + scale.topoRowHeight * index;
+    drawCheckGlyph(ctx, layout.rightColX + glyphR, rowY + scale.topoRowHeight / 2 - 1, glyphR, PALETTE.success);
+    const text = fitText(ctx, `${entry.name} (${entry.role})`, scale.rightColWidth - glyphR * 2 - scale.glyphTextGap);
     ctx.fillStyle = PALETTE.textPrimary;
-    ctx.fillText(text, layout.rightColX + glyphR * 2 + 12, rowY + layout.topoRowHeight / 2 - 8);
+    ctx.fillText(text, textX, rowY + scale.topoRowHeight / 2 - scale.topoFontSize * 0.5);
   });
   if (data.moreTopologyLabel) {
-    const rowY = layout.listTop + layout.topoRowHeight * layout.topoRows.length;
-    ctx.font = font(14, 500);
+    const rowY = layout.listTop + scale.topoRowHeight * layout.topoRows.length;
+    ctx.font = font(scale.topoMoreFontSize, 500);
     ctx.fillStyle = PALETTE.textMuted;
-    ctx.fillText(data.moreTopologyLabel, layout.rightColX + glyphR * 2 + 12, rowY + layout.topoRowHeight / 2 - 7);
+    ctx.fillText(data.moreTopologyLabel, textX, rowY + scale.topoRowHeight / 2 - scale.topoMoreFontSize * 0.47);
   }
 
   // Footer.
@@ -341,14 +409,14 @@ function paintCard(ctx: CanvasRenderingContext2D, data: ShareCardData, layout: C
   ctx.lineTo(contentX0 + contentWidth, layout.footerDividerY);
   ctx.stroke();
 
-  ctx.font = font(layout.footerTextSize, 500);
+  ctx.font = font(scale.footerTextSize, 500);
   ctx.fillStyle = PALETTE.textMuted;
   ctx.fillText(data.footerBrand, contentX0, layout.footerY);
   const brandWidth = ctx.measureText(data.footerBrand).width;
   const sep = '  ·  ';
   ctx.fillText(sep, contentX0 + brandWidth, layout.footerY);
   const sepWidth = ctx.measureText(sep).width;
-  ctx.font = font(layout.footerTextSize, 600);
+  ctx.font = font(scale.footerTextSize, 600);
   ctx.fillStyle = PALETTE.accent;
   ctx.fillText(data.footerUrl, contentX0 + brandWidth + sepWidth, layout.footerY);
 }
@@ -362,8 +430,7 @@ export function drawShareCard(canvas: HTMLCanvasElement, data: ShareCardData): v
     return;
   }
 
-  const cardWidth = SHARE_CARD_WIDTH - CARD_MARGIN_X * 2;
-  const layout = computeLayout(ctx, data, cardWidth);
+  const layout = computeLayout(ctx, data, DOWNLOAD_SCALE);
 
   canvas.width = SHARE_CARD_WIDTH;
   canvas.height = SHARE_CARD_HEIGHT;
@@ -380,24 +447,34 @@ export function drawShareCard(canvas: HTMLCanvasElement, data: ShareCardData): v
 }
 
 /**
- * Draws just the card, sized exactly to its content (no page background or
- * margin) — used for the compact in-app preview, so a short roadmap's card
- * doesn't reserve the same box as a long one's. Returns the pixel size drawn.
+ * Draws just the card at PREVIEW_SCALE — sized exactly to its content (no
+ * page background or margin), with its own legible font sizes rather than a
+ * shrunk copy of the download design. Renders at device pixel ratio for
+ * sharpness while keeping its CSS size at the logical (unscaled) dimensions.
+ * Used for the compact in-app preview. Returns the logical (CSS px) size.
  */
 export function drawShareCardPreview(canvas: HTMLCanvasElement, data: ShareCardData): { width: number; height: number } {
-  const previewCardWidth = SHARE_CARD_WIDTH - CARD_MARGIN_X * 2;
   const ctx = canvas.getContext('2d');
   if (!ctx) {
-    canvas.width = previewCardWidth;
-    canvas.height = CARD_PAD * 2;
+    canvas.width = PREVIEW_SCALE.cardWidth;
+    canvas.height = PREVIEW_SCALE.cardPad * 2;
     return { width: canvas.width, height: canvas.height };
   }
 
-  const layout = computeLayout(ctx, data, previewCardWidth);
-  canvas.width = layout.cardWidth;
-  canvas.height = layout.cardHeight;
-  paintCard(ctx, data, layout);
-  return { width: layout.cardWidth, height: layout.cardHeight };
+  const layout = computeLayout(ctx, data, PREVIEW_SCALE);
+  const dpr = typeof window !== 'undefined' && window.devicePixelRatio ? window.devicePixelRatio : 1;
+
+  canvas.width = Math.round(layout.scale.cardWidth * dpr);
+  canvas.height = Math.round(layout.cardHeight * dpr);
+  canvas.style.width = `${layout.scale.cardWidth}px`;
+  canvas.style.height = `${layout.cardHeight}px`;
+
+  const freshCtx = canvas.getContext('2d');
+  if (!freshCtx) return { width: layout.scale.cardWidth, height: layout.cardHeight };
+  freshCtx.setTransform(dpr, 0, 0, dpr, 0, 0);
+  paintCard(freshCtx, data, layout);
+
+  return { width: layout.scale.cardWidth, height: layout.cardHeight };
 }
 
 /** Draws the full social image then exports `canvas` as a PNG blob, or `null` if the canvas can't encode one. */
