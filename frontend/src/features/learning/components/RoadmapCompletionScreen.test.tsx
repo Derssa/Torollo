@@ -126,7 +126,7 @@ describe('RoadmapCompletionScreen', () => {
     expect(screen.getByRole('button', { name: 'Download image' })).toBeInTheDocument();
   });
 
-  it('copies a share post that can be pasted as-is', async () => {
+  it('copies a share post as plain text when the browser cannot copy images (jsdom default)', async () => {
     mockApi();
     renderScreen();
 
@@ -136,6 +136,39 @@ describe('RoadmapCompletionScreen', () => {
       'I just completed “Your first architecture” on Torollo — 2/2 steps verified against real Docker containers running on my machine. Free and open source: torollo.app'
     );
     expect(await screen.findByText('Copied — paste it anywhere')).toBeInTheDocument();
+  });
+
+  it('copies the share image and the text as one clipboard item when supported', async () => {
+    mockApi();
+    const write = vi.fn().mockResolvedValue(undefined);
+    Object.defineProperty(navigator, 'clipboard', {
+      value: { write, writeText },
+      configurable: true,
+    });
+    class FakeClipboardItem {
+      items: Record<string, unknown>;
+      constructor(items: Record<string, unknown>) {
+        this.items = items;
+      }
+    }
+    vi.stubGlobal('ClipboardItem', FakeClipboardItem);
+    const originalToBlob = HTMLCanvasElement.prototype.toBlob;
+    HTMLCanvasElement.prototype.toBlob = vi.fn(function toBlob(callback: BlobCallback) {
+      callback(new Blob(['png'], { type: 'image/png' }));
+    });
+
+    try {
+      renderScreen();
+      fireEvent.click(screen.getByText('Copy share post'));
+
+      expect(await screen.findByText('Copied — paste it anywhere')).toBeInTheDocument();
+      expect(write).toHaveBeenCalledTimes(1);
+      const item = write.mock.calls[0][0][0] as FakeClipboardItem;
+      expect(Object.keys(item.items)).toEqual(['image/png', 'text/plain']);
+      expect(writeText).not.toHaveBeenCalled();
+    } finally {
+      HTMLCanvasElement.prototype.toBlob = originalToBlob;
+    }
   });
 
   it('routes "Next roadmap" to the first unstarted roadmap of the catalogue', async () => {

@@ -11,7 +11,7 @@ import { filterByUiLanguage } from '../roadmapLanguage';
 import { useRoadmaps } from '../hooks/useRoadmaps';
 import { useLearningProgressSummaries } from '../hooks/useLearningProgressSummaries';
 import type { RunTimes } from '../hooks/useLearningPlayer';
-import type { ShareCardData } from '../shareImageCard';
+import { renderShareCardBlob, type ShareCardData } from '../shareImageCard';
 import type { LearningExit } from '../../../shared/types';
 import type { Roadmap, RoadmapSummary } from '../../../shared/types/roadmap';
 
@@ -98,23 +98,6 @@ export default function RoadmapCompletionScreen({
     ...(finishedWhen ? [t('learning.player.completion.runLineFinished', { when: finishedWhen })] : []),
   ];
 
-  const handleCopyShare = async () => {
-    try {
-      await navigator.clipboard.writeText(
-        t('learning.player.completion.shareText', { title: roadmap.title, total })
-      );
-      setShareCopied(true);
-      window.clearTimeout(shareResetRef.current);
-      shareResetRef.current = window.setTimeout(() => setShareCopied(false), 2000);
-    } catch {
-      // Clipboard access denied — the button simply stays in its idle state.
-    }
-  };
-
-  // Column-major like a printed checklist: steps 1..k down the left column,
-  // the rest down the right, so the recap reads in roadmap order.
-  const recapRows = Math.ceil(total / 2);
-
   // The completion screen only ever opens once every step's own validators
   // have passed, so both fractions in the share card are always whole — but
   // reading the real counts (rather than hardcoding "10 of 10") keeps it
@@ -135,6 +118,50 @@ export default function RoadmapCompletionScreen({
       footerUrl: 'torollo.app',
     };
   }, [roadmap, total, topology, skills, t]);
+
+  const confirmShareCopied = () => {
+    setShareCopied(true);
+    window.clearTimeout(shareResetRef.current);
+    shareResetRef.current = window.setTimeout(() => setShareCopied(false), 2000);
+  };
+
+  // The post is the share image plus the text, as two representations of one
+  // clipboard item: rich composers (X, LinkedIn, Discord…) attach the image,
+  // plain text fields take the text — so the torollo.app link survives either
+  // way. The image promise must be created synchronously and handed to
+  // ClipboardItem unresolved, or Safari drops the write for being outside the
+  // user gesture. Browsers without image clipboard support get the text alone.
+  const handleCopyShare = async () => {
+    const shareText = t('learning.player.completion.shareText', { title: roadmap.title, total });
+    try {
+      if (typeof ClipboardItem !== 'undefined' && typeof navigator.clipboard.write === 'function') {
+        const image = renderShareCardBlob(document.createElement('canvas'), shareCardData).then(
+          blob => blob ?? Promise.reject<Blob>(new Error('image encoding unsupported'))
+        );
+        await navigator.clipboard.write([
+          new ClipboardItem({
+            'image/png': image,
+            'text/plain': new Blob([shareText], { type: 'text/plain' }),
+          }),
+        ]);
+      } else {
+        await navigator.clipboard.writeText(shareText);
+      }
+      confirmShareCopied();
+    } catch {
+      // Image write failed or was denied — the text is still worth carrying.
+      try {
+        await navigator.clipboard.writeText(shareText);
+        confirmShareCopied();
+      } catch {
+        // Clipboard access denied — the button simply stays in its idle state.
+      }
+    }
+  };
+
+  // Column-major like a printed checklist: steps 1..k down the left column,
+  // the rest down the right, so the recap reads in roadmap order.
+  const recapRows = Math.ceil(total / 2);
 
   return (
     <Modal onClose={onDismiss} width="608px">
