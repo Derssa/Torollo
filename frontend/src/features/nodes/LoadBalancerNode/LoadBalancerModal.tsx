@@ -255,7 +255,7 @@ export default function LoadBalancerModal({
                 )}
               </div>
 
-              <div style={{ marginTop: '16px', borderTop: '1px solid rgba(0,0,0,0.05)', paddingTop: '16px', marginBottom: '16px' }}>
+              <div style={{ marginTop: '16px', borderTop: '1px solid var(--border-color)', paddingTop: '16px', marginBottom: '16px' }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
                   <label style={{ ...styles.formLabel, fontWeight: 'bold', margin: 0 }}>{t('lb.details.pathRulesLabel')}</label>
                   <button 
@@ -289,7 +289,7 @@ export default function LoadBalancerModal({
                           placeholder={t('lb.details.pathPlaceholder')}
                           style={{ ...styles.select, flex: 1, padding: '4px 8px', fontSize: '12px' }}
                         />
-                        <ArrowRight size={14} color="var(--neutral-500)" />
+                        <ArrowRight size={14} color="var(--color-text-muted)" />
                         <select
                           value={rule.targetId}
                           onChange={(e) => handleRuleTargetChange(idx, e.target.value)}
@@ -437,7 +437,7 @@ const styles = {
     left: 0,
     right: 0,
     bottom: 0,
-    backgroundColor: 'rgba(0, 0, 0, 0.65)',
+    backgroundColor: 'var(--overlay-scrim)',
     backdropFilter: 'blur(4px)',
     zIndex: 1000,
     display: 'flex',
@@ -452,9 +452,9 @@ const styles = {
     borderRadius: '12px',
     display: 'flex',
     flexDirection: 'column' as const,
-    boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.5), 0 8px 10px -6px rgba(0, 0, 0, 0.5)',
+    boxShadow: 'var(--shadow-lg)',
     overflow: 'hidden',
-    border: '1px solid rgba(255, 255, 255, 0.1)',
+    border: '1px solid var(--border-color)',
   },
   header: {
     display: 'flex',
@@ -462,7 +462,7 @@ const styles = {
     justifyContent: 'space-between',
     padding: '16px 20px',
     borderBottom: '1px solid var(--border-color)',
-    backgroundColor: 'var(--bg-surface-solid, var(--neutral-800))',
+    backgroundColor: 'var(--bg-surface-solid)',
   },
   titleRow: {
     display: 'flex',
@@ -472,12 +472,12 @@ const styles = {
   title: {
     fontSize: '15px',
     fontWeight: 700,
-    color: 'var(--color-text-primary, var(--neutral-50))',
+    color: 'var(--color-text-primary)',
   },
   closeBtn: {
     background: 'none',
     border: 'none',
-    color: 'var(--color-text-muted, var(--neutral-400))',
+    color: 'var(--color-text-muted)',
     cursor: 'pointer',
     padding: '6px',
     borderRadius: '50%',
@@ -488,7 +488,7 @@ const styles = {
   tabBar: {
     display: 'flex',
     borderBottom: '1px solid var(--border-color)',
-    backgroundColor: 'var(--neutral-900)',
+    backgroundColor: 'var(--terminal-panel)',
   },
   tab: {
     flex: 1,
@@ -496,7 +496,7 @@ const styles = {
     background: 'none',
     border: 'none',
     borderBottom: '2px solid transparent',
-    color: 'var(--neutral-400)',
+    color: 'var(--terminal-muted)',
     fontSize: '13px',
     fontWeight: 600,
     cursor: 'pointer',
@@ -535,22 +535,22 @@ const styles = {
     margin: '0 0 4px 0',
     fontSize: '14px',
     fontWeight: 700,
-    color: 'var(--neutral-900)',
+    color: 'var(--color-text-strong)',
   },
   subSectionTitle: {
     margin: '10px 0 4px 0',
     fontSize: '12px',
     fontWeight: 700,
-    color: 'var(--neutral-900)',
+    color: 'var(--color-text-strong)',
   },
   grid: {
     display: 'grid',
     gridTemplateColumns: '1fr 1fr',
     gap: '12px',
-    backgroundColor: 'var(--neutral-50)',
+    backgroundColor: 'var(--bg-subtle)',
     padding: '16px',
     borderRadius: '8px',
-    border: '1px solid var(--neutral-200)',
+    border: '1px solid var(--border-color)',
   },
   gridItem: {
     display: 'flex',
@@ -559,13 +559,13 @@ const styles = {
   },
   label: {
     fontSize: '11px',
-    color: 'var(--neutral-500)',
+    color: 'var(--color-text-muted)',
     fontWeight: 600,
     textTransform: 'uppercase' as const,
   },
   value: {
     fontSize: '13px',
-    color: 'var(--neutral-800)',
+    color: 'var(--color-text-primary)',
   },
   formGroup: {
     display: 'flex',
@@ -576,15 +576,15 @@ const styles = {
   formLabel: {
     fontSize: '12px',
     fontWeight: 600,
-    color: 'var(--neutral-700)',
+    color: 'var(--color-text-secondary)',
   },
   select: {
     padding: '8px 12px',
     borderRadius: '6px',
-    border: '1px solid var(--neutral-300)',
+    border: '1px solid var(--border-color-hover)',
     backgroundColor: 'var(--bg-surface-solid)',
     fontSize: '13px',
-    color: 'var(--neutral-800)',
+    color: 'var(--color-text-primary)',
     outline: 'none',
   },
   targetsList: {
@@ -593,28 +593,28 @@ const styles = {
     gap: '8px',
     maxHeight: '150px',
     overflowY: 'auto' as const,
-    border: '1px solid var(--neutral-200)',
+    border: '1px solid var(--border-color)',
     borderRadius: '6px',
     padding: '8px',
-    backgroundColor: 'var(--neutral-50)',
+    backgroundColor: 'var(--bg-subtle)',
   },
   targetItem: {
     display: 'flex',
     alignItems: 'center',
     padding: '8px',
-    border: '1px solid var(--neutral-200)',
+    border: '1px solid var(--border-color)',
     borderRadius: '4px',
     backgroundColor: 'var(--bg-surface-solid)',
     cursor: 'pointer',
   },
   noNodesMessage: {
     fontSize: '12px',
-    color: 'var(--neutral-400)',
+    color: 'var(--color-text-muted)',
     fontStyle: 'italic',
     padding: '12px',
     textAlign: 'center' as const,
-    backgroundColor: 'var(--neutral-50)',
-    border: '1px dashed var(--neutral-300)',
+    backgroundColor: 'var(--bg-subtle)',
+    border: '1px dashed var(--border-color-hover)',
     borderRadius: '6px',
   },
   saveBtn: {
@@ -643,20 +643,20 @@ const styles = {
   infoText: {
     margin: 0,
     fontSize: '12px',
-    color: 'var(--neutral-600)',
+    color: 'var(--color-text-secondary)',
     lineHeight: '1.5',
   },
   para: {
     margin: 0,
     fontSize: '13px',
-    color: 'var(--neutral-600)',
+    color: 'var(--color-text-secondary)',
     lineHeight: '1.6',
   },
   list: {
     margin: 0,
     paddingLeft: '20px',
     fontSize: '13px',
-    color: 'var(--neutral-600)',
+    color: 'var(--color-text-secondary)',
     lineHeight: '1.6',
   },
   steps: {
@@ -685,11 +685,11 @@ const styles = {
   },
   stepText: {
     fontSize: '13px',
-    color: 'var(--neutral-600)',
+    color: 'var(--color-text-secondary)',
     lineHeight: '1.5',
   },
   codeBlock: {
-    backgroundColor: 'var(--neutral-800)',
+    backgroundColor: 'var(--terminal-panel)',
     color: 'var(--color-success)',
     padding: '8px 12px',
     borderRadius: '6px',

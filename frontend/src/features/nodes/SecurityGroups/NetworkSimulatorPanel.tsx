@@ -233,7 +233,7 @@ const styles: Record<string, React.CSSProperties> = {
     left: '24px',
     width: '320px',
     borderRadius: '10px',
-    boxShadow: '0 4px 12px rgba(0,0,0,0.15)',
+    boxShadow: 'var(--shadow-md)',
     zIndex: 10,
     display: 'flex',
     flexDirection: 'column',

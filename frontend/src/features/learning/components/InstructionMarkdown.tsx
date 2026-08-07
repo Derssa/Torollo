@@ -31,11 +31,11 @@ function CodeBlock({ code }: { code: string }) {
           onMouseLeave={() => setIsHovered(false)}
           style={{
             ...styles.copyBtn,
-            backgroundColor: isHovered ? 'rgba(255, 255, 255, 0.08)' : 'transparent',
+            backgroundColor: isHovered ? 'var(--terminal-hover)' : 'transparent',
           }}
           title="Copy code"
         >
-          {copied ? <Check size={12} color="var(--color-success)" /> : <Copy size={12} color="var(--neutral-400)" />}
+          {copied ? <Check size={12} color="var(--color-success)" /> : <Copy size={12} color="var(--terminal-muted)" />}
         </button>
       </div>
       <pre style={styles.pre}>
@@ -66,7 +66,7 @@ export function renderInstruction(text: string) {
             key={index}
             style={{
               fontFamily: 'monospace',
-              backgroundColor: 'rgba(255, 255, 255, 0.08)',
+              backgroundColor: 'var(--terminal-hover)',
               padding: '2px 4px',
               borderRadius: '4px',
               fontSize: '11px',
@@ -142,9 +142,9 @@ const styles: Record<string, React.CSSProperties> = {
   },
   codeBlockContainer: {
     margin: '8px 0',
-    backgroundColor: 'var(--neutral-900)',
+    backgroundColor: 'var(--terminal-panel)',
     borderRadius: '6px',
-    border: '1px solid rgba(255, 255, 255, 0.05)',
+    border: '1px solid var(--terminal-subtle)',
     overflow: 'hidden',
   },
   pre: {
@@ -155,7 +155,7 @@ const styles: Record<string, React.CSSProperties> = {
   codeBlock: {
     fontFamily: 'monospace',
     fontSize: '11px',
-    color: 'var(--neutral-200)',
+    color: 'var(--terminal-fg)',
     lineHeight: 1.5,
     whiteSpace: 'pre',
   },
@@ -179,7 +179,7 @@ const styles: Record<string, React.CSSProperties> = {
     display: 'flex',
     justifyContent: 'flex-end',
     padding: '6px 8px 0 8px',
-    backgroundColor: 'var(--neutral-900)',
+    backgroundColor: 'var(--terminal-panel)',
   },
   copyBtn: {
     background: 'none',

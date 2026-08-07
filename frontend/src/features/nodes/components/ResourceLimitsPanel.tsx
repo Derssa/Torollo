@@ -79,8 +79,8 @@ export default function ResourceLimitsPanel({ labels, onScalingLog }: ResourceLi
   };
 
   return (
-    <div style={{ border: '1px solid var(--neutral-200)', borderRadius: '8px', padding: '16px' }}>
-      <h4 style={{ margin: '0 0 16px 0', fontSize: '14px', color: 'var(--neutral-700)' }}>{labels.title}</h4>
+    <div style={{ border: '1px solid var(--border-color)', borderRadius: '8px', padding: '16px' }}>
+      <h4 style={{ margin: '0 0 16px 0', fontSize: '14px', color: 'var(--color-text-secondary)' }}>{labels.title}</h4>
 
       <div style={{ marginBottom: '16px' }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '6px' }}>

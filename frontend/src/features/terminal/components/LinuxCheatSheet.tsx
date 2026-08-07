@@ -33,7 +33,7 @@ export default function LinuxCheatSheet() {
         <button
           style={{
             ...styles.categoryBtn,
-            backgroundColor: selectedCategory === null ? 'var(--color-accent)' : 'rgba(255,255,255,0.05)',
+            backgroundColor: selectedCategory === null ? 'var(--color-accent)' : 'var(--terminal-subtle)',
             color: selectedCategory === null ? 'var(--color-white)' : 'var(--color-text-secondary)',
           }}
           onClick={() => setSelectedCategory(null)}
@@ -45,7 +45,7 @@ export default function LinuxCheatSheet() {
             key={cat}
             style={{
               ...styles.categoryBtn,
-              backgroundColor: selectedCategory === cat ? 'var(--color-accent)' : 'rgba(255,255,255,0.05)',
+              backgroundColor: selectedCategory === cat ? 'var(--color-accent)' : 'var(--terminal-subtle)',
               color: selectedCategory === cat ? 'var(--color-white)' : 'var(--color-text-secondary)',
             }}
             onClick={() => setSelectedCategory(cat)}

@@ -12,7 +12,7 @@ export function ToastNotification({ type, message, onDismiss }: ToastNotificatio
       case 'success':
         return {
           border: '1px solid var(--color-success)',
-          background: 'rgba(240, 253, 250, 0.96)',
+          background: 'var(--color-success-surface)',
           color: 'var(--color-success-strong)',
           iconColor: 'var(--color-success)',
           Icon: CheckCircle
@@ -20,7 +20,7 @@ export function ToastNotification({ type, message, onDismiss }: ToastNotificatio
       case 'warning':
         return {
           border: '1px solid var(--color-warning)',
-          background: 'rgba(255, 251, 235, 0.96)',
+          background: 'var(--color-warning-surface)',
           color: 'var(--color-warning-strong)',
           iconColor: 'var(--color-warning)',
           Icon: AlertTriangle
@@ -29,7 +29,7 @@ export function ToastNotification({ type, message, onDismiss }: ToastNotificatio
       default:
         return {
           border: '1px solid var(--color-danger)',
-          background: 'rgba(254, 242, 242, 0.96)',
+          background: 'var(--color-danger-surface)',
           color: 'var(--color-danger-strong)',
           iconColor: 'var(--color-danger)',
           Icon: XCircle
@@ -75,7 +75,7 @@ const toastStyles: Record<string, React.CSSProperties> = {
     borderRadius: '12px',
     backdropFilter: 'blur(16px)',
     WebkitBackdropFilter: 'blur(16px)',
-    boxShadow: '0 8px 32px -8px rgba(0, 0, 0, 0.12)',
+    boxShadow: 'var(--shadow-floating)',
     fontSize: '13px',
     fontWeight: 600,
   },
@@ -91,4 +91,3 @@ const toastStyles: Record<string, React.CSSProperties> = {
     marginLeft: '8px',
   },
 };
-

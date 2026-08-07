@@ -28,7 +28,7 @@ export default function NatNode({ data }: NatNodeProps) {
       name={data.name}
       isRunning={isRunning}
       errorMessage={data.lastError}
-      icon={<ArrowRightLeft size={18} color={isRunning ? 'var(--color-violet)' : 'var(--neutral-500)'} />}
+      icon={<ArrowRightLeft size={18} color={isRunning ? 'var(--color-violet)' : 'var(--color-text-muted)'} />}
       customBorder="2px solid var(--color-violet)"
       customTitleColor="var(--color-violet-strong)"
       hideHandles={true}

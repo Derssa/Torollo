@@ -19,6 +19,7 @@ import CanvasEmptyState from './components/CanvasEmptyState';
 import LearningPanel from '../../features/learning/components/LearningPanel';
 import { useContainers } from '../../shared/hooks/useContainers';
 import { useToast } from '../../shared/hooks/useToast';
+import { useTheme } from '../../shared/theme/useTheme';
 import { ToastNotification } from '../../shared/components/Toast';
 import { DockerUnavailableBanner } from '../../shared/components/DockerUnavailableBanner';
 import { InterSubnetBlockedBanner } from '../../shared/components/InterSubnetBlockedBanner';
@@ -73,6 +74,7 @@ export default function CanvasPage({
   onTerminalOpen,
 }: CanvasPageProps) {
   const { t } = useTranslation();
+  const { resolvedTheme } = useTheme();
   const { toast, showNotification, showToast, dismissToast } = useToast();
 
   const {
@@ -637,13 +639,13 @@ export default function CanvasPage({
           {/* Floating VPC Header */}
           <div style={styles.floatingHeader} className="glass">
             <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-              <span style={{ fontWeight: 600, color: 'var(--neutral-900)' }}>Project:</span>
-              <span style={{ color: 'var(--neutral-700)' }}>{projectName}</span>
+              <span style={{ fontWeight: 600, color: 'var(--color-text-strong)' }}>Project:</span>
+              <span style={{ color: 'var(--color-text-secondary)' }}>{projectName}</span>
             </div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', borderLeft: '1px solid rgba(0, 0, 0, 0.1)', paddingLeft: '12px' }}>
-              <span style={{ fontWeight: 600, color: 'var(--neutral-900)' }}>VPC:</span>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', borderLeft: '1px solid var(--border-color-hover)', paddingLeft: '12px' }}>
+              <span style={{ fontWeight: 600, color: 'var(--color-text-strong)' }}>VPC:</span>
               <span style={{ color: 'var(--color-accent)', fontWeight: 500 }}>{networkConfig.vpcConfig.name}</span>
-              <span style={{ fontSize: '11px', color: 'var(--neutral-600)', backgroundColor: 'color-mix(in srgb, var(--color-accent) 10%, transparent)', padding: '2px 6px', borderRadius: '4px', border: '1px solid color-mix(in srgb, var(--color-accent) 20%, transparent)' }}>
+              <span style={{ fontSize: '11px', color: 'var(--color-text-secondary)', backgroundColor: 'color-mix(in srgb, var(--color-accent) 10%, transparent)', padding: '2px 6px', borderRadius: '4px', border: '1px solid color-mix(in srgb, var(--color-accent) 20%, transparent)' }}>
                 {networkConfig.vpcConfig.cidr}
               </span>
             </div>
@@ -662,6 +664,7 @@ export default function CanvasPage({
             onEdgesDelete={onEdgesDelete}
             onConnect={onConnect}
             onInit={setReactFlowInstance}
+            colorMode={resolvedTheme}
             fitView
           >
             <Background variant={BackgroundVariant.Dots} color="var(--canvas-dots)" gap={24} size={1.5} />
@@ -749,7 +752,7 @@ const styles: Record<string, React.CSSProperties> = {
     gap: 12,
     padding: '10px 16px',
     borderRadius: 8,
-    border: '1px solid rgba(229, 231, 235, 0.5)',
-    boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06)',
+    border: '1px solid var(--border-color)',
+    boxShadow: 'var(--shadow-md)',
   },
 };

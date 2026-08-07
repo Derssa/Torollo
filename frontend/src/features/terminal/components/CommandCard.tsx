@@ -96,7 +96,7 @@ const styles: Record<string, React.CSSProperties> = {
   category: {
     fontSize: '11px',
     color: 'var(--color-text-secondary)',
-    backgroundColor: 'rgba(0, 0, 0, 0.04)',
+    backgroundColor: 'var(--interactive-hover)',
     border: '1px solid var(--border-color)',
     padding: '2px 6px',
     borderRadius: '4px',
