@@ -64,3 +64,25 @@ jobs:
 
     - name: Run Tests
       run: npm test
+
+  compose-build:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout Code
+      uses: actions/checkout@v4
+
+    - name: Set up Docker Buildx
+      uses: docker/setup-buildx-action@v3
+
+    - name: Validate production Compose configuration
+      run: docker compose config --quiet
+
+    - name: Validate development Compose configuration
+      run: docker compose -f compose.yaml -f compose.dev.yaml config --quiet
+
+    - name: Build production images
+      run: docker compose build
+
+    - name: Build development images
+      run: docker compose -f compose.yaml -f compose.dev.yaml build
