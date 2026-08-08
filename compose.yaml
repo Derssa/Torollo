@@ -1,0 +1,61 @@
+name: ${COMPOSE_PROJECT_NAME:-torollo}
+
+services:
+  backend:
+    image: torollo/backend:local
+    build:
+      context: .
+      target: backend-runtime
+    environment:
+      NODE_ENV: production
+      PORT: "23233"
+      TOROLLO_HOST: 0.0.0.0
+      TOROLLO_ALLOWED_ORIGINS: ${TOROLLO_ALLOWED_ORIGINS:-}
+      DOCKER_SOCKET: /var/run/docker.sock
+    expose:
+      - "23233"
+    volumes:
+      - type: bind
+        source: ${TOROLLO_DOCKER_SOCKET:-/var/run/docker.sock}
+        target: /var/run/docker.sock
+      - type: volume
+        source: torollo-data
+        target: /root/.torollo
+    healthcheck:
+      test:
+        - CMD
+        - node
+        - -e
+        - "fetch('http://127.0.0.1:23233/health').then(response => process.exit(response.ok ? 0 : 1)).catch(() => process.exit(1))"
+      interval: 10s
+      timeout: 5s
+      retries: 6
+      start_period: 10s
+    init: true
+    restart: unless-stopped
+
+  frontend:
+    image: torollo/frontend:local
+    build:
+      context: .
+      target: frontend-runtime
+    depends_on:
+      backend:
+        condition: service_started
+    ports:
+      - name: web
+        target: 23232
+        published: ${TOROLLO_FRONTEND_PORT:-23232}
+        host_ip: ${TOROLLO_BIND_ADDRESS:-127.0.0.1}
+        protocol: tcp
+    healthcheck:
+      test: ["CMD", "wget", "-q", "-O", "/dev/null", "http://127.0.0.1:23232/healthz"]
+      interval: 10s
+      timeout: 5s
+      retries: 6
+      start_period: 5s
+    init: true
+    restart: unless-stopped
+
+volumes:
+  torollo-data:

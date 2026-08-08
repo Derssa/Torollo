@@ -1,0 +1,54 @@
+services:
+  backend:
+    image: torollo/backend-dev:local
+    build:
+      target: backend-dev
+    command: npm run dev
+    environment:
+      NODE_ENV: development
+    ports:
+      - name: api
+        target: 23233
+        published: ${TOROLLO_BACKEND_PORT:-23233}
+        host_ip: ${TOROLLO_BIND_ADDRESS:-127.0.0.1}
+        protocol: tcp
+    volumes:
+      - type: bind
+        source: ./backend/src
+        target: /app/backend/src
+      - type: bind
+        source: ./backend/tsconfig.json
+        target: /app/backend/tsconfig.json
+        read_only: true
+      - type: bind
+        source: ./roadmaps
+        target: /app/roadmaps
+        read_only: true
+
+  frontend:
+    image: torollo/frontend-dev:local
+    build:
+      target: frontend-dev
+    command: npm run dev -- --host 0.0.0.0 --port 23232
+    environment:
+      VITE_TOROLLO_BACKEND_PORT: ${TOROLLO_BACKEND_PORT:-23233}
+    depends_on:
+      backend:
+        condition: service_started
+    volumes:
+      - type: bind
+        source: ./frontend/src
+        target: /app/frontend/src
+      - type: bind
+        source: ./frontend/public
+        target: /app/frontend/public
+      - type: bind
+        source: ./frontend/index.html
+        target: /app/frontend/index.html
+        read_only: true
+      - type: bind
+        source: ./frontend/vite.config.ts
+        target: /app/frontend/vite.config.ts
+        read_only: true
+    healthcheck:
+      test: ["CMD", "node", "-e", "fetch('http://127.0.0.1:23232').then(response => process.exit(response.ok ? 0 : 1)).catch(() => process.exit(1))"]
