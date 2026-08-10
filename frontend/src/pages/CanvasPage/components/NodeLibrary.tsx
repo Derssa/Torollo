@@ -82,15 +82,15 @@ export default function NodeLibrary({ onCollapseChange }: NodeLibraryProps) {
           type: 'postgres',
           name: t('nodeLibrary.types.postgres.name'),
           desc: t('nodeLibrary.types.postgres.desc'),
-          icon: <Database size={18} color="var(--neutral-500)" />,
-          collapsedIcon: <Database size={20} color="var(--neutral-500)" />
+          icon: <Database size={18} color="var(--color-text-muted)" />,
+          collapsedIcon: <Database size={20} color="var(--color-text-muted)" />
         },
         {
           type: 'nosql',
           name: t('nodeLibrary.types.nosql.name'),
           desc: t('nodeLibrary.types.nosql.desc'),
-          icon: <Braces size={18} color="var(--neutral-600)" />,
-          collapsedIcon: <Braces size={20} color="var(--neutral-600)" />
+          icon: <Braces size={18} color="var(--color-text-secondary)" />,
+          collapsedIcon: <Braces size={20} color="var(--color-text-secondary)" />
         },
         {
           type: 'redis',
@@ -251,7 +251,7 @@ const styles: Record<string, React.CSSProperties> = {
   searchContainer: {
     display: 'flex',
     alignItems: 'center',
-    backgroundColor: 'rgba(0, 0, 0, 0.03)',
+    backgroundColor: 'var(--interactive-subtle)',
     border: '1px solid var(--border-color)',
     borderRadius: '6px',
     padding: '6px 10px',
@@ -292,7 +292,7 @@ const styles: Record<string, React.CSSProperties> = {
     border: '1px solid var(--border-color)',
     borderRadius: '8px',
     cursor: 'grab',
-    backgroundColor: 'rgba(255, 255, 255, 0.02)',
+    backgroundColor: 'var(--interactive-subtle)',
     transition: 'all 0.2s',
     userSelect: 'none',
   },

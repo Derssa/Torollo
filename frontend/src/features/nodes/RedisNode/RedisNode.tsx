@@ -29,7 +29,7 @@ export default function RedisNode({ data }: RedisNodeProps) {
       name={data.name}
       isRunning={isRunning}
       errorMessage={data.lastError}
-      icon={<Database size={18} color={isRunning ? 'var(--color-danger)' : 'var(--neutral-500)'} />}
+      icon={<Database size={18} color={isRunning ? 'var(--color-danger)' : 'var(--color-text-muted)'} />}
       customBorder={isRunning ? '1px solid var(--color-danger)' : undefined}
       subtitle={
         <>

@@ -42,7 +42,7 @@ export default function AsgNode({ data }: AsgNodeProps) {
       name={data.name}
       isRunning={isRunning}
       errorMessage={data.lastError}
-      icon={<Layers size={18} color={isRunning ? 'var(--color-pink)' : 'var(--neutral-500)'} />}
+      icon={<Layers size={18} color={isRunning ? 'var(--color-pink)' : 'var(--color-text-muted)'} />}
       customBorder="2px dashed var(--color-pink)"
       customTitleColor="var(--color-pink-hover)"
       hideHandles={true}

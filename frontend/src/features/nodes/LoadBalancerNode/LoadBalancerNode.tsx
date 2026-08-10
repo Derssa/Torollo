@@ -34,7 +34,7 @@ export default function LoadBalancerNode({ data }: LoadBalancerNodeProps) {
       name={data.name}
       isRunning={isRunning}
       errorMessage={data.lastError}
-      icon={<GitFork size={18} color={isRunning ? 'var(--color-danger)' : 'var(--neutral-500)'} />}
+      icon={<GitFork size={18} color={isRunning ? 'var(--color-danger)' : 'var(--color-text-muted)'} />}
       customBorder="2px solid var(--color-danger)"
       customTitleColor="var(--color-danger)"
       subtitle={

@@ -5,6 +5,27 @@
     <link rel="icon" type="image/png" href="/favicon.png" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Torollo System Lab</title>
+    <script>
+      // Apply the saved preference before styles paint. Keep the storage key and
+      // accepted values aligned with src/shared/theme/theme.ts.
+      (() => {
+        let preference = 'system';
+        try {
+          const saved = localStorage.getItem('torollo_theme');
+          if (saved === 'system' || saved === 'light' || saved === 'dark') {
+            preference = saved;
+          }
+        } catch {
+          // System preference remains a safe fallback when storage is unavailable.
+        }
+
+        const resolved = preference === 'system'
+          ? (matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light')
+          : preference;
+        document.documentElement.dataset.theme = resolved;
+        document.documentElement.style.colorScheme = resolved;
+      })();
+    </script>
     <script src="/env.js"></script>
   </head>
   <body>

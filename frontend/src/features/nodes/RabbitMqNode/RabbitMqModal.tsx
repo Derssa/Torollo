@@ -166,7 +166,7 @@ export default function RabbitMqModal({ nodeName, port, ipAddress, state, onClos
                 </div>
               ) : (
                 <div style={styles.alertCard}>
-                  <p style={{ margin: 0, fontSize: '13px', color: 'var(--neutral-500)', textAlign: 'center' }}>
+                  <p style={{ margin: 0, fontSize: '13px', color: 'var(--color-text-muted)', textAlign: 'center' }}>
                     {t('rabbitmq.details.startPrompt')}
                   </p>
                 </div>
@@ -232,7 +232,7 @@ const styles: Record<string, React.CSSProperties> = {
     left: 0,
     width: '100vw',
     height: '100vh',
-    backgroundColor: 'rgba(0, 0, 0, 0.65)',
+    backgroundColor: 'var(--overlay-scrim)',
     zIndex: 1000,
     display: 'flex',
     alignItems: 'center',
@@ -248,7 +248,7 @@ const styles: Record<string, React.CSSProperties> = {
     borderRadius: '12px',
     display: 'flex',
     flexDirection: 'column',
-    boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.5), 0 8px 10px -6px rgba(0, 0, 0, 0.5)',
+    boxShadow: 'var(--shadow-lg)',
     overflow: 'hidden',
   },
   header: {
@@ -308,21 +308,21 @@ const styles: Record<string, React.CSSProperties> = {
   title: {
     margin: '0 0 8px 0',
     fontSize: '16px',
-    color: 'var(--neutral-800)',
+    color: 'var(--color-text-primary)',
   },
   desc: {
     margin: '0 0 20px 0',
     fontSize: '13px',
-    color: 'var(--neutral-500)',
+    color: 'var(--color-text-muted)',
   },
   infoCard: {
-    border: '1px solid var(--neutral-200)',
+    border: '1px solid var(--border-color)',
     borderRadius: '8px',
     padding: '16px',
     display: 'flex',
     flexDirection: 'column',
     gap: '12px',
-    backgroundColor: 'var(--neutral-50)'
+    backgroundColor: 'var(--bg-subtle)'
   },
   detailRow: {
     display: 'flex',
@@ -354,11 +354,11 @@ const styles: Record<string, React.CSSProperties> = {
     transition: 'background-color 0.2s, transform 0.2s',
   },
   alertCard: {
-    border: '1px dashed var(--neutral-200)',
+    border: '1px dashed var(--border-color)',
     borderRadius: '8px',
     padding: '20px',
     marginTop: '24px',
-    backgroundColor: 'var(--neutral-50)'
+    backgroundColor: 'var(--bg-subtle)'
   },
   searchBar: {
     marginBottom: '16px',
@@ -366,7 +366,7 @@ const styles: Record<string, React.CSSProperties> = {
   searchWrapper: {
     display: 'flex',
     alignItems: 'center',
-    backgroundColor: 'rgba(0, 0, 0, 0.03)',
+    backgroundColor: 'var(--interactive-subtle)',
     border: '1px solid var(--border-color)',
     borderRadius: '6px',
     padding: '6px 10px',
@@ -409,7 +409,7 @@ const styles: Record<string, React.CSSProperties> = {
   cheatCategory: {
     fontSize: '11px',
     color: 'var(--color-text-secondary)',
-    backgroundColor: 'rgba(0, 0, 0, 0.04)',
+    backgroundColor: 'var(--interactive-hover)',
     border: '1px solid var(--border-color)',
     padding: '2px 6px',
     borderRadius: '4px',
@@ -460,7 +460,7 @@ const styles: Record<string, React.CSSProperties> = {
     bottom: '135%',
     left: '50%',
     transform: 'translateX(-50%)',
-    backgroundColor: 'var(--neutral-800)',
+    backgroundColor: 'var(--terminal-panel)',
     color: 'var(--color-white)',
     padding: '8px 12px',
     borderRadius: '6px',
@@ -468,7 +468,7 @@ const styles: Record<string, React.CSSProperties> = {
     width: '200px',
     textAlign: 'center',
     zIndex: 10,
-    boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06)',
+    boxShadow: 'var(--shadow-md)',
     pointerEvents: 'none',
     lineHeight: '1.4',
     fontWeight: 500,

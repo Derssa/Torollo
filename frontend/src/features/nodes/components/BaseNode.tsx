@@ -170,7 +170,7 @@ export default function BaseNode({
               className={`${styles.btn} ${styles.btnSecondary}`}
               title={t('nodeshared.base.stopNode')}
             >
-              <Square size={14} fill="var(--neutral-400)" />
+              <Square size={14} fill="var(--color-text-muted)" />
             </button>
           </>
         ) : (
