@@ -4,38 +4,28 @@ import { resolveApiBase } from './apiBase'
 describe('resolveApiBase', () => {
   it('uses the runtime URL for a same-origin Compose deployment', () => {
     expect(resolveApiBase({
-      isDevelopment: false,
       runtimeUrl: 'https://torollo.example.test/',
       hostname: 'torollo.example.test',
     })).toBe('https://torollo.example.test')
   })
 
-  it('uses the fixed local backend during Vite development', () => {
+  it('prefers the runtime URL over a configured port', () => {
     expect(resolveApiBase({
-      isDevelopment: true,
-      hostname: 'localhost',
-    })).toBe('http://localhost:23233')
+      runtimeUrl: 'http://torollo.example.test:8080',
+      runtimePort: 24001,
+      hostname: 'torollo.example.test',
+    })).toBe('http://torollo.example.test:8080')
   })
 
-  it('uses a configured host port during Compose development', () => {
+  it('falls back to the page host on the configured port', () => {
     expect(resolveApiBase({
-      isDevelopment: true,
       runtimePort: 24001,
       hostname: '192.168.1.50',
     })).toBe('http://192.168.1.50:24001')
   })
 
-  it('preserves the CLI runtime port fallback in production', () => {
-    expect(resolveApiBase({
-      isDevelopment: false,
-      runtimePort: 24001,
-      hostname: '127.0.0.1',
-    })).toBe('http://127.0.0.1:24001')
-  })
-
   it('uses the legacy default port when no runtime configuration exists', () => {
     expect(resolveApiBase({
-      isDevelopment: false,
       hostname: 'localhost',
     })).toBe('http://localhost:23233')
   })

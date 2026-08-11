@@ -1,5 +1,4 @@
 export interface ApiBaseOptions {
-  isDevelopment: boolean
   runtimeUrl?: string
   runtimePort?: number
   hostname: string
@@ -12,8 +11,12 @@ declare global {
   }
 }
 
+/**
+ * Same-origin deployments (Compose, behind the nginx proxy) inject an explicit
+ * runtime URL through `env.js`. Everywhere else — Vite dev and the CLI — the
+ * API answers on its own port, on the host the page was served from.
+ */
 export function resolveApiBase({
-  isDevelopment,
   runtimeUrl,
   runtimePort,
   hostname,
@@ -22,17 +25,12 @@ export function resolveApiBase({
     return runtimeUrl.replace(/\/$/, '')
   }
 
-  if (isDevelopment) {
-    return `http://${hostname}:${runtimePort || 23233}`
-  }
-
   return `http://${hostname}:${runtimePort || 23233}`
 }
 
 const viteBackendPort = Number(import.meta.env.VITE_TOROLLO_BACKEND_PORT)
 
 export const API_BASE = resolveApiBase({
-  isDevelopment: import.meta.env.DEV,
   runtimeUrl: window.TOROLLO_BACKEND_URL,
   runtimePort: import.meta.env.DEV && Number.isInteger(viteBackendPort) && viteBackendPort > 0
     ? viteBackendPort
