@@ -71,7 +71,7 @@ Compose reads these optional settings from the root `.env` file:
 
 Project and roadmap-progress data live in the `torollo-data` named volume. `docker compose down` preserves it; `docker compose down -v` permanently deletes it.
 
-> ⚠️ **Docker access:** The socket mount gives the backend control of the host Docker daemon, which is Torollo's core function. Do not run untrusted Torollo images or expose the application to an untrusted network. Rootless Docker users can set `TOROLLO_DOCKER_SOCKET=/run/user/<uid>/docker.sock`.
+> ⚠️ **Docker access:** The socket mount gives the backend control of the host Docker daemon, which is Torollo's core function. Torollo has no authentication, so anyone who can reach the published port inherits that control — the default `TOROLLO_BIND_ADDRESS=127.0.0.1` is what keeps the stack private, not `TOROLLO_ALLOWED_ORIGINS`, which only covers browsers. Read [Self-Hosting & Network Exposure](#self-hosting--network-exposure) before changing it, and do not run untrusted Torollo images. Rootless Docker users can set `TOROLLO_DOCKER_SOCKET=/run/user/<uid>/docker.sock`.
 
 ---
 
