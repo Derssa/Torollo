@@ -41,7 +41,7 @@ services:
       target: frontend-runtime
     depends_on:
       backend:
-        condition: service_started
+        condition: service_healthy
     ports:
       - target: 23232
         published: ${TOROLLO_FRONTEND_PORT:-23232}
