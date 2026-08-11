@@ -7,8 +7,7 @@ services:
     environment:
       NODE_ENV: development
     ports:
-      - name: api
-        target: 23233
+      - target: 23233
         published: ${TOROLLO_BACKEND_PORT:-23233}
         host_ip: ${TOROLLO_BIND_ADDRESS:-127.0.0.1}
         protocol: tcp

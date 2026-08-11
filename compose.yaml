@@ -43,8 +43,7 @@ services:
       backend:
         condition: service_started
     ports:
-      - name: web
-        target: 23232
+      - target: 23232
         published: ${TOROLLO_FRONTEND_PORT:-23232}
         host_ip: ${TOROLLO_BIND_ADDRESS:-127.0.0.1}
         protocol: tcp
