@@ -48,7 +48,5 @@ export type LearningExit =
   | { kind: 'catalog' }
   | { kind: 'roadmap'; summary: import('./roadmap').RoadmapSummary };
 
-/** API base URL for the backend */
-export const API_BASE = import.meta.env.DEV
-  ? 'http://localhost:23233'
-  : `http://${window.location.hostname}:${(window as any).TOROLLO_BACKEND_PORT || 23233}`;
+/** API base URL for the backend. Kept here as the stable import surface. */
+export { API_BASE } from '../config/apiBase';

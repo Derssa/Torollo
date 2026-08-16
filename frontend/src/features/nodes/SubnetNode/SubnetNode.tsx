@@ -46,7 +46,7 @@ export default function SubnetNode({ id, data }: SubnetNodeProps) {
             top: 60 + r * 190,
             width: 220,
             height: 140,
-            border: '2.5px dashed rgba(0, 0, 0, 0.055)',
+            border: '2.5px dashed var(--border-color)',
             borderRadius: '12px',
             display: 'flex',
             alignItems: 'center',
@@ -55,7 +55,7 @@ export default function SubnetNode({ id, data }: SubnetNodeProps) {
             fontSize: '24px',
             fontWeight: 300,
             pointerEvents: 'none',
-            backgroundColor: 'rgba(0, 0, 0, 0.005)'
+            backgroundColor: 'var(--interactive-subtle)'
           }}
         >
           +
@@ -67,7 +67,7 @@ export default function SubnetNode({ id, data }: SubnetNodeProps) {
 
 
   const btnStyle = {
-    backgroundColor: 'rgba(255, 255, 255, 0.2)',
+    backgroundColor: 'color-mix(in srgb, var(--bg-surface-solid) 20%, transparent)',
     border: 'none',
     color: 'var(--color-white)',
     width: '16px',
@@ -109,7 +109,7 @@ export default function SubnetNode({ id, data }: SubnetNodeProps) {
         display: 'flex',
         alignItems: 'center',
         gap: '4px',
-        boxShadow: '0 2px 4px rgba(0,0,0,0.1)',
+        boxShadow: 'var(--shadow-sm)',
         zIndex: 10,
       }}>
         {isPublic ? <Eye size={12} /> : <EyeOff size={12} />}
@@ -121,7 +121,7 @@ export default function SubnetNode({ id, data }: SubnetNodeProps) {
             display: 'flex',
             alignItems: 'center',
             gap: '4px',
-            borderLeft: '1px solid rgba(255,255,255,0.3)',
+            borderLeft: '1px solid color-mix(in srgb, var(--color-on-accent) 30%, transparent)',
             paddingLeft: '6px',
             marginLeft: '4px',
             pointerEvents: 'auto'
@@ -150,7 +150,7 @@ export default function SubnetNode({ id, data }: SubnetNodeProps) {
               }}
               style={{
                 width: '28px',
-                background: 'rgba(255,255,255,0.15)',
+                background: 'color-mix(in srgb, var(--color-on-accent) 15%, transparent)',
                 border: 'none',
                 color: 'var(--color-white)',
                 fontSize: '11px',
@@ -191,7 +191,7 @@ export default function SubnetNode({ id, data }: SubnetNodeProps) {
               }}
               style={{
                 width: '28px',
-                background: 'rgba(255,255,255,0.15)',
+                background: 'color-mix(in srgb, var(--color-on-accent) 15%, transparent)',
                 border: 'none',
                 color: 'var(--color-white)',
                 fontSize: '11px',
@@ -234,7 +234,7 @@ export default function SubnetNode({ id, data }: SubnetNodeProps) {
           alignItems: 'center',
           gap: '3px',
           cursor: 'pointer',
-          boxShadow: '0 1px 2px rgba(0,0,0,0.05)',
+          boxShadow: 'var(--shadow-sm)',
           zIndex: 10,
         }}
         title={t('nodeviz.manageRoutingTable')}
@@ -261,7 +261,7 @@ export default function SubnetNode({ id, data }: SubnetNodeProps) {
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
-          boxShadow: '0 1px 2px rgba(0,0,0,0.1)',
+          boxShadow: 'var(--shadow-sm)',
           zIndex: 10,
         }}
         title={t('nodeviz.deleteSubnet')}
@@ -274,15 +274,15 @@ export default function SubnetNode({ id, data }: SubnetNodeProps) {
           position: 'absolute',
           bottom: '8px',
           left: '12px',
-          backgroundColor: 'rgba(255, 255, 255, 0.85)',
-          border: '1px solid rgba(0, 0, 0, 0.1)',
-          color: 'var(--neutral-700)',
+          backgroundColor: 'var(--bg-surface)',
+          border: '1px solid var(--border-color-hover)',
+          color: 'var(--color-text-secondary)',
           fontSize: '11px',
           fontWeight: 600,
           padding: '2px 6px',
           borderRadius: '4px',
           pointerEvents: 'none',
-          boxShadow: '0 1px 2px rgba(0,0,0,0.05)',
+          boxShadow: 'var(--shadow-sm)',
         }}>
           {data.cidr}
         </div>

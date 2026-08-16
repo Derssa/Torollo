@@ -8,6 +8,12 @@
     "learning": "Learning",
     "toggleLanguage": "Toggle Language"
   },
+  "theme": {
+    "label": "Theme",
+    "system": "System",
+    "light": "Light",
+    "dark": "Dark"
+  },
   "learning": {
     "panelTitle": "Learning",
     "close": "Close panel",

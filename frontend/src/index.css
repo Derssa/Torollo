@@ -29,7 +29,11 @@
   --bg-muted: var(--neutral-200);
   --border-color: rgba(0, 0, 0, 0.08);
   --border-color-hover: rgba(0, 0, 0, 0.16);
+  --interactive-hover: rgba(0, 0, 0, 0.05);
+  --interactive-pressed: rgba(0, 0, 0, 0.1);
+  --interactive-subtle: rgba(0, 0, 0, 0.03);
   --color-white: var(--neutral-0);
+  --color-on-accent: var(--neutral-0);
   --canvas-dots: #C0C0C0;
 
   /* --- Text --- */
@@ -54,6 +58,7 @@
   --color-success-light: #6EE7B7;
   --color-success-border: #A7F3D0;
   --color-success-soft: #D1FAE5;
+  --color-success-surface: rgba(240, 253, 250, 0.96);
 
   /* --- Danger (red) --- */
   --color-danger: #DC2626;
@@ -62,6 +67,7 @@
   --color-danger-light: #FCA5A5;
   --color-danger-border: #FECACA;
   --color-danger-soft: #FEE2E2;
+  --color-danger-surface: rgba(254, 242, 242, 0.96);
 
   /* --- Warning (amber) --- */
   --color-warning: #F59E0B;
@@ -71,6 +77,7 @@
   --color-warning-border: #FDE68A;
   --color-warning-soft: #FEF3C7;
   --color-warning-subtle: #FFFBEB;
+  --color-warning-surface: rgba(255, 251, 235, 0.96);
 
   /* --- Info (sky) --- */
   --color-info: #0369A1;
@@ -100,11 +107,32 @@
   --rail-text: #F8FAFC;
   --rail-text-muted: rgba(248, 250, 252, 0.55);
 
-  /* overlays & shadows */
+  /* overlays, scrollbars & shadows */
   --overlay-scrim: rgba(15, 23, 42, 0.45);
+  --scrollbar-thumb: rgba(0, 0, 0, 0.12);
+  --scrollbar-thumb-hover: rgba(0, 0, 0, 0.24);
   --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.05);
   --shadow-md: 0 10px 15px -3px rgba(0, 0, 0, 0.08);
   --shadow-lg: 0 24px 48px -12px rgba(0, 0, 0, 0.18);
+  --shadow-floating: 0 8px 32px -8px rgba(0, 0, 0, 0.12);
+
+  /* Purpose-built dark regions remain stable across application themes. */
+  --terminal-bg: #0B0F19;
+  --terminal-fg: #F3F4F6;
+  --terminal-muted: #9CA3AF;
+  --terminal-border: #374151;
+  --terminal-panel: #111827;
+  --terminal-accent: #60A5FA;
+  --terminal-selection: rgba(96, 165, 250, 0.3);
+  --terminal-subtle: rgba(255, 255, 255, 0.05);
+  --terminal-hover: rgba(255, 255, 255, 0.08);
+  --tooltip-bg: rgba(17, 24, 39, 0.95);
+  --tooltip-text: #FFFFFF;
+  --simulation-bg: rgba(15, 23, 42, 0.8);
+  --simulation-bg-soft: rgba(15, 23, 42, 0.6);
+  --simulation-panel: rgba(30, 41, 59, 0.5);
+  --simulation-line: rgba(255, 255, 255, 0.12);
+  --simulation-line-subtle: rgba(255, 255, 255, 0.08);
 
   /* radius */
   --radius-sm: 6px;    /* inputs, small buttons, chips, receipts */
@@ -142,10 +170,75 @@
   width: 100vw;
 }
 
+:root[data-theme='dark'] {
+  --bg-main: var(--neutral-950);
+  --bg-surface: rgba(17, 24, 39, 0.8);
+  --bg-surface-solid: var(--neutral-900);
+  --bg-subtle: var(--neutral-800);
+  --bg-muted: var(--neutral-700);
+  --border-color: rgba(255, 255, 255, 0.1);
+  --border-color-hover: rgba(255, 255, 255, 0.18);
+  --interactive-hover: rgba(255, 255, 255, 0.07);
+  --interactive-pressed: rgba(255, 255, 255, 0.12);
+  --interactive-subtle: rgba(255, 255, 255, 0.04);
+  --canvas-dots: #475569;
+
+  --color-text-strong: var(--neutral-50);
+  --color-text-primary: var(--neutral-100);
+  --color-text-secondary: var(--neutral-300);
+  --color-text-muted: var(--neutral-400);
+
+  --color-accent: #2563EB;
+  --color-accent-glow: rgba(96, 165, 250, 0.16);
+  --color-accent-strong: #BFDBFE;
+  --color-accent-light: #93C5FD;
+  --color-accent-border: rgba(96, 165, 250, 0.4);
+  --color-accent-soft: rgba(37, 99, 235, 0.22);
+  --color-accent-subtle: rgba(37, 99, 235, 0.12);
+
+  --color-success: #059669;
+  --color-success-glow: rgba(52, 211, 153, 0.15);
+  --color-success-strong: #A7F3D0;
+  --color-success-border: rgba(52, 211, 153, 0.4);
+  --color-success-soft: rgba(5, 150, 105, 0.2);
+  --color-success-surface: rgba(6, 78, 59, 0.96);
+
+  --color-danger: #DC2626;
+  --color-danger-glow: rgba(248, 113, 113, 0.16);
+  --color-danger-strong: #FECACA;
+  --color-danger-border: rgba(248, 113, 113, 0.4);
+  --color-danger-soft: rgba(153, 27, 27, 0.24);
+  --color-danger-surface: rgba(69, 10, 10, 0.96);
+
+  --color-warning: #B45309;
+  --color-warning-glow: rgba(251, 191, 36, 0.15);
+  --color-warning-hover: #F59E0B;
+  --color-warning-strong: #FDE68A;
+  --color-warning-border: rgba(251, 191, 36, 0.42);
+  --color-warning-soft: rgba(146, 64, 14, 0.25);
+  --color-warning-subtle: rgba(120, 53, 15, 0.2);
+  --color-warning-surface: rgba(69, 26, 3, 0.96);
+
+  --color-info: #38BDF8;
+  --color-info-border: rgba(56, 189, 248, 0.4);
+  --color-info-subtle: rgba(3, 105, 161, 0.2);
+
+  --color-violet-strong: #C4B5FD;
+  --color-violet-soft: rgba(109, 40, 217, 0.22);
+
+  --overlay-scrim: rgba(2, 6, 23, 0.72);
+  --scrollbar-thumb: rgba(255, 255, 255, 0.14);
+  --scrollbar-thumb-hover: rgba(255, 255, 255, 0.26);
+  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.3);
+  --shadow-md: 0 10px 20px -6px rgba(0, 0, 0, 0.42);
+  --shadow-lg: 0 24px 54px -12px rgba(0, 0, 0, 0.6);
+  --shadow-floating: 0 12px 38px -10px rgba(0, 0, 0, 0.55);
+}
+
 /* Global scrollbar styling */
 * {
   scrollbar-width: thin;
-  scrollbar-color: rgba(0, 0, 0, 0.15) transparent;
+  scrollbar-color: var(--scrollbar-thumb) transparent;
 }
 
 ::-webkit-scrollbar {
@@ -158,12 +251,12 @@
 }
 
 ::-webkit-scrollbar-thumb {
-  background: rgba(0, 0, 0, 0.12);
+  background: var(--scrollbar-thumb);
   border-radius: 10px;
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background: rgba(0, 0, 0, 0.24);
+  background: var(--scrollbar-thumb-hover);
 }
 
 body {
@@ -182,6 +275,18 @@ body {
   overflow: hidden;
 }
 
+.visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
 /* Glassmorphism styling */
 .glass {
   background: var(--bg-surface);
@@ -195,7 +300,7 @@ body {
 .react-flow__controls {
   background: var(--bg-surface-solid) !important;
   border: 1px solid var(--border-color) !important;
-  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08) !important;
+  box-shadow: var(--shadow-md) !important;
   border-radius: 8px !important;
   overflow: hidden;
 }
@@ -208,7 +313,7 @@ body {
 }
 
 .react-flow__controls-button:hover {
-  background: rgba(0, 0, 0, 0.05) !important;
+  background: var(--interactive-hover) !important;
   color: var(--color-text-primary) !important;
 }
 
@@ -289,7 +394,7 @@ body {
 }
 .btn-primary {
   background: var(--color-accent);
-  color: var(--bg-surface-solid);
+  color: var(--color-on-accent);
   border: 1px solid transparent;
   box-shadow: var(--shadow-sm);
 }
@@ -304,6 +409,39 @@ body {
 .btn-outline:hover:not(:disabled) {
   border-color: var(--border-color-hover);
   background: var(--bg-subtle);
+}
+
+.theme-selector {
+  height: 38px;
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1);
+  padding-left: var(--space-3);
+  color: var(--color-text-secondary);
+  background: var(--bg-surface-solid);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-md);
+}
+
+.theme-selector:focus-within {
+  border-color: var(--color-accent);
+  box-shadow: 0 0 0 3px var(--color-accent-glow);
+}
+
+.theme-selector select {
+  height: 100%;
+  padding: 0 var(--space-3) 0 var(--space-1);
+  border: 0;
+  outline: 0;
+  color: var(--color-text-primary);
+  background: transparent;
+  font: 600 var(--text-md) var(--font-sans);
+  cursor: pointer;
+}
+
+.theme-selector option {
+  color: var(--color-text-primary);
+  background: var(--bg-surface-solid);
 }
 
 /* Navigation rail buttons (dark chrome — hover/active need CSS) */
@@ -391,4 +529,3 @@ input[type=number]::-webkit-inner-spin-button {
 input[type=number] {
   -moz-appearance: textfield;
 }
-

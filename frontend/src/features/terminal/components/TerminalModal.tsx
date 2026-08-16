@@ -6,6 +6,7 @@ import { useTranslation } from 'react-i18next';
 import { X, Terminal as TermIcon, BookOpen } from 'lucide-react';
 import '@xterm/xterm/css/xterm.css';
 import LinuxCheatSheet from './LinuxCheatSheet';
+import { shouldProcessKeyInTerminal } from '../terminalKeyboard';
 import { API_BASE } from '../../../shared/types';
 
 interface TerminalModalProps {
@@ -13,6 +14,10 @@ interface TerminalModalProps {
   projectId: string;
   nodeName: string;
   onClose: () => void;
+}
+
+function readColorToken(name: string) {
+  return getComputedStyle(document.documentElement).getPropertyValue(name).trim();
 }
 
 export default function TerminalModal({ containerId, projectId, nodeName, onClose }: TerminalModalProps) {
@@ -29,10 +34,10 @@ export default function TerminalModal({ containerId, projectId, nodeName, onClos
     const term = new Terminal({
       cursorBlink: true,
       theme: {
-        background: 'var(--neutral-950)',
-        foreground: 'var(--neutral-100)',
-        cursor: 'var(--color-accent)',
-        selectionBackground: 'color-mix(in srgb, var(--color-accent) 30%, transparent)',
+        background: readColorToken('--terminal-bg'),
+        foreground: readColorToken('--terminal-fg'),
+        cursor: readColorToken('--terminal-accent'),
+        selectionBackground: readColorToken('--terminal-selection'),
       },
       fontFamily: 'JetBrains Mono, monospace',
       fontSize: 14,
@@ -42,9 +47,12 @@ export default function TerminalModal({ containerId, projectId, nodeName, onClos
     const fitAddon = new FitAddon();
     term.loadAddon(fitAddon);
 
+    term.attachCustomKeyEventHandler(shouldProcessKeyInTerminal);
+
     if (terminalRef.current) {
       term.open(terminalRef.current);
       fitAddon.fit();
+      term.focus();
     }
 
     socket.emit('join-terminal', { containerId, projectId });
@@ -131,7 +139,7 @@ const styles: Record<string, React.CSSProperties> = {
     left: 0,
     width: '100vw',
     height: '100vh',
-    backgroundColor: 'rgba(0, 0, 0, 0.65)',
+    backgroundColor: 'var(--overlay-scrim)',
     zIndex: 1000,
     display: 'flex',
     alignItems: 'center',
@@ -147,7 +155,7 @@ const styles: Record<string, React.CSSProperties> = {
     borderRadius: '12px',
     display: 'flex',
     flexDirection: 'column',
-    boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.5), 0 8px 10px -6px rgba(0, 0, 0, 0.5)',
+    boxShadow: 'var(--shadow-lg)',
     overflow: 'hidden',
   },
   header: {
@@ -186,7 +194,7 @@ const styles: Record<string, React.CSSProperties> = {
   closeBtn: {
     background: 'none',
     border: 'none',
-    color: 'var(--neutral-400)',
+    color: 'var(--color-text-muted)',
     cursor: 'pointer',
     padding: '4px',
     borderRadius: '4px',
@@ -197,7 +205,7 @@ const styles: Record<string, React.CSSProperties> = {
   },
   terminalContainer: {
     flex: 1,
-    backgroundColor: 'var(--neutral-950)',
+    backgroundColor: 'var(--terminal-bg)',
     position: 'relative',
     overflow: 'hidden',
     padding: '8px',

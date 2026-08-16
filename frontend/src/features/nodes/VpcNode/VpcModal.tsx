@@ -210,10 +210,10 @@ export default function VpcModal({
                     disabled={true}
                     style={{
                       ...styles.input,
-                      backgroundColor: 'var(--neutral-100)',
-                      color: 'var(--neutral-500)',
+                      backgroundColor: 'var(--bg-subtle)',
+                      color: 'var(--color-text-muted)',
                       cursor: 'not-allowed',
-                      border: '1px solid var(--neutral-200)'
+                      border: '1px solid var(--border-color)'
                     }}
                     placeholder="e.g. 10.0.0.0/16"
                   />
@@ -379,7 +379,7 @@ const styles: Record<string, React.CSSProperties> = {
     left: 0,
     width: '100vw',
     height: '100vh',
-    backgroundColor: 'rgba(0, 0, 0, 0.65)',
+    backgroundColor: 'var(--overlay-scrim)',
     zIndex: 1000,
     display: 'flex',
     alignItems: 'center',
@@ -393,7 +393,7 @@ const styles: Record<string, React.CSSProperties> = {
     borderRadius: '12px',
     display: 'flex',
     flexDirection: 'column',
-    boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.5), 0 8px 10px -6px rgba(0, 0, 0, 0.5)',
+    boxShadow: 'var(--shadow-lg)',
     overflow: 'hidden',
   },
   header: {

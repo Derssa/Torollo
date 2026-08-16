@@ -49,6 +49,14 @@ npm run dev
 
 You can now access the interface at `http://localhost:23232`.
 
+Alternatively, run both services in containers with hot reload:
+
+```bash
+docker compose -f compose.yaml -f compose.dev.yaml up --build
+```
+
+This requires Docker Compose v2. The backend is available on port `23233`, the frontend on `23232`, and Torollo state is kept in the Compose-managed `torollo-data` volume. Rebuild the images after changing either package's dependencies.
+
 ### 4. Testing the Production Build (CLI Mode)
 If you want to test how the application runs when bundled via the CLI tool:
 ```bash

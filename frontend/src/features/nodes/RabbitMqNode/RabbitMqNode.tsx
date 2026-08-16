@@ -30,7 +30,7 @@ export default function RabbitMqNode({ data }: RabbitMqNodeProps) {
       name={data.name}
       isRunning={isRunning}
       errorMessage={data.lastError}
-      icon={<MessageSquare size={18} color={isRunning ? accentColor : 'var(--neutral-500)'} />}
+      icon={<MessageSquare size={18} color={isRunning ? accentColor : 'var(--color-text-muted)'} />}
       customBorder={isRunning ? `1px solid ${accentColor}` : undefined}
       subtitle={
         <>

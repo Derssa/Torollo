@@ -31,7 +31,7 @@ export default function UbuntuNode({ data }: UbuntuNodeProps) {
       name={data.name}
       isRunning={isRunning}
       errorMessage={data.lastError}
-      icon={<Cpu size={18} color={isRunning ? 'var(--color-accent)' : 'var(--neutral-500)'} />}
+      icon={<Cpu size={18} color={isRunning ? 'var(--color-accent)' : 'var(--color-text-muted)'} />}
       customTitleColor="var(--color-text-primary)"
       subtitle={
         <>

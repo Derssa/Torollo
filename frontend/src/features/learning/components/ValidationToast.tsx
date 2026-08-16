@@ -55,7 +55,7 @@ export default function ValidationToast({ response, onDismiss }: ValidationToast
   return createPortal(
     <div style={styles.toast} role="status">
       <span style={{ ...styles.disc, ...disc }}>
-        <DiscIcon size={13} color="#FFFFFF" strokeWidth={3} />
+        <DiscIcon size={13} color="var(--color-on-accent)" strokeWidth={3} />
       </span>
       <div style={styles.body}>
         <span style={{ ...styles.title, color: titleColor }}>{title}</span>
@@ -94,7 +94,7 @@ const styles: Record<string, React.CSSProperties> = {
     backgroundColor: 'var(--bg-surface-solid)',
     border: '1px solid var(--border-color)',
     borderRadius: '10px',
-    boxShadow: '0 8px 24px rgba(15, 23, 42, 0.12)',
+    boxShadow: 'var(--shadow-floating)',
   },
   disc: {
     display: 'flex',

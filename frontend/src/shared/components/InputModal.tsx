@@ -76,7 +76,7 @@ export default function InputModal({
           placeholder={placeholder}
           style={{
             ...styles.input,
-            border: error ? '1px solid var(--color-danger)' : '1px solid rgba(0, 0, 0, 0.12)'
+            border: error ? '1px solid var(--color-danger)' : '1px solid var(--border-color-hover)'
           }}
           id="modal-input"
           disabled={isSubmitting}
@@ -130,10 +130,10 @@ const styles: Record<string, React.CSSProperties> = {
     padding: '10px 14px',
     fontSize: '14px',
     fontFamily: 'var(--font-sans)',
-    border: '1px solid rgba(0, 0, 0, 0.12)',
+    border: '1px solid var(--border-color-hover)',
     borderRadius: '10px',
     outline: 'none',
-    background: 'rgba(0, 0, 0, 0.03)',
+    background: 'var(--interactive-subtle)',
     color: 'var(--color-text-primary)',
     transition: 'border-color 0.2s, box-shadow 0.2s',
     boxSizing: 'border-box',
@@ -150,7 +150,7 @@ const styles: Record<string, React.CSSProperties> = {
     fontWeight: 600,
     fontFamily: 'var(--font-sans)',
     borderRadius: '10px',
-    border: '1px solid rgba(0, 0, 0, 0.1)',
+    border: '1px solid var(--border-color-hover)',
     background: 'transparent',
     color: 'var(--color-text-secondary)',
     cursor: 'pointer',

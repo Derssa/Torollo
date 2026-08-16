@@ -197,7 +197,7 @@ export function buildFirewallEdges(
               animated: true,
               label: `Port ${rule.port}`,
               style: { stroke: 'var(--color-success)', strokeWidth: 2 },
-              labelStyle: { fill: 'var(--neutral-700)', fontSize: 9, fontWeight: 700 },
+              labelStyle: { fill: 'var(--color-text-secondary)', fontSize: 9, fontWeight: 700 },
             });
           }
         }

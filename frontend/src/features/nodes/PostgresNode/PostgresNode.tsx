@@ -29,8 +29,8 @@ export default function PostgresNode({ data }: PostgresNodeProps) {
       name={data.name}
       isRunning={isRunning}
       errorMessage={data.lastError}
-      icon={<Database size={18} color={isRunning ? 'var(--neutral-500)' : 'var(--neutral-500)'} />}
-      customBorder={isRunning ? '1px solid var(--neutral-500)' : undefined}
+      icon={<Database size={18} color={isRunning ? 'var(--node-postgres)' : 'var(--color-text-muted)'} />}
+      customBorder={isRunning ? '1px solid var(--node-postgres)' : undefined}
       subtitle={
         <>
           <span className={styles.label}>{t('nodeviz.ipPort')}</span>
@@ -45,7 +45,7 @@ export default function PostgresNode({ data }: PostgresNodeProps) {
       primaryAction={{
         label: t('nodeviz.inspect'),
         icon: <Search size={14} />,
-        color: 'var(--neutral-500)', // Slate Gray
+        color: 'var(--node-postgres)',
         onClick: data.onInspect,
         title: t('nodeviz.inspectDatabaseTitle'),
       }}

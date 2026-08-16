@@ -8,6 +8,12 @@
     "learning": "Apprentissage",
     "toggleLanguage": "Changer de langue"
   },
+  "theme": {
+    "label": "Thème",
+    "system": "Système",
+    "light": "Clair",
+    "dark": "Sombre"
+  },
   "learning": {
     "panelTitle": "Apprentissage",
     "close": "Fermer le panneau",
