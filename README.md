@@ -27,6 +27,52 @@ npx torollo start
 
 Open the app, create a project, and hit **Learning** in the topbar — the best first contact with Torollo is a guided roadmap, not an empty canvas. Start with **Deploy a resilient three-tier app**: it walks you from a single web server to a load-balanced, firewalled, database-backed architecture in ten validated steps.
 
+### Run with Docker Compose
+
+The Compose setup builds the frontend and backend, serves them through one local URL, mounts the host Docker socket so Torollo can create lab resources, and persists projects and learning progress in a named volume.
+
+Prerequisites:
+
+- Docker Engine or Docker Desktop with the Docker daemon running.
+- Docker Compose v2 (`docker compose version`).
+
+Start the production stack:
+
+```bash
+cp .env.example .env # optional: defaults work for localhost
+docker compose up --build -d
+docker compose logs -f
+```
+
+Open `http://localhost:23232`. The first boot can take several minutes while Torollo prepares its node images; follow the backend logs to see progress. Stop the application without deleting its state with:
+
+```bash
+docker compose down
+```
+
+For development with Vite and nodemon hot reload:
+
+```bash
+docker compose -f compose.yaml -f compose.dev.yaml up --build
+```
+
+The development override also publishes the backend at `http://localhost:23233`. Source and roadmap changes are bind-mounted; rebuild after changing dependencies.
+
+Compose reads these optional settings from the root `.env` file:
+
+| Variable | Default | Purpose |
+|---|---|---|
+| `COMPOSE_PROJECT_NAME` | `torollo` | Prefix for containers, networks, and volumes |
+| `TOROLLO_BIND_ADDRESS` | `127.0.0.1` | Host address used for published ports |
+| `TOROLLO_FRONTEND_PORT` | `23232` | Browser-facing frontend/proxy port |
+| `TOROLLO_BACKEND_PORT` | `23233` | Backend port published only by the development override |
+| `TOROLLO_DOCKER_SOCKET` | `/var/run/docker.sock` | Host Docker socket to mount into the backend |
+| `TOROLLO_ALLOWED_ORIGINS` | empty | Comma-separated extra browser origins |
+
+Project and roadmap-progress data live in the `torollo-data` named volume. `docker compose down` preserves it; `docker compose down -v` permanently deletes it.
+
+> ⚠️ **Docker access:** The socket mount gives the backend control of the host Docker daemon, which is Torollo's core function. Torollo has no authentication, so anyone who can reach the published port inherits that control — the default `TOROLLO_BIND_ADDRESS=127.0.0.1` is what keeps the stack private, not `TOROLLO_ALLOWED_ORIGINS`, which only covers browsers. Read [Self-Hosting & Network Exposure](#self-hosting--network-exposure) before changing it, and do not run untrusted Torollo images. Rootless Docker users can set `TOROLLO_DOCKER_SOCKET=/run/user/<uid>/docker.sock`.
+
 ---
 
 ## Guided, auto-graded roadmaps
@@ -83,6 +129,13 @@ To access Torollo from another machine (e.g. a home lab server), opt in explicit
 
 ```bash
 TOROLLO_HOST=0.0.0.0 TOROLLO_ALLOWED_ORIGINS=http://<your-lan-ip>:23232 npx torollo start
+```
+
+For Compose, set the equivalent root `.env` values and restart the stack:
+
+```dotenv
+TOROLLO_BIND_ADDRESS=0.0.0.0
+TOROLLO_ALLOWED_ORIGINS=http://<your-lan-ip>:23232
 ```
 
 - `TOROLLO_HOST` — address the API binds to (default `127.0.0.1`; set to `0.0.0.0` to listen on all interfaces).
