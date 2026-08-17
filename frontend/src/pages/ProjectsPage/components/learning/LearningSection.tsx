@@ -3,6 +3,7 @@ import { useTranslation } from 'react-i18next';
 import { BookOpen, GraduationCap } from 'lucide-react';
 import Button from '../../../../shared/components/Button';
 import { useRoadmaps } from '../../../../features/learning/hooks/useRoadmaps';
+import ImportRoadmapsButton from '../../../../features/learning/components/ImportRoadmapsButton';
 import { useLearningProgressSummaries } from '../../../../features/learning/hooks/useLearningProgressSummaries';
 import { filterByUiLanguage } from '../../../../features/learning/roadmapLanguage';
 import { hasSeenLearningPitch } from '../../../../features/learning/onboarding';
@@ -108,6 +109,9 @@ export default function LearningSection({ onOpenRoadmap }: LearningSectionProps)
             <div style={styles.roadmapsTitleRow}>
               <BookOpen size={16} color="var(--color-text-muted)" />
               <h4 style={styles.roadmapsTitle}>{t('learning.landing.roadmapsTitle')}</h4>
+              <div style={styles.roadmapsActions}>
+                <ImportRoadmapsButton onImported={fetchRoadmaps} />
+              </div>
             </div>
             {loading ? (
               <div style={styles.cardList} aria-busy="true">
@@ -203,6 +207,9 @@ const styles: Record<string, React.CSSProperties> = {
     fontWeight: 700,
     color: 'var(--color-text-primary)',
     margin: 0,
+  },
+  roadmapsActions: {
+    marginLeft: 'auto',
   },
   cardList: {
     display: 'grid',

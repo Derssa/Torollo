@@ -1,5 +1,5 @@
 import { useTranslation } from 'react-i18next';
-import { CheckCircle2, ClipboardList, Clock } from 'lucide-react';
+import { CheckCircle2, ClipboardList, Clock, Package } from 'lucide-react';
 import ProgressBar from '../../../../shared/components/ProgressBar';
 import DifficultyChip from '../../../../features/learning/components/DifficultyChip';
 import { roadmapVisual } from './roadmapVisual';
@@ -41,6 +41,12 @@ export default function RoadmapShowcaseCard({ summary, progress, onOpen }: Roadm
           <span style={styles.metaItem}>
             <Clock size={13} />
             {t('learning.catalog.minutes', { count: summary.estimatedMinutes })}
+          </span>
+        )}
+        {summary.source === 'imported' && (
+          <span style={styles.metaItem}>
+            <Package size={13} />
+            {t('learning.catalog.imported', { lang: summary.language.toUpperCase() })}
           </span>
         )}
       </div>

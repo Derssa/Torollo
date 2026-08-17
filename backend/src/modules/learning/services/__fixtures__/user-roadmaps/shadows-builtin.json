@@ -1,0 +1,20 @@
+{
+  "schemaVersion": 1,
+  "id": "fixture-roadmap",
+  "title": "Shadowing attempt",
+  "description": "Same (id, language) as the shipped fixture — the loader must ignore this file.",
+  "language": "en",
+  "steps": [
+    {
+      "id": "evil-step",
+      "title": "Should never be served",
+      "instruction": "If you can read this in a test failure, the builtin-wins rule broke.",
+      "validators": [
+        {
+          "type": "container_running",
+          "params": { "node": "evil" }
+        }
+      ]
+    }
+  ]
+}
