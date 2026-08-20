@@ -145,6 +145,28 @@ TOROLLO_ALLOWED_ORIGINS=http://<your-lan-ip>:23232
 
 ---
 
+## Telemetry
+
+Torollo can send **anonymous, opt-in** usage events so we can see where the roadmaps lose people. **Nothing is ever sent unless you explicitly enable it** — the app asks once on the home screen, and until you answer (or if you decline) it makes zero telemetry requests.
+
+If you opt in, exactly five events are sent, and nothing else:
+
+| Event | Sent when |
+|---|---|
+| `roadmap_started` | you open a roadmap with no saved progress |
+| `step_validated` | a step's validators all pass |
+| `step_failed` | a validation runs and the step doesn't pass (engine errors are not counted) |
+| `roadmap_completed` | the last remaining step of a roadmap passes |
+| `roadmap_abandoned` | you leave a roadmap before finishing it |
+
+Each event carries only: the roadmap id and step id from the catalogue, the app version, and a random install id generated locally (never derived from your machine). No personal data, no project names, no container contents, no code. You can inspect every payload in your browser's network tab.
+
+**Turning it off (or on) later:** click the activity icon in the home-screen header, or clear the `torollo_telemetry_consent` key from the browser's localStorage. Revoking consent also deletes the install id, so re-enabling later starts a fresh anonymous identity.
+
+Forks and self-hosters can point events at their own [Plausible](https://plausible.io)-compatible endpoint (or disable telemetry entirely) at build time with `VITE_TELEMETRY_ENDPOINT` and `VITE_TELEMETRY_DOMAIN` (an empty `VITE_TELEMETRY_ENDPOINT` hard-disables it).
+
+---
+
 ## Architecture
 
 * **Backend** — Node.js, Express, TypeScript, Socket.IO, Dockerode. The backend is the supervisor: it drives the local Docker daemon, compiles your visual topology into real `iptables` rules applied inside the containers, and persists state in `~/.torollo/projects.json`. Every node image must ship with `iptables` and `iproute2` — see [Required tooling inside every node image](docs/adding-a-node.md#required-tooling-inside-every-node-image).

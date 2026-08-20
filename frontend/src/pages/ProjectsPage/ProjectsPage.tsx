@@ -9,6 +9,7 @@ import ProjectsSection from './components/ProjectsSection';
 import type { HomeView } from './components/SideRail';
 import ProjectPickerModal from './components/ProjectPickerModal';
 import LearningSection from './components/learning/LearningSection';
+import TelemetryConsentCard from './components/TelemetryConsentCard';
 import RoadmapDetailPage from './components/learning/detail/RoadmapDetailPage';
 import { filterByUiLanguage } from '../../features/learning/roadmapLanguage';
 import { markLearningPitchSeen } from '../../features/learning/onboarding';
@@ -215,6 +216,8 @@ export default function ProjectsPage({ onSelectProject }: ProjectsPageProps) {
 
           {route.kind === 'projects' ? (
             <>
+              <TelemetryConsentCard />
+
               {storeRecovered && (
                 <div style={styles.noticeBox}>
                   <AlertTriangle
