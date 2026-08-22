@@ -48,6 +48,8 @@ cd backend && npm run roadmap:validate -- ../my-roadmap.json
 
 The validator either prints `OK` or a list of errors, each pointing at the faulty field (`/steps/0: missing required field "id"`). Unknown fields are rejected — that's deliberate, it catches typos like `titel`.
 
+Play it: drop the file into the repo's `roadmaps/` directory, or — without touching the repo — install it with the **Import roadmaps** button on the Learning page (see [Importing local roadmaps](./local-roadmaps.md)). Both are re-read on every request, so edits show up on refresh.
+
 ## Field reference
 
 ### Roadmap (root object)

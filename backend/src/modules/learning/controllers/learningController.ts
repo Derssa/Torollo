@@ -1,5 +1,6 @@
 import { Request, Response } from 'express';
 import { RoadmapService } from '../services/roadmapService';
+import { RoadmapImportService } from '../services/roadmapImportService';
 import { ProgressService } from '../services/progressService';
 import { runStepValidators } from '../engine/engine';
 import { ValidatorResult } from '../engine/types';
@@ -43,6 +44,32 @@ export class LearningController {
         return;
       }
       res.json(roadmap);
+    } catch (err: unknown) {
+      res.status(500).json({ error: err instanceof Error ? err.message : String(err) });
+    }
+  }
+
+  public static async importRoadmaps(req: Request, res: Response): Promise<void> {
+    try {
+      // The route mounts express.raw(), so a correctly sent upload is a Buffer.
+      // Anything else means the client let another body parser eat the bytes
+      // (e.g. a .json file sent with an application/json Content-Type).
+      if (!Buffer.isBuffer(req.body) || req.body.length === 0) {
+        res.status(400).json({
+          error:
+            'Send the roadmap file (.json or .zip archive) as the raw request body ' +
+            'with Content-Type: application/octet-stream.',
+        });
+        return;
+      }
+      const { filename } = req.query;
+      const report = RoadmapImportService.importUpload(
+        req.body,
+        typeof filename === 'string' && filename.length > 0 ? filename : 'upload'
+      );
+      // 422 when nothing was installed: the upload as a whole failed, and the
+      // per-file errors in the report say why.
+      res.status(report.imported.length > 0 ? 200 : 422).json(report);
     } catch (err: unknown) {
       res.status(500).json({ error: err instanceof Error ? err.message : String(err) });
     }

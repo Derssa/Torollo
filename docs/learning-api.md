@@ -5,7 +5,7 @@ The learning module is the auto-corrector behind guided roadmaps: it runs the de
 This document is the contract for API consumers (the roadmap player in the frontend). If you are writing roadmap *content*, read [`roadmap-format.md`](./roadmap-format.md) instead.
 
 - Backend module: `backend/src/modules/learning/`
-- Roadmap files are loaded from the `roadmaps/` directory at the repository root (shipped in the published npm package). Files that fail the format schema are logged on the server and excluded — they are never served.
+- Roadmap files are loaded from two places: the `roadmaps/` directory at the repository root (shipped in the published npm package) and the user's local import directory `~/.torollo/roadmaps/` (see [`local-roadmaps.md`](./local-roadmaps.md)). Files that fail the format schema are logged on the server and excluded — they are never served.
 
 ## Endpoints
 
@@ -13,7 +13,9 @@ This document is the contract for API consumers (the roadmap player in the front
 
 Lists the available roadmaps as summaries — **one entry per file**. Translations of the same roadmap share an `id` and differ by `language` (see the format's language model), so they appear as separate catalogue entries; a selection UI should surface the `language` field.
 
-The list is a **suggested path, not a directory listing**: the roadmaps shipped with Torollo come first, in the order they are meant to be taken (`CURATED_ROADMAP_ORDER` in `roadmapService.ts`), and the rest — roadmaps you dropped into `roadmaps/` yourself — follow, ordered by `id`. Clients can rely on that order: the app pitches the first entry to a first-run user.
+The list is a **suggested path, not a directory listing**: the roadmaps shipped with Torollo come first, in the order they are meant to be taken (`CURATED_ROADMAP_ORDER` in `roadmapService.ts`), and the rest — roadmaps you dropped into `roadmaps/` yourself, or imported locally — follow, ordered by `id`. Clients can rely on that order: the app pitches the first entry to a first-run user.
+
+Each summary carries a `source`: `"builtin"` for a roadmap shipped in the `roadmaps/` directory, `"imported"` for one installed in `~/.torollo/roadmaps/`. A shipped roadmap always wins over an imported file with the same `(id, language)` — progression is keyed on the `id`, so a local file is never allowed to shadow the catalogue.
 
 ```json
 [
@@ -24,7 +26,8 @@ The list is a **suggested path, not a directory listing**: the roadmaps shipped 
     "language": "en",
     "difficulty": "intermediate",
     "estimatedMinutes": 40,
-    "stepCount": 10
+    "stepCount": 10,
+    "source": "builtin"
   }
 ]
 ```
@@ -38,6 +41,32 @@ Because translations share an `id`, the real key is `(id, language)`:
 - `?language=<code>` (optional) — return exactly the translation with that `language`, or `404`. **No fallback**: the player only requests pairs the catalogue advertised.
 - Without `language`, the pick among translations is deterministic (sorted by language code), so repeated calls always return the same file.
 - `404 { "error": "...", "code": "ROADMAP_NOT_FOUND" }` if no valid roadmap matches.
+
+### `POST /api/learning/roadmaps/import`
+
+Installs roadmap files into `~/.torollo/roadmaps/`, where the catalogue picks them up (see [`local-roadmaps.md`](./local-roadmaps.md) for the user-facing behaviour and rules).
+
+The request body is the **raw bytes** of either a single roadmap `.json` file or a `.zip` archive of roadmap files, sent with `Content-Type: application/octet-stream` (an `application/json` body would be parsed and re-serialized by the JSON middleware before the endpoint sees it). The optional `?filename=` query parameter is used in the report. The endpoint decides json-vs-zip from the bytes, not the name.
+
+Every file is validated against the format schema **before** anything is written, and each file succeeds or fails on its own — one broken file in an archive never blocks the others. The response is a per-file report:
+
+```json
+{
+  "imported": [
+    { "file": "my-roadmap.json", "id": "my-roadmap", "language": "en", "title": "My roadmap", "updated": false }
+  ],
+  "rejected": [
+    { "file": "broken.json", "errors": ["/steps/0: missing required field \"instruction\""] }
+  ],
+  "ignored": ["README.md"]
+}
+```
+
+- `imported` — installed as `~/.torollo/roadmaps/<id>.<language>.json`; `updated: true` means a previously imported version was replaced (re-importing a fixed pack is the supported update path).
+- `rejected` — refused, with the reasons: invalid JSON, schema errors, a `(id, language)` that collides with a shipped roadmap, or a duplicate within the same upload.
+- `ignored` — archive entries that are not `.json` files (a pack's README, images…).
+
+Status: `200` when at least one file was installed, `422` when nothing was (the report says why per file), `400` when the body is empty or not raw bytes.
 
 ### `POST /api/learning/validate`
 

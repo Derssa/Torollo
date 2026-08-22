@@ -25,11 +25,25 @@
       "steps_one": "{{count}} step",
       "steps_other": "{{count}} steps",
       "minutes": "~{{count}} min",
+      "imported": "Imported ({{lang}})",
       "difficulty": {
         "beginner": "Beginner",
         "intermediate": "Intermediate",
         "advanced": "Advanced"
       }
+    },
+    "import": {
+      "button": "Import roadmaps",
+      "importing": "Importing...",
+      "title": "Import roadmaps",
+      "importedTitle_one": "{{count}} roadmap imported",
+      "importedTitle_other": "{{count}} roadmaps imported",
+      "updated": "updated",
+      "rejectedTitle_one": "{{count}} file not imported",
+      "rejectedTitle_other": "{{count}} files not imported",
+      "ignored": "Skipped (not roadmap files): {{files}}",
+      "requestFailed": "Some files could not be sent. Is the backend running?",
+      "close": "Close"
     },
     "player": {
       "backToCatalog": "All roadmaps",

@@ -2,6 +2,7 @@ import request from 'supertest';
 import express from 'express';
 import learningRouter from '../routes/learningRoutes';
 import { RoadmapService } from '../services/roadmapService';
+import { RoadmapImportService, ImportReport } from '../services/roadmapImportService';
 import { ProgressService } from '../services/progressService';
 import { runStepValidators } from '../engine/engine';
 import { ValidatorResult } from '../engine/types';
@@ -9,6 +10,7 @@ import { ProjectService } from '../../projects/services/projectService';
 import { Roadmap } from '../format/roadmapTypes';
 
 jest.mock('../services/roadmapService');
+jest.mock('../services/roadmapImportService');
 jest.mock('../services/progressService');
 jest.mock('../engine/engine');
 jest.mock('../../projects/services/projectService');
@@ -96,6 +98,95 @@ describe('LearningController', () => {
 
       expect(res.status).toBe(404);
       expect(res.body.code).toBe('ROADMAP_NOT_FOUND');
+    });
+  });
+
+  describe('POST /api/learning/roadmaps/import', () => {
+    const importedReport: ImportReport = {
+      imported: [
+        { file: 'pack-roadmap.json', id: 'pack-roadmap', language: 'en', title: 'Pack', updated: false },
+      ],
+      rejected: [],
+      ignored: [],
+    };
+
+    it('hands the raw bytes and file name to the import service and returns its report', async () => {
+      (RoadmapImportService.importUpload as jest.Mock).mockReturnValue(importedReport);
+
+      const res = await request(app)
+        .post('/api/learning/roadmaps/import?filename=pack.zip')
+        .set('Content-Type', 'application/octet-stream')
+        .send(Buffer.from('zip-bytes'));
+
+      expect(res.status).toBe(200);
+      expect(res.body).toEqual(importedReport);
+      expect(RoadmapImportService.importUpload).toHaveBeenCalledWith(
+        Buffer.from('zip-bytes'),
+        'pack.zip'
+      );
+    });
+
+    it('defaults the file name when none is given', async () => {
+      (RoadmapImportService.importUpload as jest.Mock).mockReturnValue(importedReport);
+
+      await request(app)
+        .post('/api/learning/roadmaps/import')
+        .set('Content-Type', 'application/octet-stream')
+        .send(Buffer.from('x'));
+
+      expect(RoadmapImportService.importUpload).toHaveBeenCalledWith(expect.any(Buffer), 'upload');
+    });
+
+    it('returns 422 with the report when nothing could be imported', async () => {
+      const rejectedReport: ImportReport = {
+        imported: [],
+        rejected: [{ file: 'broken.json', errors: ['not valid JSON: oops'] }],
+        ignored: [],
+      };
+      (RoadmapImportService.importUpload as jest.Mock).mockReturnValue(rejectedReport);
+
+      const res = await request(app)
+        .post('/api/learning/roadmaps/import')
+        .set('Content-Type', 'application/octet-stream')
+        .send(Buffer.from('{nope'));
+
+      expect(res.status).toBe(422);
+      expect(res.body).toEqual(rejectedReport);
+    });
+
+    it('returns 400 on an empty body', async () => {
+      const res = await request(app)
+        .post('/api/learning/roadmaps/import')
+        .set('Content-Type', 'application/octet-stream')
+        .send();
+
+      expect(res.status).toBe(400);
+      expect(RoadmapImportService.importUpload).not.toHaveBeenCalled();
+    });
+
+    it('returns 400 when another body parser ate the bytes (application/json upload)', async () => {
+      const res = await request(app)
+        .post('/api/learning/roadmaps/import')
+        .set('Content-Type', 'application/json')
+        .send({ schemaVersion: 1 });
+
+      expect(res.status).toBe(400);
+      expect(res.body.error).toContain('application/octet-stream');
+      expect(RoadmapImportService.importUpload).not.toHaveBeenCalled();
+    });
+
+    it('returns 500 when the import service throws', async () => {
+      (RoadmapImportService.importUpload as jest.Mock).mockImplementation(() => {
+        throw new Error('disk full');
+      });
+
+      const res = await request(app)
+        .post('/api/learning/roadmaps/import')
+        .set('Content-Type', 'application/octet-stream')
+        .send(Buffer.from('x'));
+
+      expect(res.status).toBe(500);
+      expect(res.body.error).toBe('disk full');
     });
   });
 
