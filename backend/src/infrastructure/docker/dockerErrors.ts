@@ -24,6 +24,38 @@ interface DockerErrorLike {
 }
 
 /**
+ * Why the daemon could not be reached, at the granularity that matters for
+ * first-run support: a missing socket (Docker Desktop not started, WSL2
+ * integration off), a socket the user cannot open (not in the `docker`
+ * group), a refused connection, or a hang. Deliberately coarse — a code,
+ * never the socket path or the raw message.
+ */
+export type DaemonFailureReason =
+  | 'socket_not_found'
+  | 'permission_denied'
+  | 'connection_refused'
+  | 'timeout'
+  | 'unknown';
+
+export function classifyDaemonFailure(err: unknown): DaemonFailureReason {
+  const e = (err ?? {}) as DockerErrorLike;
+  switch (e.code) {
+    case 'ENOENT':
+      return 'socket_not_found';
+    case 'EACCES':
+    case 'EPERM':
+      return 'permission_denied';
+    case 'ECONNREFUSED':
+      return 'connection_refused';
+    case 'ETIMEDOUT':
+    case 'ESOCKETTIMEDOUT':
+      return 'timeout';
+    default:
+      return 'unknown';
+  }
+}
+
+/**
  * Thrown when a container id/name does not exist OR belongs to another
  * project. Both cases map to the exact same 404 payload as
  * CONTAINER_NOT_FOUND so a caller cannot probe for a container's existence.

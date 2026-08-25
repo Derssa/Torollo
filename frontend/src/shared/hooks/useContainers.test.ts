@@ -1,7 +1,11 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { renderHook, act } from '@testing-library/react';
 import { useContainers } from './useContainers';
+import { trackEvent } from '../../features/telemetry/telemetry';
 import type { ContainerData } from '../types';
+
+vi.mock('../../features/telemetry/telemetry', () => ({ trackEvent: vi.fn() }));
+const trackEventMock = vi.mocked(trackEvent);
 
 function jsonResponse(ok: boolean, body: unknown): Response {
   return { ok, json: () => Promise.resolve(body) } as Response;
@@ -13,6 +17,7 @@ describe('useContainers', () => {
   beforeEach(() => {
     fetchMock = vi.fn();
     vi.stubGlobal('fetch', fetchMock);
+    trackEventMock.mockClear();
   });
 
   afterEach(() => {
@@ -262,5 +267,38 @@ describe('useContainers', () => {
     });
 
     expect(result.current.dockerUnavailable).toBe(true);
+  });
+
+  describe('image pull telemetry', () => {
+    it('reports image_pull_failed with the node type when create fails on IMAGE_NOT_FOUND', async () => {
+      const onNotify = vi.fn();
+      fetchMock.mockResolvedValueOnce(
+        jsonResponse(false, { error: 'The Docker image could not be downloaded.', code: 'IMAGE_NOT_FOUND' })
+      );
+
+      const { result } = renderHook(() => useContainers({ projectId: 'p1', onNotify }));
+      await act(async () => {
+        await result.current.createContainer('cache', 'redis');
+      });
+
+      expect(trackEventMock).toHaveBeenCalledWith('image_pull_failed', { node: 'redis' });
+      expect(onNotify).toHaveBeenCalledWith({
+        type: 'error',
+        message: 'The Docker image could not be downloaded.',
+      });
+    });
+
+    it('does not report other create failures as pull failures', async () => {
+      fetchMock.mockResolvedValueOnce(
+        jsonResponse(false, { error: 'A port is already taken.', code: 'PORT_IN_USE' })
+      );
+
+      const { result } = renderHook(() => useContainers({ projectId: 'p1' }));
+      await act(async () => {
+        await result.current.createContainer('web', 'nginx');
+      });
+
+      expect(trackEventMock).not.toHaveBeenCalled();
+    });
   });
 });

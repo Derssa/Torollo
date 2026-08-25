@@ -2,6 +2,7 @@ import { useState, useCallback, useEffect, useRef } from 'react';
 import { API_BASE } from '../../../shared/types';
 import { readErrorMessage } from '../../../shared/utils/readErrorMessage';
 import { trackEvent } from '../../telemetry/telemetry';
+import { claimMilestone } from '../../telemetry/milestones';
 import { stepOutcome } from '../validationStatus';
 import type {
   Roadmap,
@@ -249,6 +250,12 @@ export function useLearningPlayer({ projectId }: UseLearningPlayerOptions) {
       }
       const response: StepValidationResponse = await res.json();
       setResultsByStepId(prev => ({ ...prev, [currentStep.id]: response }));
+
+      // The install's first-ever validation, whatever its verdict: the moment
+      // the learner has crossed setup and is actually using the engine.
+      if (claimMilestone('first_validator_run')) {
+        trackEvent('first_validator_run', { roadmap: roadmap.id, step: currentStep.id });
+      }
 
       // An engine error is not a pedagogical failure — it is not counted.
       const outcome = stepOutcome(response);

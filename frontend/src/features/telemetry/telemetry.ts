@@ -1,23 +1,33 @@
 import { getInstallId, getTelemetryConsent } from './consent';
+import type { DockerHealthReason } from '../../shared/hooks/useDockerHealth';
 
 /**
- * The five learning-funnel events — the exhaustive list, mirrored verbatim in
- * the README's Telemetry section. Adding an event here means updating the
- * README in the same change.
+ * The exhaustive event list with the props each one carries, mirrored
+ * verbatim in the README's Telemetry section. Adding an event or a prop here
+ * means updating the README in the same change.
+ *
+ * Prop values are always catalogue ids or closed enums — never free text,
+ * names, paths or error messages.
  */
-export type TelemetryEventName =
-  | 'roadmap_started'
-  | 'step_validated'
-  | 'step_failed'
-  | 'roadmap_completed'
-  | 'roadmap_abandoned';
-
-export interface TelemetryEventProps {
-  /** Roadmap id from the public catalogue — never a user-chosen name. */
-  roadmap: string;
-  /** Step id within the roadmap file, for the funnel/abandon breakdowns. */
-  step?: string;
+export interface TelemetryEvents {
+  /** Once per page load. */
+  app_started: Record<string, never>;
+  /** The Docker readiness probe that follows app_started. */
+  runtime_check_started: Record<string, never>;
+  runtime_ready: Record<string, never>;
+  runtime_failed: { reason: DockerHealthReason };
+  /** A node could not be created because its image failed to download. */
+  image_pull_failed: { node: string };
+  /** The very first validation this install ever runs. */
+  first_validator_run: { roadmap: string; step: string };
+  roadmap_started: { roadmap: string };
+  step_validated: { roadmap: string; step: string };
+  step_failed: { roadmap: string; step: string };
+  roadmap_completed: { roadmap: string };
+  roadmap_abandoned: { roadmap: string; step: string };
 }
+
+export type TelemetryEventName = keyof TelemetryEvents;
 
 // Overridable at build time so self-hosters and forks can point events at
 // their own instance — or build with an empty endpoint to hard-disable.
@@ -32,14 +42,14 @@ declare const __APP_VERSION__: string;
  * Sends one event as a Plausible custom event (Umami and self-hosted
  * Plausible accept the same shape). Hard rules, enforced by tests:
  * without an explicit `accepted` consent this performs ZERO network requests,
- * and the payload never carries PII — only catalogue ids, the app version and
- * a random local install id.
+ * and the payload never carries PII — only the props declared above, the app
+ * version and a random local install id.
  *
  * Fire-and-forget: telemetry must never throw, block, or surface an error.
  */
-export function trackEvent(
-  name: TelemetryEventName,
-  props: TelemetryEventProps,
+export function trackEvent<Name extends TelemetryEventName>(
+  name: Name,
+  props: TelemetryEvents[Name],
   options: { keepalive?: boolean } = {}
 ): void {
   if (getTelemetryConsent() !== 'accepted' || !ENDPOINT) return;
@@ -49,7 +59,7 @@ export function trackEvent(
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         name,
-        url: `app://torollo/roadmap/${props.roadmap}`,
+        url: eventUrl(props),
         domain: DOMAIN,
         props: { ...props, install_id: getInstallId(), app_version: __APP_VERSION__ },
       }),
@@ -59,4 +69,13 @@ export function trackEvent(
   } catch {
     // A broken fetch environment must never take the app down with it.
   }
+}
+
+/**
+ * Plausible requires a page URL per event. Roadmap events are filed under
+ * their roadmap so the Pages report doubles as a per-roadmap breakdown;
+ * everything else lands on the app root.
+ */
+function eventUrl(props: TelemetryEvents[TelemetryEventName]): string {
+  return 'roadmap' in props ? `app://torollo/roadmap/${props.roadmap}` : 'app://torollo/app';
 }

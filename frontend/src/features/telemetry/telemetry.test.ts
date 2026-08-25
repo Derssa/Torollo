@@ -52,6 +52,25 @@ describe('trackEvent', () => {
     ]);
   });
 
+  it('files events without a roadmap under the app root', () => {
+    setTelemetryConsent('accepted');
+    trackEvent('app_started', {});
+    trackEvent('runtime_failed', { reason: 'socket_not_found' });
+    trackEvent('image_pull_failed', { node: 'redis' });
+
+    const payloads = fetchMock.mock.calls.map(([, init]) => JSON.parse(init.body));
+    expect(payloads.map(p => p.url)).toEqual([
+      'app://torollo/app',
+      'app://torollo/app',
+      'app://torollo/app',
+    ]);
+    expect(Object.keys(payloads[0].props).sort()).toEqual(['app_version', 'install_id']);
+    expect(Object.keys(payloads[1].props).sort()).toEqual(['app_version', 'install_id', 'reason']);
+    expect(payloads[1].props.reason).toBe('socket_not_found');
+    expect(Object.keys(payloads[2].props).sort()).toEqual(['app_version', 'install_id', 'node']);
+    expect(payloads[2].props.node).toBe('redis');
+  });
+
   it('reuses the same install id across events', () => {
     setTelemetryConsent('accepted');
     trackEvent('roadmap_started', { roadmap: 'r1' });

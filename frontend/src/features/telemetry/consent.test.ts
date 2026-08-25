@@ -51,6 +51,13 @@ describe('telemetry consent', () => {
     expect(getInstallId()).toBe(first);
   });
 
+  it('forgets the claimed milestones when consent is revoked', () => {
+    setTelemetryConsent('accepted');
+    localStorage.setItem('torollo_telemetry_milestones', '["first_validator_run"]');
+    setTelemetryConsent('declined');
+    expect(localStorage.getItem('torollo_telemetry_milestones')).toBeNull();
+  });
+
   it('forgets the install id when consent is revoked', () => {
     setTelemetryConsent('accepted');
     const first = getInstallId();

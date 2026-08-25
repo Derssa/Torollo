@@ -3,7 +3,8 @@ import { useTranslation } from 'react-i18next';
 import { API_BASE } from '../types';
 import type { ContainerData } from '../types';
 import type { NotificationData } from './useToast';
-import { readErrorMessage } from '../utils/readErrorMessage';
+import { readApiError, readErrorMessage } from '../utils/readErrorMessage';
+import { trackEvent } from '../../features/telemetry/telemetry';
 
 interface UseContainersOptions {
   projectId: string;
@@ -82,8 +83,11 @@ export function useContainers({ projectId, onNotify }: UseContainersOptions) {
         onNotify?.({ type: 'success', message: t('toasts.nodeCreated', { name }) });
         fetchContainers();
       } else {
-        const message = await readErrorMessage(res, t('toasts.nodeCreateFailed', { name }));
+        const { message, code } = await readApiError(res, t('toasts.nodeCreateFailed', { name }));
         onNotify?.({ type: 'error', message });
+        // The image is pulled on first use, so this is the "first boot"
+        // failure mode after the daemon itself: worth counting, per node type.
+        if (code === 'IMAGE_NOT_FOUND') trackEvent('image_pull_failed', { node: type });
       }
     } catch (err) {
       console.error(err);

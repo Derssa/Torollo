@@ -16,7 +16,7 @@
   },
   "telemetry": {
     "title": "Statistiques d'usage anonymes",
-    "body": "Activez l'envoi de cinq événements d'apprentissage anonymes (roadmap démarrée, étape validée, étape échouée, roadmap complétée, roadmap abandonnée) pour nous aider à voir où les roadmaps perdent les gens. Aucune donnée personnelle, aucun nom de projet, aucun code — détails dans le README. Rien n'est envoyé sans votre accord.",
+    "body": "Activez l'envoi d'événements d'usage anonymes — démarrage de l'app, Docker joignable ou non, téléchargements d'image en échec, et progression dans les roadmaps (démarrée, étape validée ou échouée, complétée, abandonnée) — pour nous aider à voir où les gens bloquent. Aucune donnée personnelle, aucun nom de projet, aucun code — la liste complète est dans le README. Rien n'est envoyé sans votre accord.",
     "accept": "Activer",
     "decline": "Non merci",
     "toggleOn": "Statistiques d'usage anonymes : activées — cliquer pour désactiver",

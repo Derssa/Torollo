@@ -1,5 +1,4 @@
-const CONSENT_KEY = 'torollo_telemetry_consent';
-const INSTALL_ID_KEY = 'torollo_telemetry_install_id';
+import { CONSENT_KEY, INSTALL_ID_KEY, MILESTONES_KEY } from './storageKeys';
 
 /**
  * Tri-state on purpose: `unset` (never asked or storage unavailable) must
@@ -24,9 +23,13 @@ export function getTelemetryConsent(): TelemetryConsent {
 export function setTelemetryConsent(value: 'accepted' | 'declined'): void {
   try {
     localStorage.setItem(CONSENT_KEY, value);
-    // Revoking consent also forgets the install id: re-enabling later starts
-    // a fresh anonymous identity instead of relinking to the old one.
-    if (value === 'declined') localStorage.removeItem(INSTALL_ID_KEY);
+    // Revoking consent also forgets the install id and its claimed
+    // milestones: re-enabling later starts a fresh anonymous identity
+    // instead of relinking to the old one.
+    if (value === 'declined') {
+      localStorage.removeItem(INSTALL_ID_KEY);
+      localStorage.removeItem(MILESTONES_KEY);
+    }
   } catch {
     // Nothing to persist to — the runtime default (unset → no events) holds.
   }

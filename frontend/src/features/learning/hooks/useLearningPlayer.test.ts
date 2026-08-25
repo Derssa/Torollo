@@ -73,6 +73,7 @@ describe('useLearningPlayer', () => {
   let errorSpy: ReturnType<typeof vi.spyOn>;
 
   beforeEach(() => {
+    localStorage.clear();
     fetchMock = vi.fn();
     vi.stubGlobal('fetch', fetchMock);
     errorSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
@@ -488,6 +489,38 @@ describe('useLearningPlayer', () => {
       results: [{ index: 0, type: 'container_running', status: 'error', message: 'Docker down.' }],
       checkedAt: '2026-07-15T10:00:00.000Z',
     };
+
+    it('fires first_validator_run once per install, whatever the verdict', async () => {
+      const { result } = renderHook(() => useLearningPlayer({ projectId: 'p1' }));
+      await openExampleRoadmap(result, fetchMock);
+
+      fetchMock.mockResolvedValueOnce(jsonResponse(true, errorResponse));
+      await act(async () => {
+        await result.current.validateCurrentStep();
+      });
+      expect(trackEventMock).toHaveBeenCalledWith('first_validator_run', {
+        roadmap: roadmap.id,
+        step: 'create-web-server',
+      });
+
+      fetchMock.mockResolvedValueOnce(jsonResponse(true, passResponse));
+      await act(async () => {
+        await result.current.validateCurrentStep();
+      });
+      const firsts = trackEventMock.mock.calls.filter(([name]) => name === 'first_validator_run');
+      expect(firsts).toHaveLength(1);
+    });
+
+    it('does not fire first_validator_run when the validation request itself fails', async () => {
+      const { result } = renderHook(() => useLearningPlayer({ projectId: 'p1' }));
+      await openExampleRoadmap(result, fetchMock);
+
+      fetchMock.mockResolvedValueOnce(jsonResponse(false, { error: 'Docker down' }));
+      await act(async () => {
+        await result.current.validateCurrentStep();
+      });
+      expect(trackEventMock).not.toHaveBeenCalledWith('first_validator_run', expect.anything());
+    });
 
     it('fires roadmap_started when the persisted progress is empty', async () => {
       const { result } = renderHook(() => useLearningPlayer({ projectId: 'p1' }));
