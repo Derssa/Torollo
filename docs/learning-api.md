@@ -128,6 +128,7 @@ Roadmap progression is persisted locally in `~/.torollo/progress.json`, next to 
     {
       "projectId": "project-1751883322290",
       "roadmapId": "resilient-three-tier",
+      "startedAt": "2026-07-16T19:42:03.000Z",
       "updatedAt": "2026-07-16T20:11:00.000Z",
       "steps": {
         "first-server": {
@@ -142,7 +143,7 @@ Roadmap progression is persisted locally in `~/.torollo/progress.json`, next to 
 }
 ```
 
-`passed` is the verdict of the **latest** validation (same semantics as the player's in-session display); `attempts` counts the validation runs that reached evaluation; `revealedHints` is the absolute number of revealed rungs on the step's hint ladder `[...hints, solution?]`. Validator results are deliberately **not** persisted — they describe a past container state; only the verdict survives. The top-level `version` is the migration contract: a reader that finds an unknown version (or an unparseable file) must not guess — the server moves the file aside as `progress.json.corrupt`, starts fresh, and reports it once via `storeRecovered` on the next progress read so the UI can tell the user. Writes are write-then-rename, so a crash mid-write cannot truncate the store. Deleting a project deletes its progress entries.
+`passed` is the verdict of the **latest** validation (same semantics as the player's in-session display); `attempts` counts the validation runs that reached evaluation; `revealedHints` is the absolute number of revealed rungs on the step's hint ladder `[...hints, solution?]`; `startedAt` is stamped when the entry is created — i.e. on the play-through's first recorded activity — and never moves (absent on entries written before the field existed). Validator results are deliberately **not** persisted — they describe a past container state; only the verdict survives. The top-level `version` is the migration contract: a reader that finds an unknown version (or an unparseable file) must not guess — the server moves the file aside as `progress.json.corrupt`, starts fresh, and reports it once via `storeRecovered` on the next progress read so the UI can tell the user. Writes are write-then-rename, so a crash mid-write cannot truncate the store. Deleting a project deletes its progress entries.
 
 ### `GET /api/learning/progress`
 
@@ -150,7 +151,7 @@ Returns `{ "entries": [ { "projectId", "roadmapId", "updatedAt", "completedSteps
 
 ### `GET /api/learning/progress/:projectId/:roadmapId`
 
-Returns `{ projectId, roadmapId, steps }` — `steps` is the per-step record above, `{}` when nothing was ever recorded. `storeRecovered: true` is present once after a corrupt/unknown-version store was discarded. The player calls this when opening a roadmap and resumes on the first step whose `passed` is not true.
+Returns `{ projectId, roadmapId, steps }` — `steps` is the per-step record above, `{}` when nothing was ever recorded. `startedAt` is present when the entry exists and carries the field. `storeRecovered: true` is present once after a corrupt/unknown-version store was discarded. The player calls this when opening a roadmap and resumes on the first step whose `passed` is not true.
 
 ### `PUT /api/learning/progress/:projectId/:roadmapId/hints`
 

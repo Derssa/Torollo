@@ -1,12 +1,13 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { AlertTriangle, ArrowLeft, ChevronLeft, ChevronRight, Globe, RotateCcw, X } from 'lucide-react';
+import { AlertTriangle, ArrowLeft, Check, ChevronLeft, ChevronRight, Globe, RotateCcw, X } from 'lucide-react';
 import ValidationToast from './ValidationToast';
+import RoadmapCompletionScreen from './RoadmapCompletionScreen';
 import StepHints from './StepHints';
 import { renderInstruction } from './InstructionMarkdown';
 import ProgressBar from '../../../shared/components/ProgressBar';
 import type { useLearningPlayer } from '../hooks/useLearningPlayer';
-import type { ContainerData } from '../../../shared/types';
+import type { ContainerData, LearningExit } from '../../../shared/types';
 import type { NetworkConfig } from '../../../shared/types/network';
 import type { StepValidationResponse } from '../../../shared/types/roadmap';
 
@@ -14,6 +15,10 @@ interface RoadmapPlayerProps {
   player: ReturnType<typeof useLearningPlayer>;
   containers: ContainerData[];
   networkConfig: NetworkConfig;
+  /** Name of the project the canvas belongs to — shown on the completion receipt. */
+  projectName?: string;
+  /** Leave the canvas for the home shell (completion screen's navigation). */
+  onExit?: (target: LearningExit) => void;
 }
 
 export default function RoadmapPlayer({
@@ -24,7 +29,9 @@ export default function RoadmapPlayer({
     subnets: [],
     nodeSubnetMap: {},
     nodeSecurityGroups: {}
-  } as unknown as NetworkConfig
+  } as unknown as NetworkConfig,
+  projectName,
+  onExit,
 }: RoadmapPlayerProps) {
   const { t } = useTranslation();
   const {
@@ -45,6 +52,11 @@ export default function RoadmapPlayer({
     resetProgress,
     resetting,
     resetError,
+    roadmapCompleted,
+    completionOpen,
+    dismissCompletion,
+    reopenCompletion,
+    runTimes,
   } = player;
 
   // Restarting the roadmap forgets persisted progress, so it sits behind the
@@ -57,6 +69,14 @@ export default function RoadmapPlayer({
   const [dismissedByStepId, setDismissedByStepId] = useState<
     Record<string, StepValidationResponse>
   >({});
+  // The celebration consumes the verdict that triggered it: once the screen
+  // has opened, the step toast underneath is stale news and must not resurface
+  // when the learner comes back to the canvas.
+  useEffect(() => {
+    if (!completionOpen) return;
+    setDismissedByStepId(prev => ({ ...prev, ...resultsByStepId }));
+  }, [completionOpen, resultsByStepId]);
+
   const handleValidate = () => {
     setDismissedByStepId(prev => {
       const next = { ...prev };
@@ -124,6 +144,16 @@ export default function RoadmapPlayer({
           })}
         </span>
       </div>
+
+      {roadmapCompleted && !completionOpen && (
+        <div style={styles.completedRow}>
+          <Check size={13} color="var(--color-success)" strokeWidth={2.5} style={{ flexShrink: 0 }} />
+          <span style={styles.completedText}>{t('learning.player.completion.completeBadge')}</span>
+          <button onClick={reopenCompletion} style={styles.viewSummaryBtn}>
+            {t('learning.player.completion.viewSummary')}
+          </button>
+        </div>
+      )}
 
       {resetError !== null && (
         <div style={styles.errorBox}>
@@ -241,11 +271,13 @@ export default function RoadmapPlayer({
         </div>
       )}
 
-      {resultsByStepId[currentStep.id] &&
+      {/* The completion screen supersedes the toast: when the verdict that
+          finished the roadmap opens it, the celebration is the answer. */}
+      {!completionOpen &&
+        resultsByStepId[currentStep.id] &&
         dismissedByStepId[currentStep.id] !== resultsByStepId[currentStep.id] && (
           <ValidationToast
             response={resultsByStepId[currentStep.id]}
-            isLastStep={atLastStep}
             onDismiss={() =>
               setDismissedByStepId(prev => ({
                 ...prev,
@@ -254,6 +286,16 @@ export default function RoadmapPlayer({
             }
           />
         )}
+
+      {completionOpen && (
+        <RoadmapCompletionScreen
+          roadmap={roadmap}
+          projectName={projectName}
+          runTimes={runTimes}
+          onDismiss={dismissCompletion}
+          onExit={target => onExit?.(target)}
+        />
+      )}
     </div>
   );
 }
@@ -333,6 +375,27 @@ const styles: Record<string, React.CSSProperties> = {
     display: 'flex',
     flexDirection: 'column',
     gap: '5px',
+  },
+  completedRow: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: '6px',
+  },
+  completedText: {
+    fontSize: '11px',
+    fontWeight: 600,
+    color: 'var(--color-success)',
+  },
+  viewSummaryBtn: {
+    marginLeft: 'auto',
+    padding: 0,
+    border: 'none',
+    background: 'none',
+    color: 'var(--color-accent)',
+    fontSize: '11px',
+    fontWeight: 600,
+    cursor: 'pointer',
+    fontFamily: 'var(--font-sans)',
   },
   currentStep: {
     display: 'flex',
