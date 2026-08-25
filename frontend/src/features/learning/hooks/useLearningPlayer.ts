@@ -22,6 +22,24 @@ function ladderLength(step: RoadmapStep): number {
   return (step.hints?.length ?? 0) + (step.solution ? 1 : 0);
 }
 
+/** Start/end timestamps of a play-through, for the completion receipt. */
+export interface RunTimes {
+  /** When the backend created the progress entry — absent for runs that predate the field. */
+  startedAt?: string;
+  /** Latest recorded validation once the roadmap is complete. */
+  finishedAt?: string;
+}
+
+/** Most recent validation across the persisted steps, ISO-comparable strings. */
+function latestCheck(steps: RoadmapStep[], progressSteps: Record<string, StepProgress>): string | undefined {
+  let latest: string | undefined;
+  for (const step of steps) {
+    const checkedAt = progressSteps[step.id]?.lastCheckedAt;
+    if (checkedAt && (!latest || checkedAt > latest)) latest = checkedAt;
+  }
+  return latest;
+}
+
 /**
  * State of one roadmap play-through: the opened roadmap, the current step,
  * and the validation results per step.
@@ -54,6 +72,11 @@ export function useLearningPlayer({ projectId }: UseLearningPlayerOptions) {
   const [progressNotice, setProgressNotice] = useState(false);
   const [resetting, setResetting] = useState(false);
   const [resetError, setResetError] = useState<string | null>(null);
+  // The completion screen is an explicit screen state, not a derived one:
+  // it opens on the two celebration moments (a validation that completes the
+  // roadmap, opening an already-finished roadmap) and stays dismissable.
+  const [completionOpen, setCompletionOpen] = useState(false);
+  const [runTimes, setRunTimes] = useState<RunTimes>({});
   // React state updates are async, so `validating` alone cannot stop two
   // synchronous clicks — the ref is the actual double-submit guard.
   const validatingRef = useRef(false);
@@ -136,6 +159,7 @@ export function useLearningPlayer({ projectId }: UseLearningPlayerOptions) {
         // player opens directly on the restored step — no blank-state flash.
         // Progress is a convenience: if it can't be read, open fresh anyway.
         let progressSteps: Record<string, StepProgress> = {};
+        let startedAt: string | undefined;
         let recovered = false;
         let progressLoaded = false;
         try {
@@ -143,6 +167,7 @@ export function useLearningPlayer({ projectId }: UseLearningPlayerOptions) {
           if (progressRes.ok) {
             const progress: RoadmapProgressResponse = await progressRes.json();
             progressSteps = progress.steps ?? {};
+            startedAt = progress.startedAt;
             recovered = progress.storeRecovered === true;
             progressLoaded = true;
           } else {
@@ -167,15 +192,24 @@ export function useLearningPlayer({ projectId }: UseLearningPlayerOptions) {
           }
         }
         const firstIncomplete = steps.findIndex(step => !completed[step.id]);
+        // Revisiting a finished roadmap replays the celebration: the screen
+        // is where "next roadmap" and the share action live, so it must stay
+        // reachable after the win — not be a one-shot.
+        const allComplete = firstIncomplete === -1;
 
         setRoadmap(data);
-        setCurrentStepIndex(firstIncomplete === -1 ? steps.length - 1 : firstIncomplete);
+        setCurrentStepIndex(allComplete ? steps.length - 1 : firstIncomplete);
         setResultsByStepId({});
         setRevealedHintsByStepId(revealed);
         setCompletedStepIds(completed);
         setProgressNotice(recovered);
         setValidationError(null);
         setResetError(null);
+        setCompletionOpen(allComplete);
+        setRunTimes({
+          startedAt,
+          finishedAt: allComplete ? latestCheck(steps, progressSteps) : undefined,
+        });
 
         // A confirmed-empty progress store is what "started" means; a failed
         // progress fetch could be a resumed run, so it never counts as one.
@@ -203,6 +237,8 @@ export function useLearningPlayer({ projectId }: UseLearningPlayerOptions) {
     setProgressNotice(false);
     setValidationError(null);
     setResetError(null);
+    setCompletionOpen(false);
+    setRunTimes({});
   }, [fireAbandon]);
 
   const goToStep = useCallback(
@@ -267,16 +303,29 @@ export function useLearningPlayer({ projectId }: UseLearningPlayerOptions) {
       }
 
       // Fresh completion only — this verdict turned the last missing step
-      // green. Re-validating a step of an already complete roadmap must not
-      // count the roadmap as completed again.
+      // green. Only the transition counts and celebrates: re-validating a
+      // step of an already complete roadmap must not report the roadmap as
+      // completed again nor reopen the screen over the learner's work.
       const stepDone = (step: RoadmapStep) =>
         completedStepIds[step.id] || resultsByStepId[step.id]?.stepPassed;
       const wasComplete = roadmap.steps.every(stepDone);
       const nowComplete =
-        response.stepPassed &&
-        roadmap.steps.every(step => step.id === currentStep.id || stepDone(step));
+        response.stepPassed && roadmap.steps.every(step => step.id === currentStep.id || stepDone(step));
       if (nowComplete && !wasComplete) {
         trackEvent('roadmap_completed', { roadmap: roadmap.id });
+        setCompletionOpen(true);
+        setRunTimes(prev => ({ ...prev, finishedAt: response.checkedAt }));
+        // The run may have started this session, after the open-time
+        // hydration: the validate call just persisted the entry, so a
+        // refetch is guaranteed to know when the play-through began.
+        fetch(progressUrl(roadmap.id))
+          .then(progressRes => (progressRes.ok ? progressRes.json() : null))
+          .then((progress: RoadmapProgressResponse | null) => {
+            if (progress?.startedAt) {
+              setRunTimes(prev => ({ ...prev, startedAt: progress.startedAt }));
+            }
+          })
+          .catch(err => console.error('Failed to refresh roadmap progress:', err));
       }
     } catch (err) {
       console.error('Failed to validate step:', err);
@@ -285,7 +334,7 @@ export function useLearningPlayer({ projectId }: UseLearningPlayerOptions) {
       validatingRef.current = false;
       setValidating(false);
     }
-  }, [projectId, roadmap, currentStep, completedStepIds, resultsByStepId]);
+  }, [projectId, roadmap, currentStep, completedStepIds, resultsByStepId, progressUrl]);
 
   /** Forgets this roadmap's persisted progress and restarts it from step 1. */
   const resetProgress = useCallback(async () => {
@@ -304,6 +353,8 @@ export function useLearningPlayer({ projectId }: UseLearningPlayerOptions) {
       setCompletedStepIds({});
       setProgressNotice(false);
       setValidationError(null);
+      setCompletionOpen(false);
+      setRunTimes({});
     } catch (err) {
       console.error('Failed to reset roadmap progress:', err);
       setResetError('');
@@ -313,6 +364,15 @@ export function useLearningPlayer({ projectId }: UseLearningPlayerOptions) {
   }, [resetting, roadmap, progressUrl]);
 
   const dismissProgressNotice = useCallback(() => setProgressNotice(false), []);
+
+  const dismissCompletion = useCallback(() => setCompletionOpen(false), []);
+  const reopenCompletion = useCallback(() => setCompletionOpen(true), []);
+
+  // Achievement, not navigation: true as soon as every step is green, whether
+  // it was earned this session or restored from persisted progress.
+  const roadmapCompleted =
+    roadmap !== null &&
+    roadmap.steps.every(step => completedStepIds[step.id] || resultsByStepId[step.id]?.stepPassed);
 
   return {
     roadmap,
@@ -335,5 +395,10 @@ export function useLearningPlayer({ projectId }: UseLearningPlayerOptions) {
     resetProgress,
     resetting,
     resetError,
+    roadmapCompleted,
+    completionOpen,
+    dismissCompletion,
+    reopenCompletion,
+    runTimes,
   };
 }

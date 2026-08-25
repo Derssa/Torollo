@@ -1,0 +1,22 @@
+{
+  "schemaVersion": 1,
+  "id": "imported-roadmap",
+  "title": "Imported roadmap",
+  "description": "A user-imported roadmap used by roadmapService tests.",
+  "language": "en",
+  "estimatedMinutes": 5,
+  "difficulty": "advanced",
+  "steps": [
+    {
+      "id": "start-cache",
+      "title": "Start the cache",
+      "instruction": "Create a node named `cache` and start it.",
+      "validators": [
+        {
+          "type": "container_running",
+          "params": { "node": "cache" }
+        }
+      ]
+    }
+  ]
+}

@@ -14,10 +14,14 @@ import RoadmapDetailPage from './components/learning/detail/RoadmapDetailPage';
 import { filterByUiLanguage } from '../../features/learning/roadmapLanguage';
 import { markLearningPitchSeen } from '../../features/learning/onboarding';
 import { API_BASE } from '../../shared/types';
-import type { LearningIntent, Project } from '../../shared/types';
+import type { LearningExit, LearningIntent, Project } from '../../shared/types';
 import type { ProgressEntrySummary, RoadmapSummary } from '../../shared/types/roadmap';
 
 interface ProjectsPageProps {
+  /** Arrival from the canvas (the completion screen's navigation): land on the
+   *  learning catalogue or one roadmap's briefing. One-shot, consumed on mount. */
+  initialLearning?: LearningExit | null;
+  onInitialLearningConsumed?: () => void;
   onSelectProject: (id: string, name: string, intent?: LearningIntent) => void;
 }
 
@@ -31,10 +35,26 @@ type HomeRoute =
   | { kind: 'learning' }
   | { kind: 'roadmap'; summary: RoadmapSummary; progress?: ProgressEntrySummary };
 
-export default function ProjectsPage({ onSelectProject }: ProjectsPageProps) {
+export default function ProjectsPage({
+  initialLearning,
+  onInitialLearningConsumed,
+  onSelectProject,
+}: ProjectsPageProps) {
   const { t, i18n } = useTranslation();
-  // Which home view the side rail is on; session-only, Projects first.
-  const [route, setRoute] = useState<HomeRoute>({ kind: 'projects' });
+  // Which home view the side rail is on; session-only, Projects first —
+  // unless the canvas sent the learner here (completion screen's navigation).
+  const [route, setRoute] = useState<HomeRoute>(() => {
+    if (!initialLearning) return { kind: 'projects' };
+    return initialLearning.kind === 'roadmap'
+      ? { kind: 'roadmap', summary: initialLearning.summary }
+      : { kind: 'learning' };
+  });
+  // One-shot: the owner clears its copy right away so a later remount of the
+  // home shell can never replay the arrival.
+  const initialLearningConsumedRef = useRef(onInitialLearningConsumed);
+  useEffect(() => {
+    initialLearningConsumedRef.current?.();
+  }, []);
   const [projects, setProjects] = useState<Project[]>([]);
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState(false);

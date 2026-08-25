@@ -18,6 +18,8 @@ export interface StepProgress {
 export interface ProgressEntry {
   projectId: string;
   roadmapId: string;
+  /** ISO timestamp of the entry's creation — when the play-through began. Absent on entries written before it existed. */
+  startedAt?: string;
   updatedAt: string;
   steps: Record<string, StepProgress>;
 }
@@ -45,6 +47,8 @@ export interface ProgressEntrySummary {
 export interface RoadmapProgressResponse {
   projectId: string;
   roadmapId: string;
+  /** When this play-through began — absent when it hasn't started, or predates the field. */
+  startedAt?: string;
   steps: Record<string, StepProgress>;
   /** Present (true) once after an unreadable store was moved aside — the UI should tell the user. */
   storeRecovered?: boolean;
@@ -85,6 +89,9 @@ export class ProgressService {
     const store = this.readStore(filePath);
     const entry = store.entries.find(e => e.projectId === projectId && e.roadmapId === roadmapId);
     const response: RoadmapProgressResponse = { projectId, roadmapId, steps: entry?.steps ?? {} };
+    if (entry?.startedAt) {
+      response.startedAt = entry.startedAt;
+    }
     if (this.storeRecovered) {
       response.storeRecovered = true;
       this.storeRecovered = false;
@@ -165,7 +172,7 @@ export class ProgressService {
   ): StepProgress {
     let entry = store.entries.find(e => e.projectId === projectId && e.roadmapId === roadmapId);
     if (!entry) {
-      entry = { projectId, roadmapId, updatedAt: '', steps: {} };
+      entry = { projectId, roadmapId, startedAt: new Date().toISOString(), updatedAt: '', steps: {} };
       store.entries.push(entry);
     }
     entry.updatedAt = new Date().toISOString();

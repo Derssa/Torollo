@@ -441,6 +441,95 @@ describe('useLearningPlayer', () => {
     });
   });
 
+  describe('completion', () => {
+    const completedProgress: RoadmapProgressResponse = {
+      ...emptyProgress,
+      startedAt: '2026-07-15T09:00:00.000Z',
+      steps: {
+        'create-web-server': { passed: true, attempts: 1, revealedHints: 0, lastCheckedAt: '2026-07-15T09:30:00.000Z' },
+        'add-database': { passed: true, attempts: 1, revealedHints: 0, lastCheckedAt: '2026-07-15T09:45:00.000Z' },
+      },
+    };
+
+    it('opens the completion screen when a validation turns the last missing step green', async () => {
+      const { result } = renderHook(() => useLearningPlayer({ projectId: 'p1' }));
+      await openExampleRoadmap(result, fetchMock, {
+        ...emptyProgress,
+        steps: { 'create-web-server': { passed: true, attempts: 1, revealedHints: 0 } },
+      });
+      expect(result.current.completionOpen).toBe(false);
+      expect(result.current.roadmapCompleted).toBe(false);
+
+      // The validate POST, then the startedAt refetch it triggers.
+      fetchMock.mockResolvedValueOnce(
+        jsonResponse(true, { ...passResponse, stepId: 'add-database' })
+      );
+      fetchMock.mockResolvedValueOnce(
+        jsonResponse(true, { ...emptyProgress, startedAt: '2026-07-15T09:00:00.000Z' })
+      );
+      await act(async () => {
+        await result.current.validateCurrentStep();
+      });
+
+      expect(result.current.roadmapCompleted).toBe(true);
+      expect(result.current.completionOpen).toBe(true);
+      expect(result.current.runTimes).toEqual({
+        startedAt: '2026-07-15T09:00:00.000Z',
+        finishedAt: passResponse.checkedAt,
+      });
+    });
+
+    it('does not reopen a dismissed screen when re-validating an already complete roadmap', async () => {
+      const { result } = renderHook(() => useLearningPlayer({ projectId: 'p1' }));
+      await openExampleRoadmap(result, fetchMock, completedProgress);
+      expect(result.current.completionOpen).toBe(true);
+
+      act(() => result.current.dismissCompletion());
+      expect(result.current.completionOpen).toBe(false);
+
+      act(() => result.current.goToStep(0));
+      fetchMock.mockResolvedValueOnce(jsonResponse(true, passResponse));
+      await act(async () => {
+        await result.current.validateCurrentStep();
+      });
+
+      expect(result.current.roadmapCompleted).toBe(true);
+      expect(result.current.completionOpen).toBe(false);
+    });
+
+    it('replays the celebration when opening an already-finished roadmap', async () => {
+      const { result } = renderHook(() => useLearningPlayer({ projectId: 'p1' }));
+      await openExampleRoadmap(result, fetchMock, completedProgress);
+
+      expect(result.current.roadmapCompleted).toBe(true);
+      expect(result.current.completionOpen).toBe(true);
+      // startedAt comes from the entry, finishedAt from the latest recorded check.
+      expect(result.current.runTimes).toEqual({
+        startedAt: '2026-07-15T09:00:00.000Z',
+        finishedAt: '2026-07-15T09:45:00.000Z',
+      });
+
+      act(() => result.current.dismissCompletion());
+      act(() => result.current.reopenCompletion());
+      expect(result.current.completionOpen).toBe(true);
+    });
+
+    it('closes the screen and forgets the run times on restart', async () => {
+      const { result } = renderHook(() => useLearningPlayer({ projectId: 'p1' }));
+      await openExampleRoadmap(result, fetchMock, completedProgress);
+      expect(result.current.completionOpen).toBe(true);
+
+      fetchMock.mockResolvedValueOnce(jsonResponse(true, {}));
+      await act(async () => {
+        await result.current.resetProgress();
+      });
+
+      expect(result.current.completionOpen).toBe(false);
+      expect(result.current.roadmapCompleted).toBe(false);
+      expect(result.current.runTimes).toEqual({});
+    });
+  });
+
   describe('closeRoadmap', () => {
     it('returns to the catalogue state and drops in-memory results', async () => {
       const { result } = renderHook(() => useLearningPlayer({ projectId: 'p1' }));

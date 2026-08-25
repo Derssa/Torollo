@@ -6,6 +6,7 @@
  * API types:     backend/src/modules/learning/engine/types.ts (ValidatorResult),
  *                controllers/learningController.ts (StepValidationResponse),
  *                services/roadmapService.ts (RoadmapSummary),
+ *                services/roadmapImportService.ts (ImportReport and parts),
  *                services/progressService.ts (StepProgress, RoadmapProgressResponse,
  *                ProgressEntrySummary).
  * The duplication is deliberate: backend and frontend are separate npm
@@ -54,6 +55,9 @@ export interface Roadmap {
   steps: RoadmapStep[];
 }
 
+/** Where a catalogue entry comes from: shipped with Torollo, or imported by the user. */
+export type RoadmapSource = 'builtin' | 'imported';
+
 /** One catalogue entry of GET /api/learning/roadmaps — one per file, so translations are separate entries. */
 export interface RoadmapSummary {
   id: string;
@@ -63,6 +67,33 @@ export interface RoadmapSummary {
   difficulty?: RoadmapDifficulty;
   estimatedMinutes?: number;
   stepCount: number;
+  /** Optional so older mocks keep compiling — an absent source means builtin. */
+  source?: RoadmapSource;
+}
+
+/** One roadmap file accepted by POST /api/learning/roadmaps/import. */
+export interface ImportedRoadmap {
+  /** Name of the uploaded file or archive entry the roadmap came from. */
+  file: string;
+  id: string;
+  language: string;
+  title: string;
+  /** True when this import replaced a previously imported version. */
+  updated: boolean;
+}
+
+/** One roadmap file the import refused, with the reasons a user can act on. */
+export interface RejectedFile {
+  file: string;
+  errors: string[];
+}
+
+/** Response of POST /api/learning/roadmaps/import (200 or, when nothing installed, 422). */
+export interface ImportReport {
+  imported: ImportedRoadmap[];
+  rejected: RejectedFile[];
+  /** Archive entries that are not roadmap files (README, images…) — skipped, not an error. */
+  ignored: string[];
 }
 
 export type ValidatorStatus = 'pass' | 'fail' | 'error';
@@ -115,6 +146,8 @@ export interface StepProgress {
 export interface RoadmapProgressResponse {
   projectId: string;
   roadmapId: string;
+  /** When this play-through began — absent when it hasn't started, or predates the field. */
+  startedAt?: string;
   steps: Record<string, StepProgress>;
   /** Present (true) once after an unreadable store was moved aside — tell the user. */
   storeRecovered?: boolean;

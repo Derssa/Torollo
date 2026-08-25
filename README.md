@@ -94,7 +94,7 @@ Current catalogue (English and French):
 | Cache-aside with Redis | intermediate | 30 min | Caching strategy, TTLs, invalidation, measuring hit rates |
 | Workers & the Redis job queue | intermediate | 40 min | Async decoupling, queues, scaling workers under load, poison messages |
 
-**Roadmaps are plain JSON — no code.** The format is open and documented in the [Roadmap Authoring Reference](docs/roadmap-format.md); drop a valid file into `roadmaps/` and it appears in the catalogue. Community-authored roadmaps are very welcome. The validation HTTP API is documented in [learning-api.md](docs/learning-api.md).
+**Roadmaps are plain JSON — no code.** The format is open and documented in the [Roadmap Authoring Reference](docs/roadmap-format.md); drop a valid file into `roadmaps/` — or import any roadmap file or `.zip` pack from the Learning page, no repo checkout needed ([how it works](docs/local-roadmaps.md)) — and it appears in the catalogue. Community-authored roadmaps are very welcome. The validation HTTP API is documented in [learning-api.md](docs/learning-api.md).
 
 ---
 

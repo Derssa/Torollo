@@ -38,11 +38,8 @@ function buildResponse(results: ValidatorResult[]): StepValidationResponse {
   };
 }
 
-function renderToast(
-  response: StepValidationResponse,
-  { isLastStep = false, onDismiss = vi.fn() } = {}
-) {
-  render(<ValidationToast response={response} isLastStep={isLastStep} onDismiss={onDismiss} />);
+function renderToast(response: StepValidationResponse, { onDismiss = vi.fn() } = {}) {
+  render(<ValidationToast response={response} onDismiss={onDismiss} />);
   return { onDismiss };
 }
 
@@ -52,14 +49,6 @@ describe('ValidationToast', () => {
 
     expect(screen.getByText('Validation passed')).toBeInTheDocument();
     expect(screen.getByText('The container "web" is running.')).toBeInTheDocument();
-  });
-
-  it('celebrates the roadmap on the last step', () => {
-    renderToast(buildResponse([passResult]), { isLastStep: true });
-
-    expect(
-      screen.getByText('Validation passed — that was the last step. Roadmap complete!')
-    ).toBeInTheDocument();
   });
 
   it('shows a failure as the verdict plus the first failing message only', () => {
