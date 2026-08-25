@@ -1,6 +1,9 @@
-import { useState, useCallback, useRef } from 'react';
+import { useState, useCallback, useEffect, useRef } from 'react';
 import { API_BASE } from '../../../shared/types';
 import { readErrorMessage } from '../../../shared/utils/readErrorMessage';
+import { trackEvent } from '../../telemetry/telemetry';
+import { claimMilestone } from '../../telemetry/milestones';
+import { stepOutcome } from '../validationStatus';
 import type {
   Roadmap,
   RoadmapProgressResponse,
@@ -80,8 +83,50 @@ export function useLearningPlayer({ projectId }: UseLearningPlayerOptions) {
   // Two quick openRoadmap clicks race on fetch resolution order; only the
   // latest request is allowed to commit its result.
   const openSeqRef = useRef(0);
+  // Telemetry: the open play-through, read by the abandon paths (close,
+  // unmount, pagehide) — a ref so those handlers see the latest state.
+  const telemetrySessionRef = useRef<{ roadmapId: string; stepId: string; complete: boolean } | null>(
+    null
+  );
 
   const currentStep: RoadmapStep | null = roadmap?.steps[currentStepIndex] ?? null;
+
+  useEffect(() => {
+    if (!roadmap || !currentStep) {
+      telemetrySessionRef.current = null;
+      return;
+    }
+    telemetrySessionRef.current = {
+      roadmapId: roadmap.id,
+      stepId: currentStep.id,
+      complete: roadmap.steps.every(
+        step => completedStepIds[step.id] || resultsByStepId[step.id]?.stepPassed
+      ),
+    };
+  }, [roadmap, currentStep, completedStepIds, resultsByStepId]);
+
+  // Leaving an unfinished roadmap is the abandon event, whatever the exit:
+  // closing the player, unmounting it, or closing/refreshing the whole tab.
+  // Nulling the ref makes the event once-per-play-through — close followed by
+  // unmount must not double-count.
+  const fireAbandon = useCallback(() => {
+    const session = telemetrySessionRef.current;
+    if (!session || session.complete) return;
+    telemetrySessionRef.current = null;
+    trackEvent(
+      'roadmap_abandoned',
+      { roadmap: session.roadmapId, step: session.stepId },
+      { keepalive: true }
+    );
+  }, []);
+
+  useEffect(() => {
+    window.addEventListener('pagehide', fireAbandon);
+    return () => {
+      window.removeEventListener('pagehide', fireAbandon);
+      fireAbandon();
+    };
+  }, [fireAbandon]);
 
   const progressUrl = useCallback(
     (roadmapId: string) =>
@@ -116,6 +161,7 @@ export function useLearningPlayer({ projectId }: UseLearningPlayerOptions) {
         let progressSteps: Record<string, StepProgress> = {};
         let startedAt: string | undefined;
         let recovered = false;
+        let progressLoaded = false;
         try {
           const progressRes = await fetch(progressUrl(data.id));
           if (progressRes.ok) {
@@ -123,6 +169,7 @@ export function useLearningPlayer({ projectId }: UseLearningPlayerOptions) {
             progressSteps = progress.steps ?? {};
             startedAt = progress.startedAt;
             recovered = progress.storeRecovered === true;
+            progressLoaded = true;
           } else {
             console.error('Failed to load roadmap progress: HTTP', progressRes.status);
           }
@@ -163,6 +210,12 @@ export function useLearningPlayer({ projectId }: UseLearningPlayerOptions) {
           startedAt,
           finishedAt: allComplete ? latestCheck(steps, progressSteps) : undefined,
         });
+
+        // A confirmed-empty progress store is what "started" means; a failed
+        // progress fetch could be a resumed run, so it never counts as one.
+        if (progressLoaded && Object.keys(progressSteps).length === 0) {
+          trackEvent('roadmap_started', { roadmap: data.id });
+        }
       } catch (err) {
         console.error('Failed to load roadmap:', err);
         if (seq === openSeqRef.current) setRoadmapError('');
@@ -174,6 +227,7 @@ export function useLearningPlayer({ projectId }: UseLearningPlayerOptions) {
   );
 
   const closeRoadmap = useCallback(() => {
+    fireAbandon();
     setRoadmap(null);
     setRoadmapError(null);
     setCurrentStepIndex(0);
@@ -185,7 +239,7 @@ export function useLearningPlayer({ projectId }: UseLearningPlayerOptions) {
     setResetError(null);
     setCompletionOpen(false);
     setRunTimes({});
-  }, []);
+  }, [fireAbandon]);
 
   const goToStep = useCallback(
     (index: number) => {
@@ -233,15 +287,32 @@ export function useLearningPlayer({ projectId }: UseLearningPlayerOptions) {
       const response: StepValidationResponse = await res.json();
       setResultsByStepId(prev => ({ ...prev, [currentStep.id]: response }));
 
-      // Fresh completion — this verdict turned the last missing step green.
-      // Only the transition celebrates: re-validating a step of an already
-      // complete roadmap must not reopen the screen over the learner's work.
+      // The install's first-ever validation, whatever its verdict: the moment
+      // the learner has crossed setup and is actually using the engine.
+      if (claimMilestone('first_validator_run')) {
+        trackEvent('first_validator_run', { roadmap: roadmap.id, step: currentStep.id });
+      }
+
+      // An engine error is not a pedagogical failure — it is not counted.
+      const outcome = stepOutcome(response);
+      if (outcome !== 'error') {
+        trackEvent(outcome === 'passed' ? 'step_validated' : 'step_failed', {
+          roadmap: roadmap.id,
+          step: currentStep.id,
+        });
+      }
+
+      // Fresh completion only — this verdict turned the last missing step
+      // green. Only the transition counts and celebrates: re-validating a
+      // step of an already complete roadmap must not report the roadmap as
+      // completed again nor reopen the screen over the learner's work.
       const stepDone = (step: RoadmapStep) =>
         completedStepIds[step.id] || resultsByStepId[step.id]?.stepPassed;
       const wasComplete = roadmap.steps.every(stepDone);
       const nowComplete =
         response.stepPassed && roadmap.steps.every(step => step.id === currentStep.id || stepDone(step));
       if (nowComplete && !wasComplete) {
+        trackEvent('roadmap_completed', { roadmap: roadmap.id });
         setCompletionOpen(true);
         setRunTimes(prev => ({ ...prev, finishedAt: response.checkedAt }));
         // The run may have started this session, after the open-time

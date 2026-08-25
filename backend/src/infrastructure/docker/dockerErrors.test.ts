@@ -1,4 +1,4 @@
-import { classifyDockerError, sendDockerError, ContainerNotFoundError } from './dockerErrors';
+import { classifyDaemonFailure, classifyDockerError, sendDockerError, ContainerNotFoundError } from './dockerErrors';
 import { InvalidImageReferenceError } from './imageReference';
 
 describe('classifyDockerError', () => {
@@ -123,5 +123,20 @@ describe('sendDockerError', () => {
     });
     expect(consoleError).toHaveBeenCalled();
     consoleError.mockRestore();
+  });
+});
+
+describe('classifyDaemonFailure', () => {
+  it.each([
+    ['ENOENT (socket missing, Docker Desktop not started)', { code: 'ENOENT' }, 'socket_not_found'],
+    ['EACCES (user not in the docker group)', { code: 'EACCES' }, 'permission_denied'],
+    ['EPERM', { code: 'EPERM' }, 'permission_denied'],
+    ['ECONNREFUSED', { code: 'ECONNREFUSED' }, 'connection_refused'],
+    ['ETIMEDOUT', { code: 'ETIMEDOUT' }, 'timeout'],
+    ['an error without a code', new Error('boom'), 'unknown'],
+    ['a non-error value', 'nope', 'unknown'],
+    ['undefined', undefined, 'unknown'],
+  ])('maps %s to %s', (_label, err, expected) => {
+    expect(classifyDaemonFailure(err)).toBe(expected);
   });
 });

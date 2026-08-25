@@ -2,6 +2,7 @@ import { useTranslation } from 'react-i18next';
 import { BookOpen, ChevronRight, Plus } from 'lucide-react';
 import Button from '../../../shared/components/Button';
 import ThemeSelector from '../../../shared/components/ThemeSelector';
+import TelemetryToggle from '../../../shared/components/TelemetryToggle';
 import logo from '../../../assets/logo.png';
 
 export interface BreadcrumbItem {
@@ -63,6 +64,7 @@ export default function PageHeader({ onNewProject, breadcrumb }: PageHeaderProps
         </div>
       )}
       <div style={styles.actions}>
+        <TelemetryToggle />
         <ThemeSelector />
         <Button onClick={toggleLanguage} size="lg" title={t('topbar.toggleLanguage')}>
           {i18n.language.toUpperCase()}

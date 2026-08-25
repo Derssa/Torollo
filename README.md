@@ -145,6 +145,34 @@ TOROLLO_ALLOWED_ORIGINS=http://<your-lan-ip>:23232
 
 ---
 
+## Telemetry
+
+Torollo can send **anonymous, opt-in** usage events so we can see where the roadmaps lose people. **Nothing is ever sent unless you explicitly enable it** — the app asks once on the home screen, and until you answer (or if you decline) it makes zero telemetry requests.
+
+If you opt in, exactly these events are sent, and nothing else:
+
+| Event | Sent when | Extra props |
+|---|---|---|
+| `app_started` | the app loads | — |
+| `runtime_check_started` | the app probes whether Docker is reachable (right after `app_started`) | — |
+| `runtime_ready` | that probe finds Docker running | — |
+| `runtime_failed` | that probe fails | `reason`: `backend_unreachable`, `timeout`, `socket_not_found`, `permission_denied`, `connection_refused` or `unknown` |
+| `image_pull_failed` | a node can't be created because its Docker image failed to download | `node`: the node type (`redis`, `postgres`, …) |
+| `first_validator_run` | the very first time this install runs a step validation | `roadmap`, `step` |
+| `roadmap_started` | you open a roadmap with no saved progress | `roadmap` |
+| `step_validated` | a step's validators all pass | `roadmap`, `step` |
+| `step_failed` | a validation runs and the step doesn't pass (engine errors are not counted) | `roadmap`, `step` |
+| `roadmap_completed` | the last remaining step of a roadmap passes | `roadmap` |
+| `roadmap_abandoned` | you leave a roadmap before finishing it | `roadmap`, `step` |
+
+Every event also carries the app version and a random install id generated locally (never derived from your machine). `roadmap` and `step` are the ids from the catalogue; `reason` and `node` are fixed codes. No personal data, no project names, no socket paths, no error messages, no container contents, no code. You can inspect every payload in your browser's network tab.
+
+**Turning it off (or on) later:** click the activity icon in the home-screen header, or clear the `torollo_telemetry_consent` key from the browser's localStorage. Revoking consent also deletes the install id (and the "first time" markers tied to it), so re-enabling later starts a fresh anonymous identity.
+
+Forks and self-hosters can point events at their own [Plausible](https://plausible.io)-compatible endpoint (or disable telemetry entirely) at build time with `VITE_TELEMETRY_ENDPOINT` and `VITE_TELEMETRY_DOMAIN` (an empty `VITE_TELEMETRY_ENDPOINT` hard-disables it).
+
+---
+
 ## Architecture
 
 * **Backend** — Node.js, Express, TypeScript, Socket.IO, Dockerode. The backend is the supervisor: it drives the local Docker daemon, compiles your visual topology into real `iptables` rules applied inside the containers, and persists state in `~/.torollo/projects.json`. Every node image must ship with `iptables` and `iproute2` — see [Required tooling inside every node image](docs/adding-a-node.md#required-tooling-inside-every-node-image).

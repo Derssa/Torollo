@@ -14,6 +14,14 @@
     "light": "Clair",
     "dark": "Sombre"
   },
+  "telemetry": {
+    "title": "Statistiques d'usage anonymes",
+    "body": "Activez l'envoi d'événements d'usage anonymes — démarrage de l'app, Docker joignable ou non, téléchargements d'image en échec, et progression dans les roadmaps (démarrée, étape validée ou échouée, complétée, abandonnée) — pour nous aider à voir où les gens bloquent. Aucune donnée personnelle, aucun nom de projet, aucun code — la liste complète est dans le README. Rien n'est envoyé sans votre accord.",
+    "accept": "Activer",
+    "decline": "Non merci",
+    "toggleOn": "Statistiques d'usage anonymes : activées — cliquer pour désactiver",
+    "toggleOff": "Statistiques d'usage anonymes : désactivées — cliquer pour activer"
+  },
   "learning": {
     "panelTitle": "Apprentissage",
     "close": "Fermer le panneau",

@@ -14,6 +14,14 @@
     "light": "Light",
     "dark": "Dark"
   },
+  "telemetry": {
+    "title": "Anonymous usage stats",
+    "body": "Opt in to send anonymous usage events — app start, whether Docker was reachable, image downloads that failed, and roadmap progress (started, step validated or failed, completed, abandoned) — so we can see where people get stuck. No personal data, no project names, no code — the full event list is in the README. Nothing is sent unless you enable it.",
+    "accept": "Enable",
+    "decline": "No thanks",
+    "toggleOn": "Anonymous usage stats: on — click to disable",
+    "toggleOff": "Anonymous usage stats: off — click to enable"
+  },
   "learning": {
     "panelTitle": "Learning",
     "close": "Close panel",

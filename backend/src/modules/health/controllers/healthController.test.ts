@@ -28,10 +28,9 @@ describe('HealthController', () => {
       });
     });
 
-    it('should return 503 degraded when Docker is unreachable', async () => {
-      (docker.ping as jest.Mock).mockRejectedValue(
-        new Error('connect ENOENT /var/run/docker.sock')
-      );
+    it('should return 503 degraded with a stable reason when Docker is unreachable', async () => {
+      const err = Object.assign(new Error('connect ENOENT /var/run/docker.sock'), { code: 'ENOENT' });
+      (docker.ping as jest.Mock).mockRejectedValue(err);
 
       const res = await request(app).get('/health');
 
@@ -39,9 +38,22 @@ describe('HealthController', () => {
       expect(res.body).toEqual({
         status: 'degraded',
         checks: {
-          docker: { status: 'unreachable', error: 'connect ENOENT /var/run/docker.sock' },
+          docker: {
+            status: 'unreachable',
+            reason: 'socket_not_found',
+            error: 'connect ENOENT /var/run/docker.sock',
+          },
         },
       });
+    });
+
+    it('should report an unknown reason for an unclassified failure', async () => {
+      (docker.ping as jest.Mock).mockRejectedValue(new Error('boom'));
+
+      const res = await request(app).get('/health');
+
+      expect(res.status).toBe(503);
+      expect(res.body.checks.docker.reason).toBe('unknown');
     });
   });
 });

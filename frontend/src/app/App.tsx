@@ -2,9 +2,11 @@ import { useState } from 'react';
 import CanvasPage from '../pages/CanvasPage/CanvasPage';
 import TerminalModal from '../features/terminal/components/TerminalModal';
 import ProjectsPage from '../pages/ProjectsPage/ProjectsPage';
+import { useBootTelemetry } from '../features/telemetry/useBootTelemetry';
 import type { LearningExit, LearningIntent, ProjectInfo, TerminalInfo } from '../shared/types';
 
 function App() {
+  useBootTelemetry();
   const [activeProject, setActiveProject] = useState<ProjectInfo | null>(() => {
     const saved = localStorage.getItem('akal-active-project');
     try {

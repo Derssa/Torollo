@@ -1,11 +1,15 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { renderHook, act } from '@testing-library/react';
 import { useLearningPlayer } from './useLearningPlayer';
+import { trackEvent } from '../../telemetry/telemetry';
 import type {
   Roadmap,
   RoadmapProgressResponse,
   StepValidationResponse,
 } from '../../../shared/types/roadmap';
+
+vi.mock('../../telemetry/telemetry', () => ({ trackEvent: vi.fn() }));
+const trackEventMock = vi.mocked(trackEvent);
 
 function jsonResponse(ok: boolean, body: unknown): Response {
   return { ok, json: () => Promise.resolve(body) } as Response;
@@ -69,9 +73,11 @@ describe('useLearningPlayer', () => {
   let errorSpy: ReturnType<typeof vi.spyOn>;
 
   beforeEach(() => {
+    localStorage.clear();
     fetchMock = vi.fn();
     vi.stubGlobal('fetch', fetchMock);
     errorSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
+    trackEventMock.mockClear();
   });
 
   afterEach(() => {
@@ -543,6 +549,170 @@ describe('useLearningPlayer', () => {
       expect(result.current.completedStepIds).toEqual({});
       expect(result.current.progressNotice).toBe(false);
       expect(result.current.currentStepIndex).toBe(0);
+    });
+  });
+
+  describe('telemetry events', () => {
+    const doneStep = { passed: true, attempts: 1, revealedHints: 0 };
+    const halfDoneProgress: RoadmapProgressResponse = {
+      projectId: 'p1',
+      roadmapId: roadmap.id,
+      steps: { 'create-web-server': doneStep },
+    };
+    const allDoneProgress: RoadmapProgressResponse = {
+      projectId: 'p1',
+      roadmapId: roadmap.id,
+      steps: { 'create-web-server': doneStep, 'add-database': doneStep },
+    };
+    const failResponse: StepValidationResponse = {
+      roadmapId: roadmap.id,
+      stepId: 'create-web-server',
+      stepPassed: false,
+      results: [{ index: 0, type: 'container_running', status: 'fail', message: 'Not running.' }],
+      checkedAt: '2026-07-15T10:00:00.000Z',
+    };
+    const errorResponse: StepValidationResponse = {
+      roadmapId: roadmap.id,
+      stepId: 'create-web-server',
+      stepPassed: false,
+      results: [{ index: 0, type: 'container_running', status: 'error', message: 'Docker down.' }],
+      checkedAt: '2026-07-15T10:00:00.000Z',
+    };
+
+    it('fires first_validator_run once per install, whatever the verdict', async () => {
+      const { result } = renderHook(() => useLearningPlayer({ projectId: 'p1' }));
+      await openExampleRoadmap(result, fetchMock);
+
+      fetchMock.mockResolvedValueOnce(jsonResponse(true, errorResponse));
+      await act(async () => {
+        await result.current.validateCurrentStep();
+      });
+      expect(trackEventMock).toHaveBeenCalledWith('first_validator_run', {
+        roadmap: roadmap.id,
+        step: 'create-web-server',
+      });
+
+      fetchMock.mockResolvedValueOnce(jsonResponse(true, passResponse));
+      await act(async () => {
+        await result.current.validateCurrentStep();
+      });
+      const firsts = trackEventMock.mock.calls.filter(([name]) => name === 'first_validator_run');
+      expect(firsts).toHaveLength(1);
+    });
+
+    it('does not fire first_validator_run when the validation request itself fails', async () => {
+      const { result } = renderHook(() => useLearningPlayer({ projectId: 'p1' }));
+      await openExampleRoadmap(result, fetchMock);
+
+      fetchMock.mockResolvedValueOnce(jsonResponse(false, { error: 'Docker down' }));
+      await act(async () => {
+        await result.current.validateCurrentStep();
+      });
+      expect(trackEventMock).not.toHaveBeenCalledWith('first_validator_run', expect.anything());
+    });
+
+    it('fires roadmap_started when the persisted progress is empty', async () => {
+      const { result } = renderHook(() => useLearningPlayer({ projectId: 'p1' }));
+      await openExampleRoadmap(result, fetchMock);
+      expect(trackEventMock).toHaveBeenCalledWith('roadmap_started', { roadmap: roadmap.id });
+    });
+
+    it('does not fire roadmap_started on a resumed run or an unreachable progress store', async () => {
+      const { result } = renderHook(() => useLearningPlayer({ projectId: 'p1' }));
+      await openExampleRoadmap(result, fetchMock, halfDoneProgress);
+
+      fetchMock.mockResolvedValueOnce(jsonResponse(true, roadmap));
+      fetchMock.mockRejectedValueOnce(new Error('network down'));
+      await act(async () => {
+        await result.current.openRoadmap({ id: roadmap.id, language: 'en' });
+      });
+
+      expect(trackEventMock).not.toHaveBeenCalledWith('roadmap_started', expect.anything());
+    });
+
+    it('fires step_validated on a pass and step_failed on a fail, never on an engine error', async () => {
+      const { result } = renderHook(() => useLearningPlayer({ projectId: 'p1' }));
+      await openExampleRoadmap(result, fetchMock);
+
+      fetchMock.mockResolvedValueOnce(jsonResponse(true, failResponse));
+      await act(async () => {
+        await result.current.validateCurrentStep();
+      });
+      expect(trackEventMock).toHaveBeenCalledWith('step_failed', {
+        roadmap: roadmap.id,
+        step: 'create-web-server',
+      });
+
+      fetchMock.mockResolvedValueOnce(jsonResponse(true, errorResponse));
+      await act(async () => {
+        await result.current.validateCurrentStep();
+      });
+      expect(trackEventMock).not.toHaveBeenCalledWith('step_validated', expect.anything());
+
+      fetchMock.mockResolvedValueOnce(jsonResponse(true, passResponse));
+      await act(async () => {
+        await result.current.validateCurrentStep();
+      });
+      expect(trackEventMock).toHaveBeenCalledWith('step_validated', {
+        roadmap: roadmap.id,
+        step: 'create-web-server',
+      });
+    });
+
+    it('fires roadmap_completed once, on the validation that completes the roadmap', async () => {
+      const { result } = renderHook(() => useLearningPlayer({ projectId: 'p1' }));
+      await openExampleRoadmap(result, fetchMock, halfDoneProgress);
+      expect(result.current.currentStep?.id).toBe('add-database');
+
+      fetchMock.mockResolvedValueOnce(jsonResponse(true, { ...passResponse, stepId: 'add-database' }));
+      await act(async () => {
+        await result.current.validateCurrentStep();
+      });
+      expect(trackEventMock).toHaveBeenCalledWith('roadmap_completed', { roadmap: roadmap.id });
+
+      // Re-validating a step of the already complete roadmap must not recount.
+      fetchMock.mockResolvedValueOnce(jsonResponse(true, { ...passResponse, stepId: 'add-database' }));
+      await act(async () => {
+        await result.current.validateCurrentStep();
+      });
+      const completions = trackEventMock.mock.calls.filter(([name]) => name === 'roadmap_completed');
+      expect(completions).toHaveLength(1);
+    });
+
+    it('fires roadmap_abandoned with keepalive when an unfinished roadmap is closed', async () => {
+      const { result } = renderHook(() => useLearningPlayer({ projectId: 'p1' }));
+      await openExampleRoadmap(result, fetchMock);
+
+      act(() => result.current.closeRoadmap());
+
+      expect(trackEventMock).toHaveBeenCalledWith(
+        'roadmap_abandoned',
+        { roadmap: roadmap.id, step: 'create-web-server' },
+        { keepalive: true }
+      );
+    });
+
+    it('does not fire roadmap_abandoned when the roadmap is complete', async () => {
+      const { result } = renderHook(() => useLearningPlayer({ projectId: 'p1' }));
+      await openExampleRoadmap(result, fetchMock, allDoneProgress);
+
+      act(() => result.current.closeRoadmap());
+
+      expect(trackEventMock).not.toHaveBeenCalledWith(
+        'roadmap_abandoned',
+        expect.anything(),
+        expect.anything()
+      );
+    });
+
+    it('fires roadmap_abandoned exactly once on unmount with the player open', async () => {
+      const { result, unmount } = renderHook(() => useLearningPlayer({ projectId: 'p1' }));
+      await openExampleRoadmap(result, fetchMock);
+
+      unmount();
+
+      const abandons = trackEventMock.mock.calls.filter(([name]) => name === 'roadmap_abandoned');
+      expect(abandons).toHaveLength(1);
     });
   });
 });
