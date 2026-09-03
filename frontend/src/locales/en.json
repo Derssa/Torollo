@@ -74,6 +74,7 @@
       "hintLabel": "hint {{n}}/{{total}}",
       "showHint": "Show hint ({{n}}/{{total}})",
       "solutionLabel": "solution",
+      "debriefLabel": "debrief",
       "showSolution": "Reveal the solution",
       "confirmSolution": "Sure? Click again to reveal",
       "resetProgress": "Restart roadmap",

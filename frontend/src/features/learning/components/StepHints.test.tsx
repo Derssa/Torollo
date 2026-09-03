@@ -86,6 +86,64 @@ describe('StepHints', () => {
     expect(container).toBeEmptyDOMElement();
   });
 
+  it('shows the solution on its own as the debrief once the step has passed', () => {
+    render(
+      <StepHints
+        step={buildStep({ hints: ['First nudge.', 'Second nudge.'], solution: 'The full answer.' })}
+        revealedCount={0}
+        onReveal={() => {}}
+        passed
+      />
+    );
+
+    expect(screen.getByText('The full answer.')).toBeInTheDocument();
+    expect(screen.getByText('debrief')).toBeInTheDocument();
+    expect(screen.queryByText('solution')).not.toBeInTheDocument();
+    // The ladder is over: no hint is revealed, no control is offered.
+    expect(screen.queryByText('First nudge.')).not.toBeInTheDocument();
+    expect(screen.queryByRole('button')).not.toBeInTheDocument();
+  });
+
+  it('keeps already-revealed hints readable under the debrief', () => {
+    render(
+      <StepHints
+        step={buildStep({ hints: ['First nudge.', 'Second nudge.'], solution: 'The full answer.' })}
+        revealedCount={1}
+        onReveal={() => {}}
+        passed
+      />
+    );
+
+    expect(screen.getByText('First nudge.')).toBeInTheDocument();
+    expect(screen.queryByText('Second nudge.')).not.toBeInTheDocument();
+    expect(screen.getByText('The full answer.')).toBeInTheDocument();
+    expect(screen.getByText('debrief')).toBeInTheDocument();
+  });
+
+  it('marks a solution the learner had already revealed as the solution, not the debrief, after the pass', () => {
+    render(
+      <StepHints
+        step={buildStep({ hints: ['Only hint.'], solution: 'The full answer.' })}
+        revealedCount={2}
+        onReveal={() => {}}
+        passed
+      />
+    );
+
+    expect(screen.getByText('The full answer.')).toBeInTheDocument();
+    expect(screen.getByText('solution')).toBeInTheDocument();
+    expect(screen.queryByText('debrief')).not.toBeInTheDocument();
+  });
+
+  it('offers nothing more on a passed step without a solution', () => {
+    const { container } = render(
+      <StepHints step={buildStep({ hints: ['First nudge.'] })} revealedCount={0} onReveal={() => {}} passed />
+    );
+
+    expect(screen.queryByRole('button')).not.toBeInTheDocument();
+    expect(container.textContent).toBe('');
+  });
+
   it('shows already-revealed hints on arrival when the step is revisited', () => {
     // Coming back to a step: the player hook hands back the persisted count.
     render(

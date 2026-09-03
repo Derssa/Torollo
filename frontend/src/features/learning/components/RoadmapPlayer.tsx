@@ -230,6 +230,7 @@ export default function RoadmapPlayer({
               step={currentStep}
               revealedCount={revealedHintsByStepId[currentStep.id] ?? 0}
               onReveal={revealNextHint}
+              passed={Boolean(completedStepIds[currentStep.id] || resultsByStepId[currentStep.id]?.stepPassed)}
             />
           </div>
         );

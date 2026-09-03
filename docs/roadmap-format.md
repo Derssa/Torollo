@@ -77,7 +77,7 @@ A *slug* is lowercase letters/digits separated by single hyphens: `^[a-z0-9]+(-[
 | `title` | non-empty string | **yes** | Short step name shown in the step list. |
 | `instruction` | non-empty string | **yes** | What the learner must do. **Markdown allowed.** |
 | `hints` | array of non-empty strings | no | Progressive hints, revealed one at a time in array order (hint 1 first). Order them from a gentle nudge to nearly-the-answer. |
-| `solution` | non-empty string | no | The full solution, revealed only after all hints. Always use this field — never encode the solution as the last hint. |
+| `solution` | non-empty string | no | The full solution. While the step is open it is revealed only after all hints; once the step's checks pass the player shows it on its own as the step's **debrief**. Write it explanation-first (the why, the trade-offs, the interview version), recipe last. Always use this field — never encode the solution as the last hint. |
 | `validators` | array of Validator, ≥ 1 | **yes** | Every step must be auto-checkable: a step is complete when **all** its validators pass. |
 
 ### Validator
