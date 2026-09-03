@@ -164,7 +164,7 @@ export default function RoadmapCompletionScreen({
   const recapRows = Math.ceil(total / 2);
 
   return (
-    <Modal onClose={onDismiss} width="608px">
+    <Modal onClose={onDismiss} width="min(920px, calc(100vw - 48px))">
       <div style={styles.screen}>
         <div style={styles.eyebrowRow}>
           <span style={styles.eyebrow}>{t('learning.player.completion.eyebrow')}</span>
@@ -185,50 +185,59 @@ export default function RoadmapCompletionScreen({
         </div>
         <p style={styles.subtitle}>{t('learning.player.completion.subtitle')}</p>
 
-        <Receipt
-          label={t('learning.player.completion.runLabel')}
-          lines={receiptLines}
-          copyText={receiptLines.join('\n')}
-        />
+        {/* Two columns when there is room (run + share image | recap + skills),
+            a single column on narrow viewports — so the whole screen fits a
+            1280×720 window without scrolling. */}
+        <div style={styles.columns}>
+          <div style={styles.column}>
+            <Receipt
+              label={t('learning.player.completion.runLabel')}
+              lines={receiptLines}
+              copyText={receiptLines.join('\n')}
+            />
 
-        <div style={styles.section}>
-          <span style={styles.sectionLabel}>{t('learning.player.completion.stepsRecap')}</span>
-          <div
-            style={{
-              ...styles.recapGrid,
-              gridTemplateRows: `repeat(${recapRows}, auto)`,
-            }}
-          >
-            {roadmap.steps.map((step, index) => (
-              <div key={step.id} style={styles.recapItem}>
-                <Check size={12} strokeWidth={2.5} color="var(--color-success)" style={styles.recapGlyph} />
-                <span style={styles.recapIndex}>{index + 1}.</span>
-                <span style={styles.recapTitle}>{step.title}</span>
-              </div>
-            ))}
-          </div>
-        </div>
-
-        {skills.length > 0 && (
-          <div style={styles.section}>
-            <span style={styles.sectionLabel}>{t('learning.player.completion.skills')}</span>
-            <div style={styles.skillRow}>
-              {skills.map(skill => (
-                <span key={skill} style={styles.skillChip}>
-                  {t(`learning.detail.skill.${skill}`)}
-                </span>
-              ))}
+            <div style={styles.section}>
+              <span style={styles.sectionLabel}>{t('learning.player.completion.shareCardLabel')}</span>
+              <ShareImageCard
+                data={shareCardData}
+                alt={t('learning.player.completion.shareCardAlt', { title: roadmap.title })}
+                fileName={`torollo-${roadmap.id}-share.png`}
+              />
             </div>
           </div>
-        )}
 
-        <div style={styles.section}>
-          <span style={styles.sectionLabel}>{t('learning.player.completion.shareCardLabel')}</span>
-          <ShareImageCard
-            data={shareCardData}
-            alt={t('learning.player.completion.shareCardAlt', { title: roadmap.title })}
-            fileName={`torollo-${roadmap.id}-share.png`}
-          />
+          <div style={styles.column}>
+            <div style={styles.section}>
+              <span style={styles.sectionLabel}>{t('learning.player.completion.stepsRecap')}</span>
+              <div
+                style={{
+                  ...styles.recapGrid,
+                  gridTemplateRows: `repeat(${recapRows}, auto)`,
+                }}
+              >
+                {roadmap.steps.map((step, index) => (
+                  <div key={step.id} style={styles.recapItem}>
+                    <Check size={12} strokeWidth={2.5} color="var(--color-success)" style={styles.recapGlyph} />
+                    <span style={styles.recapIndex}>{index + 1}.</span>
+                    <span style={styles.recapTitle}>{step.title}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {skills.length > 0 && (
+              <div style={styles.section}>
+                <span style={styles.sectionLabel}>{t('learning.player.completion.skills')}</span>
+                <div style={styles.skillRow}>
+                  {skills.map(skill => (
+                    <span key={skill} style={styles.skillChip}>
+                      {t(`learning.detail.skill.${skill}`)}
+                    </span>
+                  ))}
+                </div>
+              </div>
+            )}
+          </div>
         </div>
 
         {nextResolved && !nextRoadmap && (
@@ -328,6 +337,18 @@ const styles: Record<string, React.CSSProperties> = {
     fontSize: 'var(--text-md)',
     color: 'var(--color-text-secondary)',
     lineHeight: 1.5,
+  },
+  columns: {
+    display: 'grid',
+    gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))',
+    gap: 'var(--space-5)',
+    alignItems: 'start',
+  },
+  column: {
+    display: 'flex',
+    flexDirection: 'column',
+    gap: 'var(--space-4)',
+    minWidth: 0,
   },
   section: {
     display: 'flex',

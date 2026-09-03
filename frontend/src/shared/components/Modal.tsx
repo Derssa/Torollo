@@ -1,4 +1,5 @@
 import { useEffect, useRef } from 'react';
+import { createPortal } from 'react-dom';
 
 interface ModalProps {
   children: React.ReactNode;
@@ -31,12 +32,13 @@ export default function Modal({ children, onClose, width = '440px' }: ModalProps
     if (e.target === overlayRef.current) onClose();
   };
 
-  return (
+  return createPortal(
     <div ref={overlayRef} onClick={handleOverlayClick} style={styles.overlay}>
       <div ref={panelRef} style={{ ...styles.panel, width }}>
         {children}
       </div>
-    </div>
+    </div>,
+    document.body
   );
 }
 
@@ -66,7 +68,7 @@ const styles: Record<string, React.CSSProperties> = {
     transform: 'scale(0.96) translateY(8px)',
     transition: 'opacity 0.25s ease-out, transform 0.25s ease-out',
     maxWidth: '90vw',
-    maxHeight: '85vh',
+    maxHeight: 'calc(100vh - 48px)',
     overflow: 'auto',
   },
 };
