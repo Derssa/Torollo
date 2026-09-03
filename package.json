@@ -1,17 +1,21 @@
 {
   "name": "torollo",
   "version": "1.2.4",
-  "description": "Interactive visual system design learning lab and container supervisor.",
+  "description": "Local-first system design lab: every node on the canvas is a real Docker container, and guided roadmaps grade each step against the live state of your system.",
   "keywords": [
     "system-design",
     "docker",
-    "architecture",
-    "simulator",
     "backend",
+    "architecture",
+    "networking",
+    "roadmaps",
+    "learning",
+    "lab",
+    "simulator",
     "education",
-    "microservices",
-    "visualizer"
+    "devops"
   ],
+  "homepage": "https://torollo.app",
   "author": "Youssef",
   "license": "MIT",
   "repository": {
