@@ -18,20 +18,28 @@ import type { RoadmapStep } from '../../../shared/types/roadmap';
  *   The armed state is local and resets on step change (`key={step.id}` at
  *   the call site) — no modal.
  * - A step with neither hints nor solution renders nothing.
+ * - Once the step has passed (`passed`), the ladder is over: the solution
+ *   is shown on its own, marked as the step's debrief, with no reveal
+ *   control. Roadmap authors write solutions explanation-first for this
+ *   reason. Hints already revealed stay readable; unrevealed ones stay
+ *   hidden (they are troubleshooting notes for a step that is done).
  *
  * Visually the ladder is marginalia, not a stack of alert cards: one hairline
  * rule bounds the whole column, each rung carries a lowercase mono marker
- * (`hint 1/3`, `solution`), and the reveal control is the last line of the
- * same column. No icons, no fills — only the solution marker takes color.
+ * (`hint 1/3`, `solution`, `debrief`), and the reveal control is the last
+ * line of the same column. No icons, no fills — only the solution marker
+ * takes color.
  */
 
 interface StepHintsProps {
   step: RoadmapStep;
   revealedCount: number;
   onReveal: () => void;
+  /** The step's checks have passed: show the solution as the debrief. */
+  passed?: boolean;
 }
 
-export default function StepHints({ step, revealedCount, onReveal }: StepHintsProps) {
+export default function StepHints({ step, revealedCount, onReveal, passed = false }: StepHintsProps) {
   const { t } = useTranslation();
   const [solutionArmed, setSolutionArmed] = useState(false);
 
@@ -42,7 +50,9 @@ export default function StepHints({ step, revealedCount, onReveal }: StepHintsPr
 
   const revealed = Math.min(revealedCount, totalRungs);
   const solutionRevealed = hasSolution && revealed === totalRungs;
+  const debrief = passed && hasSolution && !solutionRevealed;
   const nextIsSolution = !solutionRevealed && revealed === hints.length;
+  const ladderOpen = !passed && revealed < totalRungs;
 
   const handleReveal = () => {
     if (nextIsSolution && !solutionArmed) {
@@ -56,8 +66,8 @@ export default function StepHints({ step, revealedCount, onReveal }: StepHintsPr
   return (
     // The rule marks revealed marginalia; before the first reveal the lone
     // button stands unruled.
-    <div style={{ ...styles.container, ...(revealed > 0 ? styles.containerRuled : {}) }}>
-      {hints.slice(0, revealed).map((hint, index) => (
+    <div style={{ ...styles.container, ...(revealed > 0 || debrief ? styles.containerRuled : {}) }}>
+      {hints.slice(0, Math.min(revealed, hints.length)).map((hint, index) => (
         <div key={index} style={styles.rung}>
           <span style={styles.marker}>
             {t('learning.player.hintLabel', { n: index + 1, total: hints.length })}
@@ -66,16 +76,16 @@ export default function StepHints({ step, revealedCount, onReveal }: StepHintsPr
         </div>
       ))}
 
-      {solutionRevealed && (
+      {(solutionRevealed || debrief) && (
         <div style={styles.rung}>
           <span style={{ ...styles.marker, ...styles.solutionMarker }}>
-            {t('learning.player.solutionLabel')}
+            {t(debrief ? 'learning.player.debriefLabel' : 'learning.player.solutionLabel')}
           </span>
           {renderInstruction(step.solution!)}
         </div>
       )}
 
-      {revealed < totalRungs && (
+      {ladderOpen && (
         <button
           onClick={handleReveal}
           style={{ ...styles.revealBtn, ...(nextIsSolution ? styles.revealSolutionBtn : {}) }}

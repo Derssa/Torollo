@@ -74,6 +74,7 @@
       "hintLabel": "indice {{n}}/{{total}}",
       "showHint": "Voir un indice ({{n}}/{{total}})",
       "solutionLabel": "solution",
+      "debriefLabel": "débrief",
       "showSolution": "Révéler la solution",
       "confirmSolution": "Sûr ? Cliquez à nouveau pour révéler",
       "resetProgress": "Recommencer la roadmap",
