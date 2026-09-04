@@ -18,9 +18,13 @@
     "type": "git",
     "url": "https://github.com/Derssa/torollo.git"
   },
+  "engines": {
+    "node": ">=18"
+  },
   "bin": "bin/cli.js",
   "scripts": {
-    "start": "node ./bin/cli.js start"
+    "start": "node ./bin/cli.js start",
+    "test": "node --test bin/lib/dockerHost.test.js bin/lib/diagnostics.test.js bin/lib/backendHealth.test.js bin/lib/progress.test.js"
   },
   "dependencies": {
     "chokidar": "^3.6.0",
@@ -35,6 +39,7 @@
     "README.md",
     "assets/**/*",
     "bin/**/*",
+    "!bin/**/*.test.js",
     "backend/dist/**/*",
     "backend/package.json",
     "backend/projects.json",
