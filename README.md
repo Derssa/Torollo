@@ -8,12 +8,16 @@
 [![Downloads](https://img.shields.io/npm/dt/torollo?label=downloads&style=flat-square&color=ff8c00)](https://www.npmjs.com/package/torollo)
 [![Stars](https://img.shields.io/github/stars/Derssa/Torollo?label=stars&style=flat-square&color=8b5cf6)](https://github.com/Derssa/Torollo)
 
-> **The Packet Tracer of backend engineering.** Build architectures on a canvas where every node is a real Docker container on your machine — then follow guided roadmaps that grade each step against the actual state of your system.
+> **The Packet Tracer of backend engineering.** Draw an architecture on a canvas where every node is a real Docker container on your machine, then follow guided roadmaps that grade each step against the actual state of your system.
 
-Drawing boxes is easy; plenty of tools do it. Torollo is different in one specific way: when you draw a link, a real firewall rule is written; when you add a database, a real database starts; and when a roadmap step says *"traffic from the public subnet must not reach Postgres"*, Torollo checks it by probing your **live containers** — not by comparing your answer to a diagram. You can't bluff it, and that's the point.
+Drawing boxes is easy; plenty of tools do it. Torollo is different in one specific way: when you draw a link, a real firewall rule is written; when you add a database, a real database starts; and when a roadmap step says *"traffic from the public subnet must not reach Postgres"*, Torollo checks it by probing your **live containers**, not by comparing your answer to a diagram. You can't bluff it, and that's the point.
 
-<!-- demo GIF placeholder: roadmap validation loop (fail → fix → pass), keep above the screenshot -->
-<img width="1917" height="907" alt="torollo-example" src="https://github.com/user-attachments/assets/c80a04f1-8cc6-46fb-bf89-23a9af1a1a2d" />
+<p align="center">
+  <img src="docs/media/torollo-demo.gif" alt="Torollo demo: a roadmap step is validated against running Docker containers. The check fails because the load balancer can still reach PostgreSQL on port 5432, the security group is fixed, the check passes and the roadmap completes." width="1280" />
+</p>
+<p align="center"><sub>Real run, no mocks: the database accepts 5432 from anywhere → <b>Validate</b> → ✗ with the reason → the firewall is tightened to the two app servers → <b>Validate</b> → ✓ → roadmap complete.</sub></p>
+
+Website: [torollo.app](https://torollo.app) · Package: [npm](https://www.npmjs.com/package/torollo) · License: MIT
 
 ---
 
@@ -25,7 +29,7 @@ Docker must be running. Then, without cloning or installing anything permanently
 npx torollo start
 ```
 
-Open the app, create a project, and hit **Learning** in the topbar — the best first contact with Torollo is a guided roadmap, not an empty canvas. Start with **Deploy a resilient three-tier app**: it walks you from a single web server to a load-balanced, firewalled, database-backed architecture in ten validated steps.
+Open the app and pick **Start learning** on the first-run screen (the **Learning** tab in the left rail brings the catalogue back at any time). The best first contact with Torollo is a guided roadmap, not an empty canvas. Start with **Deploy a resilient three-tier app**: it walks you from a single web server to a load-balanced, firewalled, database-backed architecture in ten validated steps.
 
 ### Run with Docker Compose
 
@@ -77,7 +81,7 @@ Project and roadmap-progress data live in the `torollo-data` named volume. `dock
 
 ## Guided, auto-graded roadmaps
 
-The learning engine is what Torollo is really about. A roadmap is a sequence of steps — instructions, progressive hints, a solution if you're stuck — and every step is closed by **validators that assert against the real state of your lab**:
+The learning engine is what Torollo is really about. A roadmap is a sequence of steps (instructions, progressive hints, a solution if you're stuck), and every step is closed by **validators that assert against the real state of your lab**:
 
 * container status and ASG replica counts,
 * SQL schemas and data, MongoDB collections, Redis keys,
@@ -91,7 +95,7 @@ Current catalogue (English and French):
 | Roadmap | Difficulty | ~Time | You practice |
 |---|---|---|---|
 | Deploy a resilient three-tier app | intermediate | 40 min | Load balancing, security groups, private subnets, autoscaling |
-| Cache-aside with Redis | intermediate | 30 min | Caching strategy, TTLs, invalidation, measuring hit rates |
+| Cache-aside with Redis | intermediate | 45 min | Caching strategy, TTLs, invalidation, measuring hit rates, surviving a cache outage |
 | Workers & the Redis job queue | intermediate | 40 min | Async decoupling, queues, scaling workers under load, poison messages |
 
 **Roadmaps are plain JSON — no code.** The format is open and documented in the [Roadmap Authoring Reference](docs/roadmap-format.md); drop a valid file into `roadmaps/` — or import any roadmap file or `.zip` pack from the Learning page, no repo checkout needed ([how it works](docs/local-roadmaps.md)) — and it appears in the catalogue. Community-authored roadmaps are very welcome. The validation HTTP API is documented in [learning-api.md](docs/learning-api.md).
@@ -184,7 +188,7 @@ Forks and self-hosters can point events at their own [Plausible](https://plausib
 
 * **Write a roadmap** — the highest-leverage contribution, and it's JSON only. Start from the [format reference](docs/roadmap-format.md).
 * **Add a node type** — follow the step-by-step [adding-a-node guide](docs/adding-a-node.md).
-* **Everything else** — see [CONTRIBUTING.md](CONTRIBUTING.md). Ideas for new directions (observability nodes, exporting a topology to IaC, …) are best opened as an issue first.
+* **Everything else** — see [CONTRIBUTING.md](CONTRIBUTING.md). Ideas for new node types or new directions are best opened as an issue first, before any code.
 
 ---
 
