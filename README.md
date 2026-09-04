@@ -27,6 +27,22 @@ npx torollo start
 
 Open the app, create a project, and hit **Learning** in the topbar — the best first contact with Torollo is a guided roadmap, not an empty canvas. Start with **Deploy a resilient three-tier app**: it walks you from a single web server to a load-balanced, firewalled, database-backed architecture in ten validated steps.
 
+The first run downloads the node images (a few minutes, once); `torollo start` shows which image it is on and opens the browser only when the backend answers. Pass `--no-open` to skip opening the browser.
+
+### If `torollo start` stops with an error
+
+The CLI probes Docker through the same socket the backend uses and names the problem it found, with the fix for your OS:
+
+| Message | Meaning | Fix |
+|---|---|---|
+| Docker's socket was not found | No daemon socket where Torollo looked | Start Docker (Desktop, or `sudo systemctl start docker`). On macOS, enable *Allow the default Docker socket to be used* in Docker Desktop's Advanced settings, or set `DOCKER_HOST` to your provider's socket. |
+| Your user is not allowed to open Docker's socket | Socket exists, permission denied | `sudo usermod -aG docker $USER`, then log out and back in. |
+| Docker is not running | Socket exists, no daemon answering | Start the daemon, then run `torollo start` again. |
+| Docker is not answering | The daemon hung for more than 10 s | Wait for it to finish starting, then retry. |
+| Rootless Docker detected | Containers work, but subnets, NAT and cross-subnet security groups need host iptables rules a rootless daemon cannot apply | Use a rootful daemon for the full network engine. |
+
+`torollo start` honours `DOCKER_HOST` and, when it is unset, the active `docker context` — so the backend always targets the daemon your `docker` CLI talks to. The backend log lives in `~/.torollo/logs/backend.log`; attach it when you [open an issue](https://github.com/Derssa/Torollo/issues).
+
 ### Run with Docker Compose
 
 The Compose setup builds the frontend and backend, serves them through one local URL, mounts the host Docker socket so Torollo can create lab resources, and persists projects and learning progress in a named volume.
