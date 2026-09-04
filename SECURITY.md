@@ -2,12 +2,7 @@
 
 ## Supported Versions
 
-Only the latest `main` branch and the most recent release receive security updates.
-
-| Version | Supported          |
-| ------- | ------------------ |
-| 1.0.x   | :white_check_mark: |
-| < 1.0   | :x:                |
+Only the latest published npm release and the `main` branch receive security updates. Older releases are not patched; upgrade with `npx torollo@latest start`.
 
 ## Network Exposure Defaults
 

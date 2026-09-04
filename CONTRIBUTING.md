@@ -6,6 +6,7 @@ This document provides guidelines and steps for contributing to this project.
 
 ## How Can I Contribute?
 
+*   **Writing a Roadmap:** The highest-leverage contribution, and it is JSON only. Start from the [Roadmap Authoring Reference](docs/roadmap-format.md), test your file through the in-app import ([how it works](docs/local-roadmaps.md)), and open an issue with the premise and the validators before writing forty steps.
 *   **Reporting Bugs:** If you find a bug, please open an issue and describe the steps to reproduce it, what you expected to happen, and what actually happened.
 *   **Suggesting Enhancements:** Have an idea for a new feature? Open an issue to discuss it before you start coding!
 *   **Code Contributions:** We welcome pull requests! Whether it's fixing a typo, resolving a bug, or building a new feature.
@@ -14,7 +15,7 @@ This document provides guidelines and steps for contributing to this project.
 
 ## Local Development Setup
 
-To run the project locally, you will need Node.js (v18+) and Docker Desktop installed and running.
+To run the project locally, you will need Node.js (v18+) and Docker (Engine or Desktop) installed and running.
 
 ### 1. Clone the repository
 ```bash

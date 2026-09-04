@@ -22,6 +22,10 @@ export function useNetworkConfig({ projectId, containers, showNotification }: Us
   const { t } = useTranslation();
   const prevDbCountRef = useRef(0);
   const hasShownCacheWarningRef = useRef(false);
+  // Every config save re-runs the audit; a finding that has not changed since
+  // the previous save must not toast again (editing three firewall rules in a
+  // row would otherwise repeat the same warning three times).
+  const lastAuditMessageRef = useRef<string | null>(null);
 
   const defaultVpcConfig = useMemo(() => ({
     name: 'Main Network',
@@ -165,16 +169,22 @@ export function useNetworkConfig({ projectId, containers, showNotification }: Us
 
     // Resolve the finding's translation key against the active UI language here,
     // at display time — the validator is language-neutral.
+    let notification: { type: 'error' | 'warning' | 'success'; message: string } | null = null;
     if (result.errors.length > 0) {
       const m = result.errors[0];
-      showNotification({ type: 'error', message: t(`audit.${m.key}`, m.params) });
+      notification = { type: 'error', message: t(`audit.${m.key}`, m.params) };
     } else if (warnings.length > 0) {
       const m = warnings[0];
-      showNotification({ type: 'warning', message: t(`audit.${m.key}`, m.params) });
+      notification = { type: 'warning', message: t(`audit.${m.key}`, m.params) };
     } else if (result.successes.length > 0) {
       const m = result.successes[0];
-      showNotification({ type: 'success', message: t(`audit.${m.key}`, m.params) });
+      notification = { type: 'success', message: t(`audit.${m.key}`, m.params) };
     }
+
+    if (notification && notification.message !== lastAuditMessageRef.current) {
+      showNotification(notification);
+    }
+    lastAuditMessageRef.current = notification?.message ?? null;
   }, [containers, showNotification, t]);
 
   return { networkConfig, loaded, saveNetworkConfig, fetchNetworkConfig, triggerArchitectureAudit, interSubnetBlocked };
