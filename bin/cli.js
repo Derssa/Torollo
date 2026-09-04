@@ -1,157 +1,178 @@
 #!/usr/bin/env node
+'use strict';
 
-const { execSync, exec } = require('child_process');
+const { spawn, exec } = require('child_process');
 const path = require('path');
 const fs = require('fs');
-const net = require('net');
-// concurrently removed
+const os = require('os');
+const { log, paint } = require('./lib/output');
+const { findAvailablePort, waitForPort } = require('./lib/ports');
+const { resolveDockerHost, describeDockerHost } = require('./lib/dockerHost');
+const { waitForBackend, waitForDocker, waitForStartup, dockerStatus } = require('./lib/backendHealth');
+const { explainDaemonFailure, explainNetworkSupport } = require('./lib/diagnostics');
+const { ProgressPrinter } = require('./lib/progress');
+
+const USAGE = 'Usage: torollo start [--no-open]';
 
 const args = process.argv.slice(2);
 const command = args[0];
 
-// Helper to open a URL natively on the default browser
-function openUrl(url) {
-  const start = process.platform === 'darwin' ? 'open' : process.platform === 'win32' ? 'start ""' : 'xdg-open';
-  exec(`${start} ${url}`);
-}
-
-// Helper to check if a port is free on both IPv4 and IPv6 loopbacks
-function checkPort(port) {
-  return new Promise((resolve) => {
-    const server = net.createServer();
-    server.once('error', () => {
-      resolve(false);
-    });
-    server.once('listening', () => {
-      server.close(() => {
-        // Double check on IPv6 localhost to ensure Vite can bind to it
-        const v6Server = net.createServer();
-        v6Server.once('error', () => resolve(false));
-        v6Server.once('listening', () => {
-          v6Server.close(() => resolve(true));
-        });
-        v6Server.listen(port, '::1');
-      });
-    });
-    server.listen(port, '127.0.0.1');
-  });
-}
-
-// Helper to find the next available TCP port
-async function findAvailablePort(startPort) {
-  let port = startPort;
-  while (!(await checkPort(port))) {
-    port++;
-  }
-  return port;
-}
-
-// Helper to check if Docker is installed and running
-function checkDocker() {
-  try {
-    execSync('docker info', { stdio: 'ignore' });
-    return true;
-  } catch (e) {
-    return false;
-  }
-}
-
-// ANSI Colors
-const colors = {
-  reset: "\x1b[0m",
-  cyan: "\x1b[36m",
-  green: "\x1b[32m",
-  yellow: "\x1b[33m",
-  red: "\x1b[31m",
-  magenta: "\x1b[35m",
-  bold: "\x1b[1m"
-};
-
 if (command === 'start') {
-  console.log(`${colors.cyan}[i] Checking system requirements...${colors.reset}`);
-
-  if (!checkDocker()) {
-    console.error(`\n${colors.red}${colors.bold}[x] Error: Docker is not installed or not running on your machine.${colors.reset}`);
-    
-    if (process.platform === 'win32') {
-      console.log(`\n${colors.yellow}[!] WINDOWS DETECTED:${colors.reset}`);
-      console.log('Please download and install Docker Desktop:');
-      console.log(`${colors.cyan}[>] https://www.docker.com/products/docker-desktop/\n${colors.reset}`);
-    } else if (process.platform === 'darwin') {
-      console.log(`\n${colors.yellow}[!] MACOS DETECTED:${colors.reset}`);
-      console.log('Please download and install Docker Desktop:');
-      console.log(`${colors.cyan}[>] https://www.docker.com/products/docker-desktop/\n${colors.reset}`);
-    } else {
-      console.log(`\n${colors.yellow}[!] LINUX DETECTED:${colors.reset}`);
-      console.log('Please install Docker using your package manager:');
-      console.log(`${colors.cyan}[>] Run: curl -fsSL https://get.docker.com | sh\n${colors.reset}`);
-    }
+  start({ openBrowser: !args.includes('--no-open') }).catch((err) => {
+    log.error(`Failed to start Torollo: ${err.message}`);
     process.exit(1);
-  }
+  });
+} else if (!command || command === '--help' || command === '-h') {
+  console.log(USAGE);
+} else {
+  console.error(USAGE);
+  process.exit(1);
+}
 
-  console.log(`${colors.green}[v] Docker is running.${colors.reset}`);
-  console.log(`${colors.magenta}🚀 Booting Torollo System Lab...${colors.reset}\n`);
+function openUrl(url) {
+  const opener = process.platform === 'darwin' ? 'open' : process.platform === 'win32' ? 'start ""' : 'xdg-open';
+  exec(`${opener} ${url}`);
+}
 
+/** Spawns a child with stdout/stderr appended to `logFile`, and tracks whether it is still running. */
+function spawnLogged(cmd, cmdArgs, options, logFile) {
+  const fd = fs.openSync(logFile, 'w');
+  const child = spawn(cmd, cmdArgs, { ...options, stdio: ['ignore', fd, fd] });
+  let exited = false;
+  child.once('exit', () => {
+    exited = true;
+    fs.closeSync(fd);
+  });
+  child.isAlive = () => !exited;
+  return child;
+}
+
+function printExplanation(explanation, level = 'error') {
+  log[level](explanation.title);
+  for (const line of explanation.lines) log.detail(line);
+  for (const cmd of explanation.commands) log.command(cmd);
+}
+
+async function start({ openBrowser }) {
   const backendPath = path.join(__dirname, '../backend');
   const frontendPath = path.join(__dirname, '../frontend');
+  const logDir = path.join(os.homedir(), '.torollo', 'logs');
+  fs.mkdirSync(logDir, { recursive: true });
+  const backendLog = path.join(logDir, 'backend.log');
+  const frontendLog = path.join(logDir, 'frontend.log');
 
-  (async () => {
-    try {
-      const frontendPort = await findAvailablePort(23232);
-      const backendPort = await findAvailablePort(frontendPort + 1);
+  // Both the CLI's verdict and the backend's probe must target the same
+  // daemon: hand the docker CLI's active context down as DOCKER_HOST.
+  const dockerHost = resolveDockerHost();
+  const backendEnv = { ...process.env };
+  if (dockerHost.source === 'context') backendEnv.DOCKER_HOST = dockerHost.host;
+  const endpointNote = dockerHost.source === 'default' ? 'default socket' : `from ${dockerHost.source === 'env' ? 'DOCKER_HOST' : 'docker context'}`;
+  log.info(`Docker endpoint: ${describeDockerHost(dockerHost.host, process.platform)} (${endpointNote})`);
 
-      const envContent = `window.TOROLLO_BACKEND_PORT = ${backendPort};`;
+  const frontendPort = await findAvailablePort(23232);
+  const backendPort = await findAvailablePort(frontendPort + 1);
+  writeFrontendEnv(frontendPath, backendPort);
 
-      // Ensure directory structures exist before writing env.js
-      const publicPath = path.join(frontendPath, 'public');
-      if (fs.existsSync(publicPath)) {
-        fs.writeFileSync(path.join(publicPath, 'env.js'), envContent);
-      }
+  const backend = spawnLogged('node', [path.join(backendPath, 'dist/server.js')], {
+    env: { ...backendEnv, PORT: String(backendPort) }
+  }, backendLog);
+  const servePath = require.resolve('serve/build/main.js');
+  const frontend = spawnLogged('node', [servePath, '-s', 'dist', '-l', String(frontendPort)], {
+    cwd: frontendPath
+  }, frontendLog);
 
-      const distPath = path.join(frontendPath, 'dist');
-      if (fs.existsSync(distPath)) {
-        fs.writeFileSync(path.join(distPath, 'env.js'), envContent);
-      }
-
-      const { spawn } = require('child_process');
-
-      const backendProcess = spawn('node', [path.join(backendPath, 'dist/server.js')], {
-        env: { ...process.env, PORT: backendPort },
-        stdio: 'ignore'
-      });
-
-      const servePath = require.resolve('serve/build/main.js');
-      const frontendProcess = spawn('node', [servePath, '-s', 'dist', '-l', frontendPort], {
-        cwd: frontendPath,
-        stdio: 'ignore'
-      });
-
-      console.log(`${colors.cyan}================================================${colors.reset}`);
-      console.log(`${colors.green}${colors.bold}[*] Torollo System Lab is ready!${colors.reset}`);
-      console.log(`${colors.cyan}[>] Access it here: ${colors.reset}${colors.bold}http://localhost:${frontendPort}${colors.reset}`);
-      console.log(`${colors.cyan}================================================${colors.reset}\n`);
-
-      // Automatically open browser tab
-      setTimeout(() => {
-        openUrl(`http://localhost:${frontendPort}`);
-      }, 1200);
-
-      // Clean shutdown on Ctrl+C (avoids logs printing after Windows batch prompt)
-      process.on('SIGINT', () => {
-        try {
-          backendProcess.kill('SIGKILL');
-          frontendProcess.kill('SIGKILL');
-        } catch (e) {}
-        process.exit(0);
-      });
-
-    } catch (err) {
-      console.error('Failed to start Torollo:', err);
-      process.exit(1);
+  let shuttingDown = false;
+  const shutdown = (exitCode) => {
+    shuttingDown = true;
+    for (const child of [backend, frontend]) {
+      try { child.kill('SIGKILL'); } catch { /* already gone */ }
     }
-  })();
+    process.exit(exitCode);
+  };
+  process.on('SIGINT', () => shutdown(0));
+  process.on('SIGTERM', () => shutdown(0));
 
-} else {
-  console.log('Usage: torollo start');
-  process.exit(0);
+  const fail = (explanation) => {
+    printExplanation(explanation);
+    log.detail(`Backend log: ${backendLog}`);
+    shutdown(1);
+  };
+
+  log.info('Starting the Torollo backend...');
+  let body;
+  try {
+    body = await waitForBackend(backendPort, { isAlive: backend.isAlive });
+  } catch (err) {
+    return fail({ title: 'The Torollo backend did not start.', lines: [err.message], commands: [] });
+  }
+
+  body = await waitForDocker(backendPort, body, {
+    isAlive: backend.isAlive,
+    onWaiting: (reason) => log.info(`Docker is not reachable yet (${reason}). Waiting a few seconds in case it is still starting...`)
+  });
+  const docker = dockerStatus(body);
+  if (docker.status !== 'ok') {
+    return fail(explainDaemonFailure({
+      reason: docker.reason,
+      platform: process.platform,
+      dockerHost: dockerHost.host,
+      error: docker.error
+    }));
+  }
+  log.ok(`Docker is running${docker.rootless ? ' (rootless)' : ''}.`);
+
+  const progress = new ProgressPrinter({ log });
+  try {
+    body = await waitForStartup(backendPort, {
+      isAlive: backend.isAlive,
+      onProgress: (startup) => progress.update(startup)
+    });
+  } catch (err) {
+    return fail({ title: 'The Torollo backend stopped during startup.', lines: [err.message], commands: [] });
+  }
+
+  if (body.startup.status === 'failed') {
+    log.warn(`The node images could not all be prepared: ${body.startup.error}`);
+    log.detail('Torollo will try again when you create a node that needs a missing image. Check your internet connection if downloads keep failing.');
+    log.detail(`Backend log: ${backendLog}`);
+  } else if (progress.sawWork) {
+    log.ok('Node images are ready.');
+  }
+
+  const networkNote = explainNetworkSupport(body.checks.network);
+  if (networkNote) printExplanation(networkNote, 'warn');
+
+  try {
+    await waitForPort(frontendPort);
+  } catch (err) {
+    return fail({ title: 'The Torollo frontend did not start.', lines: [err.message, `Frontend log: ${frontendLog}`], commands: [] });
+  }
+
+  const url = `http://localhost:${frontendPort}`;
+  log.blank();
+  console.log(paint('cyan', '================================================'));
+  console.log(`${paint('green', paint('bold', '[*] Torollo is ready:'))} ${paint('bold', url)}`);
+  console.log(paint('cyan', '================================================'));
+  log.detail('Press Ctrl+C to stop.');
+  log.blank();
+
+  if (openBrowser) openUrl(url);
+
+  for (const [name, child] of [['backend', backend], ['frontend', frontend]]) {
+    child.once('exit', () => {
+      if (shuttingDown) return;
+      log.error(`The Torollo ${name} stopped unexpectedly (${child.signalCode || `exit code ${child.exitCode}`}).`);
+      log.detail(`Log: ${name === 'backend' ? backendLog : frontendLog}`);
+      shutdown(1);
+    });
+  }
+}
+
+/** Tells the built frontend which port the backend listens on. */
+function writeFrontendEnv(frontendPath, backendPort) {
+  const envContent = `window.TOROLLO_BACKEND_PORT = ${backendPort};`;
+  for (const dir of ['public', 'dist']) {
+    const target = path.join(frontendPath, dir);
+    if (fs.existsSync(target)) fs.writeFileSync(path.join(target, 'env.js'), envContent);
+  }
 }
