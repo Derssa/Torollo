@@ -126,7 +126,7 @@ describe('CanvasPage', () => {
     await renderCanvasPage(fetchMock, { initialLearning: {}, onLearningIntentConsumed });
 
     // Topbar button + panel header both say "Learning": 2 means the panel is open.
-    expect(screen.getAllByText('Learning')).toHaveLength(2);
+    await waitFor(() => expect(screen.getAllByText('Learning')).toHaveLength(2));
     expect(onLearningIntentConsumed).toHaveBeenCalledTimes(1);
   });
 
@@ -148,7 +148,7 @@ describe('CanvasPage', () => {
     fireEvent.click(screen.getByRole('button', { name: /Follow a roadmap/ }));
 
     // The panel now answers the same question, so the empty state steps aside.
-    expect(screen.getAllByText('Learning')).toHaveLength(2);
+    await waitFor(() => expect(screen.getAllByText('Learning')).toHaveLength(2));
     expect(screen.queryByText('This canvas is empty')).toBeNull();
   });
 
@@ -235,7 +235,11 @@ describe('CanvasPage', () => {
       await Promise.resolve();
     });
 
-    const detailsTabButton = screen.getByRole('button', { name: /Details & Config/i });
+    const detailsTabButton = await screen.findByRole(
+      'button',
+      { name: /Details & Config/i },
+      { timeout: 5000 },
+    );
     expect(detailsTabButton).toBeInTheDocument();
 
     // Close via the modal's header close (X) button, which sits alongside the tab
@@ -282,7 +286,7 @@ describe('CanvasPage', () => {
     await waitFor(() => expect(screen.getByText('web-1')).toBeInTheDocument());
     fireEvent.click(screen.getByTitle('Delete Node'));
 
-    expect(screen.getByText('Delete Container')).toBeInTheDocument();
+    expect(await screen.findByText('Delete Container')).toBeInTheDocument();
     expect(screen.getByText('This will permanently stop and remove this container. This action cannot be undone.')).toBeInTheDocument();
 
     fireEvent.click(screen.getByRole('button', { name: 'Cancel' }));
@@ -323,10 +327,10 @@ describe('CanvasPage', () => {
     await waitFor(() => expect(screen.getByText('web-1')).toBeInTheDocument());
     fireEvent.click(within(nodeEl(container, 'c1')).getByText((_, el) => el?.getAttribute('data-tooltip') === 'Rename node', { selector: 'button' }));
 
-    const input = screen.getByPlaceholderText('e.g. api-gateway') as HTMLInputElement;
+    const input = await screen.findByPlaceholderText('e.g. api-gateway') as HTMLInputElement;
     expect(input.value).toBe('web-1');
     fireEvent.change(input, { target: { value: 'web-2' } });
-    fireEvent.click(screen.getByRole('button', { name: 'Rename' }));
+    fireEvent.click(await screen.findByRole('button', { name: 'Rename' }));
 
     await waitFor(() => expect(screen.getByText('Node renamed to "web-2"')).toBeInTheDocument());
     const patchCall = fetchMock.mock.calls.find(c => (c[1] as RequestInit | undefined)?.method === 'PATCH')!;
@@ -364,7 +368,7 @@ describe('CanvasPage', () => {
 
     // Same name: warns and closes the modal.
     openRename();
-    fireEvent.click(screen.getByRole('button', { name: 'Rename' }));
+    fireEvent.click(await screen.findByRole('button', { name: 'Rename' }));
     await waitFor(() => expect(screen.getByText('The node is already named "web-1".')).toBeInTheDocument());
     expect(screen.queryByText('Rename Node')).not.toBeInTheDocument();
 
@@ -399,7 +403,7 @@ describe('CanvasPage', () => {
     await waitFor(() => expect(screen.getByText('web-1')).toBeInTheDocument());
 
     fireEvent.click(nodeEl(container, 'c1').querySelector('[data-tooltip="Rename node"]')!);
-    fireEvent.change(screen.getByPlaceholderText('e.g. api-gateway'), { target: { value: 'web-9' } });
+    fireEvent.change(await screen.findByPlaceholderText('e.g. api-gateway'), { target: { value: 'web-9' } });
     fireEvent.click(screen.getByRole('button', { name: 'Rename' }));
 
     await waitFor(() => expect(screen.getByText('Container is locked by the runtime')).toBeInTheDocument());
@@ -466,7 +470,7 @@ describe('CanvasPage', () => {
     await waitFor(() => expect(screen.getByText('web-1')).toBeInTheDocument());
 
     fireEvent.click(within(nodeEl(container, 'c1')).getByTitle('Delete Node'));
-    fireEvent.click(screen.getByRole('button', { name: 'Delete' }));
+    fireEvent.click(await screen.findByRole('button', { name: 'Delete' }));
 
     await waitFor(() => expect(networkConfigPosts(fetchMock).length).toBeGreaterThan(0));
     const posted = networkConfigPosts(fetchMock).at(-1);

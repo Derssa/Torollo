@@ -287,6 +287,27 @@ body {
   border: 0;
 }
 
+.app-loading,
+.learning-panel-loading {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--color-text-muted);
+  font-size: var(--text-sm);
+}
+
+.app-loading {
+  width: 100%;
+  height: 100%;
+}
+
+.learning-panel-loading {
+  width: 300px;
+  flex-shrink: 0;
+  border-right: 1px solid var(--border-color);
+  background: var(--bg-surface-solid);
+}
+
 /* Glassmorphism styling */
 .glass {
   background: var(--bg-surface);

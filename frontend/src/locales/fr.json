@@ -707,6 +707,7 @@
     }
   },
   "common": {
+    "loading": "Chargement de Torollo...",
     "delete": "Supprimer",
     "rename": "Renommer",
     "deleteContainerTitle": "Supprimer le conteneur",

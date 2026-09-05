@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useCallback, useRef, useState } from 'react';
+import { lazy, Suspense, useEffect, useMemo, useCallback, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { ReactFlow, Background, Controls, BackgroundVariant, useNodesState } from '@xyflow/react';
 import type { Node, Edge, ReactFlowInstance, Connection } from '@xyflow/react';
@@ -16,7 +16,6 @@ import VpcNode from '../../features/nodes/VpcNode/VpcNode';
 import SubnetNode from '../../features/nodes/SubnetNode/SubnetNode';
 import NodeLibrary from './components/NodeLibrary';
 import CanvasEmptyState from './components/CanvasEmptyState';
-import LearningPanel from '../../features/learning/components/LearningPanel';
 import { useContainers } from '../../shared/hooks/useContainers';
 import { useToast } from '../../shared/hooks/useToast';
 import { useTheme } from '../../shared/theme/useTheme';
@@ -25,7 +24,6 @@ import { DockerUnavailableBanner } from '../../shared/components/DockerUnavailab
 import { InterSubnetBlockedBanner } from '../../shared/components/InterSubnetBlockedBanner';
 import CanvasTopbar from './components/CanvasTopbar';
 import CanvasFooter from './components/CanvasFooter';
-import CanvasModals from './components/CanvasModals';
 import type { InspectorState } from './components/CanvasModals';
 import ButtonEdge from './components/ButtonEdge';
 import { API_BASE } from '../../shared/types';
@@ -41,6 +39,9 @@ import {
   buildFirewallEdges,
 } from './utils/securityRules';
 import { assignNodeToSubnet, removeNodeFromConfig } from './utils/networkConfigOps';
+
+const LearningPanel = lazy(() => import('../../features/learning/components/LearningPanel'));
+const CanvasModals = lazy(() => import('./components/CanvasModals'));
 
 interface CanvasPageProps {
   projectId: string;
@@ -624,15 +625,17 @@ export default function CanvasPage({
 
       <div style={styles.bodyWrapper}>
         {showLearning && (
-          <LearningPanel
-            projectId={projectId}
-            projectName={projectName}
-            initialRoadmap={initialRoadmapRef.current}
-            onClose={() => setShowLearning(false)}
-            onExit={onExitToLearning}
-            containers={containers}
-            networkConfig={networkConfig}
-          />
+          <Suspense fallback={<div className="learning-panel-loading" role="status">{t('learning.player.loading')}</div>}>
+            <LearningPanel
+              projectId={projectId}
+              projectName={projectName}
+              initialRoadmap={initialRoadmapRef.current}
+              onClose={() => setShowLearning(false)}
+              onExit={onExitToLearning}
+              containers={containers}
+              networkConfig={networkConfig}
+            />
+          </Suspense>
         )}
 
         {/* Main React Flow Workspace */}
@@ -687,33 +690,37 @@ export default function CanvasPage({
 
       <CanvasFooter containers={containers} />
 
-      <CanvasModals
-        projectId={projectId}
-        containers={containers}
-        networkConfig={networkConfig}
-        saveNetworkConfig={saveNetworkConfig}
-        triggerArchitectureAudit={triggerArchitectureAudit}
-        showToast={showToast}
-        fetchContainers={fetchContainers}
-        createNode={showCreateModal ? {
-          type: dropState?.type || 'ubuntu',
-          onSubmit: handleCreateNode,
-          onCancel: handleCancelCreate,
-        } : null}
-        deleteNode={deleteTarget ? {
-          onConfirm: handleDeleteConfirmed,
-          onCancel: () => setDeleteTarget(null),
-        } : null}
-        renameNode={renamingNode ? {
-          currentName: renamingNode.currentName,
-          onSubmit: handleRenameNode,
-          onCancel: () => setRenamingNode(null),
-        } : null}
-        inspector={inspector}
-        onCloseInspector={closeInspector}
-        vpcSettings={showVpcSettings ? { onClose: () => setShowVpcSettings(false) } : null}
-        trafficSimulator={showTrafficSimulator ? { onClose: () => setShowTrafficSimulator(false) } : null}
-      />
+      {(showCreateModal || deleteTarget || renamingNode || inspector || showVpcSettings || showTrafficSimulator) && (
+        <Suspense fallback={<span className="visually-hidden" role="status">{t('common.loading')}</span>}>
+          <CanvasModals
+            projectId={projectId}
+            containers={containers}
+            networkConfig={networkConfig}
+            saveNetworkConfig={saveNetworkConfig}
+            triggerArchitectureAudit={triggerArchitectureAudit}
+            showToast={showToast}
+            fetchContainers={fetchContainers}
+            createNode={showCreateModal ? {
+              type: dropState?.type || 'ubuntu',
+              onSubmit: handleCreateNode,
+              onCancel: handleCancelCreate,
+            } : null}
+            deleteNode={deleteTarget ? {
+              onConfirm: handleDeleteConfirmed,
+              onCancel: () => setDeleteTarget(null),
+            } : null}
+            renameNode={renamingNode ? {
+              currentName: renamingNode.currentName,
+              onSubmit: handleRenameNode,
+              onCancel: () => setRenamingNode(null),
+            } : null}
+            inspector={inspector}
+            onCloseInspector={closeInspector}
+            vpcSettings={showVpcSettings ? { onClose: () => setShowVpcSettings(false) } : null}
+            trafficSimulator={showTrafficSimulator ? { onClose: () => setShowTrafficSimulator(false) } : null}
+          />
+        </Suspense>
+      )}
 
       {dockerUnavailable && <DockerUnavailableBanner />}
       {!dockerUnavailable && interSubnetBlocked && <InterSubnetBlockedBanner />}

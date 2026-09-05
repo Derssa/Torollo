@@ -707,6 +707,7 @@
     }
   },
   "common": {
+    "loading": "Loading Torollo...",
     "delete": "Delete",
     "rename": "Rename",
     "deleteContainerTitle": "Delete Container",

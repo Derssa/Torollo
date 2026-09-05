@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { lazy, Suspense, useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { AlertTriangle, X } from 'lucide-react';
 import InputModal from '../../shared/components/InputModal';
@@ -8,14 +8,15 @@ import SideRail from './components/SideRail';
 import ProjectsSection from './components/ProjectsSection';
 import type { HomeView } from './components/SideRail';
 import ProjectPickerModal from './components/ProjectPickerModal';
-import LearningSection from './components/learning/LearningSection';
 import TelemetryConsentCard from './components/TelemetryConsentCard';
-import RoadmapDetailPage from './components/learning/detail/RoadmapDetailPage';
 import { filterByUiLanguage } from '../../features/learning/roadmapLanguage';
 import { markLearningPitchSeen } from '../../features/learning/onboarding';
 import { API_BASE } from '../../shared/types';
 import type { LearningExit, LearningIntent, Project } from '../../shared/types';
 import type { ProgressEntrySummary, RoadmapSummary } from '../../shared/types/roadmap';
+
+const LearningSection = lazy(() => import('./components/learning/LearningSection'));
+const RoadmapDetailPage = lazy(() => import('./components/learning/detail/RoadmapDetailPage'));
 
 interface ProjectsPageProps {
   /** Arrival from the canvas (the completion screen's navigation): land on the
@@ -269,21 +270,25 @@ export default function ProjectsPage({
               />
             </>
           ) : route.kind === 'learning' ? (
-            <LearningSection
-              onOpenRoadmap={(summary, progress) => setRoute({ kind: 'roadmap', summary, progress })}
-            />
+            <Suspense fallback={<div role="status">{t('learning.catalog.loading')}</div>}>
+              <LearningSection
+                onOpenRoadmap={(summary, progress) => setRoute({ kind: 'roadmap', summary, progress })}
+              />
+            </Suspense>
           ) : (
-            <RoadmapDetailPage
-              summary={route.summary}
-              progress={route.progress}
-              projectName={projects.find(p => p.id === route.progress?.projectId)?.name}
-              onLaunch={() => startRoadmap(route.summary, route.progress)}
-              onProgressCleared={() =>
-                setRoute(current =>
-                  current.kind === 'roadmap' ? { ...current, progress: undefined } : current
-                )
-              }
-            />
+            <Suspense fallback={<div role="status">{t('learning.detail.loading')}</div>}>
+              <RoadmapDetailPage
+                summary={route.summary}
+                progress={route.progress}
+                projectName={projects.find(p => p.id === route.progress?.projectId)?.name}
+                onLaunch={() => startRoadmap(route.summary, route.progress)}
+                onProgressCleared={() =>
+                  setRoute(current =>
+                    current.kind === 'roadmap' ? { ...current, progress: undefined } : current
+                  )
+                }
+              />
+            </Suspense>
           )}
         </div>
       </div>

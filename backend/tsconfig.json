@@ -14,5 +14,6 @@
     "isolatedModules": true,
     "resolveJsonModule": true
   },
-  "include": ["src/**/*"]
+  "include": ["src/**/*"],
+  "exclude": ["src/**/*.test.ts", "src/**/*.itest.ts", "src/**/testSupport.ts"]
 }

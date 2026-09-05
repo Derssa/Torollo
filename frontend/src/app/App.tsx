@@ -1,11 +1,14 @@
-import { useState } from 'react';
-import CanvasPage from '../pages/CanvasPage/CanvasPage';
-import TerminalModal from '../features/terminal/components/TerminalModal';
+import { lazy, Suspense, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import ProjectsPage from '../pages/ProjectsPage/ProjectsPage';
 import { useBootTelemetry } from '../features/telemetry/useBootTelemetry';
 import type { LearningExit, LearningIntent, ProjectInfo, TerminalInfo } from '../shared/types';
 
+const CanvasPage = lazy(() => import('../pages/CanvasPage/CanvasPage'));
+const TerminalModal = lazy(() => import('../features/terminal/components/TerminalModal'));
+
 function App() {
+  const { t } = useTranslation();
   useBootTelemetry();
   const [activeProject, setActiveProject] = useState<ProjectInfo | null>(() => {
     const saved = localStorage.getItem('akal-active-project');
@@ -44,31 +47,35 @@ function App() {
           }}
         />
       ) : (
-        <CanvasPage
-          projectId={activeProject.id}
-          projectName={activeProject.name}
-          initialLearning={learningIntent}
-          onLearningIntentConsumed={() => setLearningIntent(null)}
-          onBackToProjects={() => {
-            handleSelectProject(null);
-            setActiveTerminal(null);
-          }}
-          onExitToLearning={target => {
-            setLearningExit(target);
-            handleSelectProject(null);
-            setActiveTerminal(null);
-          }}
-          onTerminalOpen={(id, name) => setActiveTerminal({ id, name })}
-        />
+        <Suspense fallback={<div className="app-loading" role="status">{t('common.loading')}</div>}>
+          <CanvasPage
+            projectId={activeProject.id}
+            projectName={activeProject.name}
+            initialLearning={learningIntent}
+            onLearningIntentConsumed={() => setLearningIntent(null)}
+            onBackToProjects={() => {
+              handleSelectProject(null);
+              setActiveTerminal(null);
+            }}
+            onExitToLearning={target => {
+              setLearningExit(target);
+              handleSelectProject(null);
+              setActiveTerminal(null);
+            }}
+            onTerminalOpen={(id, name) => setActiveTerminal({ id, name })}
+          />
+        </Suspense>
       )}
 
       {activeProject && activeTerminal && (
-        <TerminalModal
-          containerId={activeTerminal.id}
-          projectId={activeProject.id}
-          nodeName={activeTerminal.name}
-          onClose={() => setActiveTerminal(null)}
-        />
+        <Suspense fallback={<span className="visually-hidden" role="status">{t('common.loading')}</span>}>
+          <TerminalModal
+            containerId={activeTerminal.id}
+            projectId={activeProject.id}
+            nodeName={activeTerminal.name}
+            onClose={() => setActiveTerminal(null)}
+          />
+        </Suspense>
       )}
     </div>
   );

@@ -27,11 +27,14 @@
   },
   "bin": "bin/cli.js",
   "scripts": {
+    "build": "npm run build --prefix backend && npm run build --prefix frontend",
+    "prepack": "npm run build",
     "start": "node ./bin/cli.js start",
     "test": "node --test bin/lib/dockerHost.test.js bin/lib/diagnostics.test.js bin/lib/backendHealth.test.js bin/lib/progress.test.js"
   },
   "dependencies": {
-    "chokidar": "^3.6.0",
+    "adm-zip": "^0.6.0",
+    "ajv": "^8.20.0",
     "cors": "^2.8.6",
     "dockerode": "^5.0.0",
     "dotenv": "^17.4.2",
@@ -45,10 +48,10 @@
     "bin/**/*",
     "!bin/**/*.test.js",
     "backend/dist/**/*",
-    "backend/package.json",
-    "backend/projects.json",
+    "!backend/dist/**/*.test.js",
+    "!backend/dist/**/*.itest.js",
+    "!backend/dist/**/testSupport.js",
     "frontend/dist/**/*",
-    "frontend/package.json",
     "roadmaps/**/*"
   ]
 }
