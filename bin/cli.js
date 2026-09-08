@@ -11,15 +11,32 @@ const { resolveDockerHost, describeDockerHost } = require('./lib/dockerHost');
 const { waitForBackend, waitForDocker, waitForStartup, dockerStatus } = require('./lib/backendHealth');
 const { explainDaemonFailure, explainNetworkSupport } = require('./lib/diagnostics');
 const { ProgressPrinter } = require('./lib/progress');
+const { runDoctor, formatHumanReport } = require('./lib/doctor');
 
-const USAGE = 'Usage: torollo start [--no-open]';
+const USAGE = `Usage:
+  torollo start [--no-open]
+  torollo doctor [--json]`;
 
 const args = process.argv.slice(2);
 const command = args[0];
 
 if (command === 'start') {
+  if (args.slice(1).some((arg) => arg !== '--no-open')) {
+    console.error(USAGE);
+    process.exit(1);
+  }
   start({ openBrowser: !args.includes('--no-open') }).catch((err) => {
     log.error(`Failed to start Torollo: ${err.message}`);
+    process.exit(1);
+  });
+} else if (command === 'doctor') {
+  const doctorArgs = args.slice(1);
+  if (doctorArgs.some((arg) => arg !== '--json')) {
+    console.error(USAGE);
+    process.exit(1);
+  }
+  doctor({ json: doctorArgs.includes('--json') }).catch((err) => {
+    log.error(`Doctor failed unexpectedly: ${err.message}`);
     process.exit(1);
   });
 } else if (!command || command === '--help' || command === '-h') {
@@ -27,6 +44,12 @@ if (command === 'start') {
 } else {
   console.error(USAGE);
   process.exit(1);
+}
+
+async function doctor({ json }) {
+  const report = await runDoctor();
+  console.log(json ? JSON.stringify(report, null, 2) : formatHumanReport(report));
+  if (!report.ok) process.exitCode = 1;
 }
 
 function openUrl(url) {
@@ -95,6 +118,7 @@ async function start({ openBrowser }) {
   const fail = (explanation) => {
     printExplanation(explanation);
     log.detail(`Backend log: ${backendLog}`);
+    log.detail('Run `torollo doctor` for a complete environment report.');
     shutdown(1);
   };
 

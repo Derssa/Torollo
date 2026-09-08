@@ -30,7 +30,7 @@
     "build": "npm run build --prefix backend && npm run build --prefix frontend",
     "prepack": "npm run build",
     "start": "node ./bin/cli.js start",
-    "test": "node --test bin/lib/dockerHost.test.js bin/lib/diagnostics.test.js bin/lib/backendHealth.test.js bin/lib/progress.test.js"
+    "test": "node --test bin/lib/dockerHost.test.js bin/lib/diagnostics.test.js bin/lib/backendHealth.test.js bin/lib/progress.test.js bin/lib/doctor.test.js"
   },
   "dependencies": {
     "adm-zip": "^0.6.0",

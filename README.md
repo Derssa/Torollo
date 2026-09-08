@@ -35,6 +35,22 @@ The first run downloads the node images (a few minutes, once); `torollo start` s
 
 ### If `torollo start` stops with an error
 
+Run the built-in environment check:
+
+```bash
+npx torollo doctor
+```
+
+It checks the active Node.js version, the Docker CLI, access to the same Docker daemon Torollo will use, the default frontend and backend ports, available disk space, and the installed Torollo version. Checks that block startup produce a non-zero exit code; occupied default ports are only a warning because Torollo can select the next available ports automatically.
+
+For a machine-readable support report that can be pasted into an issue:
+
+```bash
+npx torollo doctor --json
+```
+
+Home-directory paths are replaced with `~` in the report.
+
 The CLI probes Docker through the same socket the backend uses and names the problem it found, with the fix for your OS:
 
 | Message | Meaning | Fix |
