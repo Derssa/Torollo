@@ -61,7 +61,7 @@ const LOCAL_BUILDS: Record<string, LocalBuildSpec> = {
 const PRELOADED_NODE_TYPES: NodeTypeDescriptor[] = [
   NODE_TYPES.ubuntu,
   NODE_TYPES.postgres,
-  NODE_TYPES.mongo,
+  // MongoDB stays on demand because preloading its 1.32 GB image slows the first launch.
   NODE_TYPES.redis,
   NODE_TYPES.rabbitmq
 ];

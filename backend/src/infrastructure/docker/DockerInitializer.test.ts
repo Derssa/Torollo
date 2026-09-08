@@ -29,10 +29,9 @@ const ensureHostForwarding = (rootless: boolean) => (DockerInitializer as any).e
 const detectRootless = () => (DockerInitializer as any).detectRootless();
 const checkAndPullImages = () => (DockerInitializer as any).checkAndPullImages();
 
-const ALL_NODE_TAGS = [
+const PRELOADED_NODE_TAGS = [
   NODE_TYPES.ubuntu.image,
   NODE_TYPES.postgres.image,
-  NODE_TYPES.mongo.image,
   NODE_TYPES.redis.image,
   NODE_TYPES.rabbitmq.image
 ];
@@ -228,17 +227,17 @@ describe('DockerInitializer image preloading', () => {
     (mockedDocker.info as jest.Mock).mockResolvedValue({ SecurityOptions: ['name=rootless'] });
   });
 
-  it('counts every preloaded image and leaves no current image once done', async () => {
-    mockImages(ALL_NODE_TAGS);
+  it('preloads four images and leaves MongoDB on demand', async () => {
+    mockImages(PRELOADED_NODE_TAGS);
 
     await checkAndPullImages();
 
     expect(mockedDocker.pull).not.toHaveBeenCalled();
-    expect(getStartupState().images).toEqual({ total: 5, ready: 5, current: null });
+    expect(getStartupState().images).toEqual({ total: 4, ready: 4, current: null });
   });
 
   it('pulls the missing images and reports which one is in flight', async () => {
-    mockImages(ALL_NODE_TAGS.filter(tag => tag !== NODE_TYPES.ubuntu.image));
+    mockImages(PRELOADED_NODE_TAGS.filter(tag => tag !== NODE_TYPES.ubuntu.image));
     const seen: Array<{ label: string; action: string } | null> = [];
     mockPull(() => {
       seen.push(getStartupState().images.current);
@@ -250,11 +249,11 @@ describe('DockerInitializer image preloading', () => {
     expect(mockedDocker.pull).toHaveBeenCalledTimes(1);
     expect(mockedDocker.pull.mock.calls[0][0]).toBe(NODE_TYPES.ubuntu.image);
     expect(seen).toEqual([{ label: 'Ubuntu', action: 'pulling' }]);
-    expect(getStartupState().images).toEqual({ total: 5, ready: 5, current: null });
+    expect(getStartupState().images).toEqual({ total: 4, ready: 4, current: null });
   });
 
   it('marks the routine ready through initialize()', async () => {
-    mockImages(ALL_NODE_TAGS);
+    mockImages(PRELOADED_NODE_TAGS);
 
     DockerInitializer.initialize();
     await new Promise(resolve => setImmediate(resolve));
